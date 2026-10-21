@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Manage menu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top"><h1>Manage menu</h1><p><a href="/">View public menu</a></p></header>
+  <main>
+    <div class="panel">
+      <label for="pin">Admin PIN</label>
+      <input id="pin" type="password" autocomplete="off">
+    </div>
+    <form class="panel" id="form">
+      <h2 id="form-title">Add item</h2>
+      <input type="hidden" id="id">
+      <label for="name">Name</label><input id="name" required>
+      <div class="row">
+        <div><label for="price">Price</label><input id="price" type="number" min="0" step="0.01" required></div>
+        <div><label for="category">Category</label><input id="category" list="cat-list" required><datalist id="cat-list"></datalist></div>
+      </div>
+      <label for="description">Description</label><textarea id="description" rows="2"></textarea>
+      <label><input id="available" type="checkbox" checked style="width:auto"> Available today</label>
+      <button class="btn" type="submit" id="save">Add item</button>
+      <button class="btn ghost" type="button" id="cancel" hidden>Cancel edit</button>
+      <div class="msg" id="msg" role="status"></div>
+    </form>
+    <div class="panel"><h2>Current items</h2><div id="list"></div></div>
+  </main>
+  <script src="js/admin.js"></script>
+</body>
+</html>

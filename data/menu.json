@@ -1,0 +1,59 @@
+{
+  "restaurant": "My Restaurant",
+  "currency": "₱",
+  "categories": [
+    "Starters",
+    "Mains",
+    "Drinks"
+  ],
+  "items": [
+    {
+      "id": "a1",
+      "name": "Crispy Lumpia",
+      "price": 120,
+      "category": "Starters",
+      "description": "Pork and vegetable rolls with sweet chili dip.",
+      "available": true
+    },
+    {
+      "id": "a2",
+      "name": "Chicken Adobo",
+      "price": 220,
+      "category": "Mains",
+      "description": "Slow-braised in soy and vinegar, served with garlic rice.",
+      "available": true
+    },
+    {
+      "id": "a3",
+      "name": "Bicol Express",
+      "price": 240,
+      "category": "Mains",
+      "description": "Pork simmered in coconut milk with long green chilies.",
+      "available": true
+    },
+    {
+      "id": "a4",
+      "name": "Calamansi Juice",
+      "price": 80,
+      "category": "Drinks",
+      "description": "Fresh-squeezed, lightly sweetened.",
+      "available": true
+    },
+    {
+      "id": "mvhviatb",
+      "name": "mark",
+      "price": 123,
+      "category": "Starters",
+      "description": "btw",
+      "available": true
+    },
+    {
+      "id": "mvhvj60x",
+      "name": "asfa",
+      "price": 234,
+      "category": "Mains",
+      "description": "asf",
+      "available": true
+    }
+  ]
+}
