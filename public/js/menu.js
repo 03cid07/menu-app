@@ -113,7 +113,7 @@ $("#menu").addEventListener("click", (e) => {
       <div class="mv-name">${[...it.name].map((ch, k) => `<span style="--d:${k * 45}ms">${ch === " " ? "&nbsp;" : esc(ch)}</span>`).join("")}</div>
       <div class="mv-price">${money(it.price)}</div>
       ${it.description ? `<div class="mv-desc">${esc(it.description)}</div>` : ""}
-    </div></div>`;
+    </div><button type="button" class="mv-toggle" aria-expanded="true" aria-label="Hide details">${CHEV}</button></div>`;
   $("#viewer-stage").innerHTML = `<model-viewer src="${esc(src)}" alt="3D model of ${esc(b.dataset.name)}"
     ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
     camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%">
@@ -122,6 +122,16 @@ $("#menu").addEventListener("click", (e) => {
   </model-viewer>`;
   // Once the model has loaded, float the label just above its top
   const mv = $("#viewer-stage model-viewer");
+  let relayout = () => {};
+  // Arrow button: hides the text (leaving just the arrow), tap again to show it
+  const toggle = mv.querySelector(".mv-toggle");
+  toggle.addEventListener("click", () => {
+    const hide = toggle.getAttribute("aria-expanded") === "true";
+    toggle.setAttribute("aria-expanded", String(!hide));
+    toggle.setAttribute("aria-label", hide ? "Show details" : "Hide details");
+    mv.querySelector(".mv-label").classList.toggle("collapsed", hide);
+    relayout();
+  });
   mv.addEventListener("load", () => {
     const d = mv.getDimensions(), c = mv.getBoundingBoxCenter();
     mv.updateHotspot({ name: "hotspot-label", position: `${c.x} ${c.y + d.y / 2 + d.y * 0.06} ${c.z}` });
@@ -131,7 +141,7 @@ $("#menu").addEventListener("click", (e) => {
     const lab = mv.querySelector(".mv-label");
     let pct = 150, tries = 0;
     const fit = () => {
-      if (!mv.isConnected || tries++ > 8) return;
+      if (!mv.isConnected || tries++ > 3) return;
       const r = lab.getBoundingClientRect(), s = mv.getBoundingClientRect();
       if (r.height && r.top < s.top + 6) {
         pct += 15;
@@ -141,6 +151,27 @@ $("#menu").addEventListener("click", (e) => {
       }
     };
     setTimeout(fit, 250);
+    // Safety net: whatever the camera does, slide the label down so it is never cut off by the top edge
+    let raf = 0;
+    const clamp = () => {
+      raf = 0;
+      if (!mv.isConnected) return;
+      const shift = parseFloat(lab.style.getPropertyValue("--shift")) || 0;
+      const shiftX = parseFloat(lab.style.getPropertyValue("--shiftx")) || 0;
+      const r = lab.getBoundingClientRect(), s = mv.getBoundingClientRect();
+      if (!r.height) return;
+      const next = Math.max(0, Math.round(s.top + 8 - (r.top - shift)));
+      if (next !== shift) lab.style.setProperty("--shift", next + "px");
+      // Keep the label centered over the model: the camera orbits the model's middle, which is always the viewer's center line
+      const nextX = Math.round(s.left + s.width / 2 - (r.left + r.width / 2 - shiftX));
+      if (nextX !== shiftX) lab.style.setProperty("--shiftx", nextX + "px");
+    };
+    const schedule = () => { if (!raf) raf = requestAnimationFrame(clamp); };
+    relayout = schedule;
+    mv.addEventListener("camera-change", schedule);
+    window.addEventListener("resize", schedule);
+    setTimeout(schedule, 300);
+    setTimeout(schedule, 900);
   });
   viewer.hidden = false;
 });
