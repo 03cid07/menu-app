@@ -1,6 +1,9 @@
 let data;
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// Drink-like categories get a hot/cold choice (same test as the customer menu)
+const DRINK_RE = /drink|beverage|juice|coffee|tea\b|shake|smoothie|soda|cocktail|beer|wine/i;
+const syncTemp = () => { $("#temp-box").hidden = !DRINK_RE.test($("#category").value); };
 const say = (t, err) => { $("#msg").textContent = t; $("#msg").className = "msg" + (err ? " error" : ""); };
 
 async function api(method, url, body) {
@@ -108,7 +111,7 @@ async function refresh() {
 }
 
 function resetForm() {
-  $("#form").reset(); $("#id").value = ""; $("#available").checked = true; showModel(""); showImage(""); $("#imageFile").value = "";
+  $("#form").reset(); $("#id").value = ""; $("#available").checked = true; showModel(""); showImage(""); $("#imageFile").value = ""; syncTemp();
   $("#form-title").textContent = "Add item"; $("#save").textContent = "Add item"; $("#cancel").hidden = true;
 }
 
@@ -123,6 +126,7 @@ $("#form").addEventListener("submit", async (e) => {
     const body = { name: $("#name").value, price: $("#price").value, category: $("#category").value,
                    description: $("#description").value, ingredients: $("#ingredients").value, image: $("#image").value,
                    model: $("#model").value, modelScale: $("#model").value ? pct / 100 : 1,
+                   temp: DRINK_RE.test($("#category").value) ? $("#temp").value : "",
                    available: $("#available").checked };
     const id = $("#id").value;
     await (id ? api("PUT", `/api/items/${id}`, body) : api("POST", "/api/items", body));
@@ -131,6 +135,7 @@ $("#form").addEventListener("submit", async (e) => {
 });
 
 $("#cancel").addEventListener("click", resetForm);
+$("#category").addEventListener("input", syncTemp);
 $("#imageFile").addEventListener("change", () => {
   const f = $("#imageFile").files[0];
   if (f) showImage("", URL.createObjectURL(f));
@@ -152,7 +157,7 @@ $("#list").addEventListener("click", async (e) => {
       const i = data.items.find((x) => x.id === t.dataset.edit);
       $("#id").value = i.id; $("#name").value = i.name; $("#price").value = i.price;
       $("#category").value = i.category; $("#description").value = i.description; $("#available").checked = i.available;
-      $("#ingredients").value = i.ingredients || ""; showModel(i.model || "", i.modelScale || 1); $("#modelFile").value = ""; showImage(i.image || ""); $("#imageFile").value = "";
+      $("#ingredients").value = i.ingredients || ""; $("#temp").value = i.temp || ""; syncTemp(); showModel(i.model || "", i.modelScale || 1); $("#modelFile").value = ""; showImage(i.image || ""); $("#imageFile").value = "";
       $("#form-title").textContent = "Edit item"; $("#save").textContent = "Save changes"; $("#cancel").hidden = false;
       $("#name").focus();
     } else if (t.dataset.toggle) {

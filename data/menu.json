@@ -4,7 +4,8 @@
   "categories": [
     "Starters",
     "Mains",
-    "Drinks"
+    "Drinks",
+    "drinks"
   ],
   "items": [
     {
@@ -40,16 +41,6 @@
       "available": true
     },
     {
-      "id": "mvjlh54p",
-      "name": "cube",
-      "price": 123,
-      "category": "Starters",
-      "description": "",
-      "ingredients": "scxgsfdg",
-      "model": "models/model.glb",
-      "available": true
-    },
-    {
       "id": "mvklbf5p",
       "name": "asffqe",
       "price": 1234,
@@ -60,6 +51,31 @@
       "available": true,
       "image": "images/mvkm2ysu-ing6r.jpg",
       "modelScale": 1
+    },
+    {
+      "id": "mvl1v9tk",
+      "name": "hot coffe",
+      "price": 59,
+      "category": "Drinks",
+      "description": "chooms",
+      "ingredients": "",
+      "image": "images/mvl1v9rp-667fs.jpg",
+      "model": "models/model_50cm.glb",
+      "modelScale": 1,
+      "available": true,
+      "temp": "hot"
+    },
+    {
+      "id": "mvl1xt0l",
+      "name": "cold ice cream",
+      "price": 50,
+      "category": "Drinks",
+      "description": "cold yum yum",
+      "ingredients": "",
+      "image": "images/mvl1xsyt-of89x.jpg",
+      "model": "models/model_50cm.glb",
+      "modelScale": 1,
+      "available": true
     }
   ]
 }

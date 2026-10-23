@@ -26,6 +26,9 @@ const validModel = (m) => m === undefined || m === "" || /^models\/[A-Za-z0-9._-
 // An image value must be empty or a file inside public/images
 const validImage = (m) => m === undefined || m === "" || /^images\/[A-Za-z0-9._-]+\.(jpg|png|webp)$/i.test(m);
 
+// Drink serving temperature must be empty (auto), "hot" or "cold"
+const validTemp = (t) => t === undefined || t === "" || t === "hot" || t === "cold";
+
 // AR size multiplier must be between 1% and 1000%
 const validScale = (s) => s === undefined || (Number.isFinite(Number(s)) && Number(s) >= 0.01 && Number(s) <= 10);
 
@@ -64,13 +67,14 @@ app.get("/api/menu", (_req, res) => res.json(load()));
 // Admin: add, edit, delete items
 app.post("/api/items", requirePin, (req, res) => {
   const data = load();
-  const { name, price, category, description = "", ingredients = "", image = "", model = "", modelScale = 1, available = true } = req.body;
+  const { name, price, category, description = "", ingredients = "", image = "", model = "", modelScale = 1, temp = "", available = true } = req.body;
   if (!name || price === undefined || !category)
     return res.status(400).json({ error: "Name, price and category are required" });
   if (!validModel(model)) return res.status(400).json({ error: "Invalid 3D model file" });
   if (!validImage(image)) return res.status(400).json({ error: "Invalid photo" });
   if (!validScale(modelScale)) return res.status(400).json({ error: "AR size must be between 1% and 1000%" });
-  const item = { id: Date.now().toString(36), name, price: Number(price), category, description, ingredients, image, model, modelScale: Number(modelScale), available };
+  if (!validTemp(temp)) return res.status(400).json({ error: "Serving must be hot or cold" });
+  const item = { id: Date.now().toString(36), name, price: Number(price), category, description, ingredients, image, model, modelScale: Number(modelScale), temp, available };
   data.items.push(item);
   if (!data.categories.includes(category)) data.categories.push(category);
   save(data);
@@ -84,6 +88,7 @@ app.put("/api/items/:id", requirePin, (req, res) => {
   if (!validModel(req.body.model)) return res.status(400).json({ error: "Invalid 3D model file" });
   if (!validImage(req.body.image)) return res.status(400).json({ error: "Invalid photo" });
   if (!validScale(req.body.modelScale)) return res.status(400).json({ error: "AR size must be between 1% and 1000%" });
+  if (!validTemp(req.body.temp)) return res.status(400).json({ error: "Serving must be hot or cold" });
   data.items[i] = { ...data.items[i], ...req.body, id: req.params.id, price: Number(req.body.price ?? data.items[i].price) };
   if (req.body.modelScale !== undefined) data.items[i].modelScale = Number(req.body.modelScale);
   if (!data.categories.includes(data.items[i].category)) data.categories.push(data.items[i].category);

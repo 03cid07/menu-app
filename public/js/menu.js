@@ -8,10 +8,11 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 document.querySelector("nav.cats")?.remove();
 // Make sure the filter bar has a place on the page, even if index.html is an older copy
 if (!$("#fs")) { const el = document.createElement("div"); el.id = "fs"; $("#menu").before(el); }
-const view = { avail: false, ar: false, photo: false, sort: "featured", open: "" };
+const view = { avail: false, ar: false, photo: false, sort: "featured", open: "", q: "" };
 const SORTS = { featured: "Featured", low: "Price, low to high", high: "Price, high to low", az: "Name, A to Z" };
 const FILTERS = [["Availability", [["avail", "Available now"]]], ["Extras", [["ar", "3D / AR"], ["photo", "With photo"]]]];
 const filterCount = () => ["avail", "ar", "photo"].filter((k) => view[k]).length + (active !== "All" ? 1 : 0);
+const SEARCH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const CHEV = '<svg class="chev" viewBox="0 0 12 8" width="14" height="10" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 const itemHtml = (i, showCat) => `
@@ -27,7 +28,9 @@ const itemHtml = (i, showCat) => `
       </article>`;
 
 function visibleItems() {
+  const q = view.q.trim().toLowerCase();
   const list = data.items.filter((i) => (active === "All" || i.category === active)
+    && (!q || [i.name, i.description, i.ingredients, i.category].some((t) => String(t || "").toLowerCase().includes(q)))
     && (!view.avail || i.available) && (!view.ar || i.model) && (!view.photo || i.image));
   if (view.sort === "low") list.sort((x, y) => x.price - y.price);
   if (view.sort === "high") list.sort((x, y) => y.price - x.price);
@@ -40,8 +43,12 @@ function renderBar() {
   const focused = document.activeElement && document.activeElement.closest("#fs") ? document.activeElement : null;
   const key = focused && (focused.dataset.open ? `[data-open="${focused.dataset.open}"]` : focused.dataset.f ? `[data-f="${focused.dataset.f}"]` : focused.dataset.c ? `[data-c="${focused.dataset.c.replace(/"/g, "\\\"")}"]` : focused.name === "sort" ? `input[value="${focused.value}"]` : "");
   $("#fs").innerHTML = `<div class="fs-bar">
+      <button type="button" class="fs-icon${view.q ? " has-q" : ""}" data-open="search" aria-expanded="${view.open === "search"}" aria-controls="fs-search" aria-label="Search">${SEARCH}</button>
       <button type="button" class="fs-tab" data-open="filter" aria-expanded="${f}" aria-controls="fs-filter">Filter${n ? ` (${n})` : ""}${CHEV}</button>
       <button type="button" class="fs-tab" data-open="sort" aria-expanded="${s}" aria-controls="fs-sort">Sort by${CHEV}</button>
+    </div>
+    <div class="fs-panel" id="fs-search" ${view.open === "search" ? "" : "hidden"}>
+      <input type="search" id="fs-q" class="fs-q" placeholder="Search dishes…" aria-label="Search dishes" autocomplete="off" value="${esc(view.q)}">
     </div>
     <div class="fs-panel" id="fs-filter" ${f ? "" : "hidden"}>
       <div class="fs-row"><span class="fs-label">Category</span>${["All", ...data.categories].map((c) => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c === active}">${esc(c)}</button>`).join("")}</div>
@@ -58,6 +65,10 @@ function render() {
   $("#name").textContent = data.restaurant;
   document.title = `${data.restaurant} menu`;
   renderBar();
+  renderList();
+}
+
+function renderList() {
   const items = visibleItems();
   let html;
   if (!data.items.length) html = '<p class="empty">No items yet. Add some on the admin page.</p>';
@@ -78,15 +89,34 @@ $("#fs").addEventListener("click", (e) => {
   else if (t.dataset.open) view.open = view.open === t.dataset.open ? "" : t.dataset.open;
   else view[t.dataset.f] = !view[t.dataset.f];
   render();
+  if (t.dataset.open === "search" && view.open === "search") $("#fs-q").focus();
+});
+// Typing only refreshes the dish list, so the search box keeps focus
+$("#fs").addEventListener("input", (e) => {
+  if (e.target.id !== "fs-q") return;
+  view.q = e.target.value;
+  $("#fs .fs-icon").classList.toggle("has-q", !!view.q.trim());
+  renderList();
 });
 $("#fs").addEventListener("change", (e) => { if (e.target.name === "sort") { view.sort = e.target.value; render(); } });
 document.addEventListener("click", (e) => {
   if (!e.target.closest("[data-clear]")) return;
-  view.avail = view.ar = view.photo = false; active = "All"; render();
+  view.avail = view.ar = view.photo = false; view.q = ""; active = "All"; render();
 });
 
 fetch("/api/menu").then((r) => r.json()).then((d) => { data = d; render(); })
   .catch(() => ($("#menu").innerHTML = '<p class="empty">Could not load the menu. Check that the server is running.</p>'));
+
+// ---- Category animations: food gets munched, hot drinks steam, cold drinks frost over ----
+const DRINK_RE = /drink|beverage|juice|coffee|tea\b|shake|smoothie|soda|cocktail|beer|wine/i;
+const COLD_RE = /iced|ice\b|cold|juice|shake|smoothie|soda|lemonade|frappe|cooler|beer/i;
+function fxKind(it) {
+  if (!DRINK_RE.test(it.category || "")) return "food";
+  return it.temp === "cold" || (!it.temp && COLD_RE.test(it.name)) ? "cold" : "hot";
+}
+// Effects start on, unless the phone asks for reduced motion
+let fxOn = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+const rnd = (a, b) => a + Math.random() * (b - a);
 
 // ---- 3D / AR viewer (opens when a customer taps "View in 3D / AR") ----
 const viewer = document.createElement("div");
@@ -107,21 +137,103 @@ $("#menu").addEventListener("click", (e) => {
   $("#viewer-title").textContent = b.dataset.name;
   const scale = Number(b.dataset.scale) || 1;
   const src = scale === 1 ? b.dataset.model : `scaled/${scale}/${b.dataset.model.replace(/^models\//, "")}`;
-  const it = data.items.find((x) => x.id === b.dataset.id) || { name: b.dataset.name, price: 0 };
+  const it = data.items.find((x) => x.id === b.dataset.id) || { name: b.dataset.name, price: 0, category: "" };
+  const kind = fxKind(it);
   // Floating label: the name drops in letter by letter, the price pops, the description fades in
   const label = `<div slot="hotspot-label" class="mv-label" data-position="0 1 0"><div class="mv-card">
       <div class="mv-name">${[...it.name].map((ch, k) => `<span style="--d:${k * 45}ms">${ch === " " ? "&nbsp;" : esc(ch)}</span>`).join("")}</div>
       <div class="mv-price">${money(it.price)}</div>
       ${it.description ? `<div class="mv-desc">${esc(it.description)}</div>` : ""}
     </div><button type="button" class="mv-toggle" aria-expanded="true" aria-label="Hide details">${CHEV}</button></div>`;
-  $("#viewer-stage").innerHTML = `<model-viewer src="${esc(src)}" alt="3D model of ${esc(b.dataset.name)}"
+  $("#viewer-stage").innerHTML = `<div class="stage-wrap" data-fx="${kind}"><div class="fx" aria-hidden="true"><div class="fx-origin"></div></div><model-viewer src="${esc(src)}" alt="3D model of ${esc(b.dataset.name)}"
     ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
     camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%">
     ${label}
     <button slot="ar-button" type="button" class="btn ar-btn">View on your table (AR)</button>
-  </model-viewer>`;
+    <div slot="hotspot-fx" class="mv-fxpt" data-position="0 0 0"></div>
+  </model-viewer>
+  <button type="button" class="fx-toggle" aria-pressed="${fxOn}">Effects: ${fxOn ? "on" : "off"}</button></div>`;
   // Once the model has loaded, float the label just above its top
   const mv = $("#viewer-stage model-viewer");
+
+  // ---- Animation layer ----
+  const wrap = $("#viewer-stage .stage-wrap"), origin = wrap.querySelector(".fx-origin");
+  const fxpt = mv.querySelector(".mv-fxpt"), fxBtn = wrap.querySelector(".fx-toggle");
+  let timer = 0, raf = 0, placeRaf = 0;
+  const puff = (tag, cls, vars, life, text) => {
+    const el = document.createElement(tag);
+    el.className = cls;
+    if (text) el.textContent = text;
+    for (const k in vars) el.style.setProperty(k, vars[k]);
+    origin.appendChild(el);
+    setTimeout(() => el.remove(), life);
+  };
+  const stopFx = () => { clearInterval(timer); cancelAnimationFrame(raf); mv.scale = "1 1 1"; origin.textContent = ""; };
+  const startFx = () => {
+    stopFx();
+    if (kind === "hot") {
+      timer = setInterval(() => {
+        if (!mv.isConnected) return stopFx();
+        puff("i", "steam", { "--x": `${rnd(-16, 16)}px`, "--dx": `${rnd(-28, 28)}px`, "--t": `${rnd(2.2, 3.4)}s` }, 3500);
+      }, 330);
+    } else if (kind === "cold") {
+      timer = setInterval(() => {
+        if (!mv.isConnected) return stopFx();
+        if (Math.random() < 0.55) puff("i", "mist", { "--x": `${rnd(-30, 30)}px`, "--dx": `${rnd(-40, 40)}px`, "--t": `${rnd(2.6, 3.8)}s` }, 3900);
+        else puff("i", "spark", { "--x": `${rnd(-90, 90)}px`, "--y": `${rnd(-10, 120)}px` }, 1500);
+      }, 260);
+    } else {
+      // Munching: three squash-and-stretch chews, a short rest, repeat; crumbs fly on each chew
+      const t0 = performance.now(), BURST = 0.7, CYCLE = 2600;
+      let lastChew = -1;
+      const tick = (now) => {
+        if (!mv.isConnected) return stopFx();
+        const t = ((now - t0) % CYCLE) / CYCLE;
+        let s = 0;
+        if (t < BURST) {
+          const u = t / BURST;
+          s = Math.sin(Math.PI * u) * (0.5 - 0.5 * Math.cos(Math.PI * 6 * u)); // 3 smooth pulses
+          const chew = Math.floor(u * 3);
+          if (chew !== lastChew && u * 3 - chew > 0.5) {
+            lastChew = chew;
+            for (let k = 0; k < 3; k++) puff("i", "crumb", { "--x": `${rnd(-70, 70)}px`, "--y": `${rnd(20, 90)}px`, "--dx": `${rnd(-40, 40)}px`, "--up": `${rnd(-30, -8)}px` }, 1100);
+            if (chew === 1) puff("b", "nom", { "--x": `${rnd(50, 80)}px` }, 1100, "nom nom!");
+          }
+        } else lastChew = -1;
+        mv.scale = `${1 + 0.045 * s} ${1 - 0.09 * s} ${1 + 0.045 * s}`;
+        raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }
+  };
+  // Keep the effect anchored to the top of the model as the camera moves
+  const place = () => {
+    placeRaf = 0;
+    if (!mv.isConnected) return;
+    const r = fxpt.getBoundingClientRect(), w = wrap.getBoundingClientRect();
+    origin.style.left = `${r.left - w.left}px`;
+    origin.style.top = `${r.top - w.top}px`;
+  };
+  const schedulePlace = () => { if (!placeRaf) placeRaf = requestAnimationFrame(place); };
+  mv.addEventListener("camera-change", schedulePlace);
+  window.addEventListener("resize", schedulePlace);
+  mv.addEventListener("load", () => {
+    const d = mv.getDimensions(), c = mv.getBoundingBoxCenter();
+    mv.updateHotspot({ name: "hotspot-fx", position: `${c.x} ${c.y + d.y / 2} ${c.z}` });
+    schedulePlace(); setTimeout(schedulePlace, 300); setTimeout(schedulePlace, 900);
+    if (fxOn) startFx();
+  });
+  // Pause while the phone camera (AR) is open so the model keeps its true shape
+  mv.addEventListener("ar-status", (e) => {
+    if (e.detail.status === "session-started") stopFx();
+    else if (e.detail.status === "not-presenting" && fxOn) startFx();
+  });
+  fxBtn.addEventListener("click", () => {
+    fxOn = !fxOn;
+    fxBtn.setAttribute("aria-pressed", String(fxOn));
+    fxBtn.textContent = `Effects: ${fxOn ? "on" : "off"}`;
+    if (fxOn) startFx(); else stopFx();
+  });
   let relayout = () => {};
   // Arrow button: hides the text (leaving just the arrow), tap again to show it
   const toggle = mv.querySelector(".mv-toggle");

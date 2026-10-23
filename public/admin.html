@@ -25,6 +25,14 @@
       </div>
       <label for="description">Description</label><textarea id="description" rows="2"></textarea>
       <label for="ingredients">Ingredients</label><input id="ingredients" placeholder="e.g. Espresso, milk, caramel syrup">
+      <div id="temp-box" hidden>
+        <label for="temp">Serving (for the 3D animation)</label>
+        <select id="temp">
+          <option value="">Auto (guess from the name)</option>
+          <option value="hot">Hot (steam)</option>
+          <option value="cold">Cold (icy frost)</option>
+        </select>
+      </div>
       <label for="imageFile">Photo</label>
       <input id="imageFile" type="file" accept="image/*">
       <input type="hidden" id="image">
