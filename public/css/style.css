@@ -75,3 +75,17 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 .linkbtn { background: none; border: 0; padding: 0; margin-top: .5rem; color: var(--accent); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
 .itemcat { display: block; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; }
 @media (max-width: 520px) { .fs-label { min-width: 100%; } }
+
+/* ---- Animated label floating above the 3D model ---- */
+.mv-label { pointer-events: none; transform: translate(-50%, -100%); width: max-content; max-width: 210px; }
+.mv-card { background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 12px; padding: .55rem .8rem; text-align: center; box-shadow: 0 6px 18px rgba(0,0,0,.25); animation: mvFloat 3s ease-in-out infinite; }
+.mv-name { font-weight: 800; font-size: 1.05rem; line-height: 1.2; }
+.mv-name span { display: inline-block; animation: mvDrop .5s cubic-bezier(.2,.9,.3,1.3) both; animation-delay: var(--d); }
+.mv-price { display: inline-block; margin-top: .3rem; background: var(--accent); color: var(--accent-ink); font-weight: 700; padding: .1rem .7rem; border-radius: 999px; animation: mvPop .5s cubic-bezier(.3,1.7,.5,1) .55s both; }
+.mv-desc { margin-top: .35rem; font-size: .8rem; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; animation: mvFade .7s ease .9s both; }
+@keyframes mvDrop { from { opacity: 0; transform: translateY(-14px) scale(.8); } to { opacity: 1; transform: none; } }
+@keyframes mvPop { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+@keyframes mvFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes mvFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .mv-card, .mv-name span, .mv-price, .mv-desc { animation: none; } }
+@media (max-width: 520px) { .mv-label { max-width: 170px; } .mv-card { padding: .4rem .6rem; } .mv-name { font-size: .95rem; } .mv-desc { -webkit-line-clamp: 2; } }

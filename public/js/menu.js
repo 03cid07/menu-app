@@ -22,7 +22,7 @@ const itemHtml = (i, showCat) => `
           ${showCat ? `<small class="itemcat">${esc(i.category)}</small>` : ""}
           ${i.description ? `<p>${esc(i.description)}</p>` : ""}
           ${i.ingredients ? `<p class="ingredients"><strong>Ingredients:</strong> ${esc(i.ingredients)}</p>` : ""}
-          ${i.model ? `<button type="button" class="ar-open" data-model="${esc(i.model)}" data-scale="${esc(i.modelScale || 1)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
+          ${i.model ? `<button type="button" class="ar-open" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-scale="${esc(i.modelScale || 1)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
         </div>
       </article>`;
 
@@ -107,11 +107,41 @@ $("#menu").addEventListener("click", (e) => {
   $("#viewer-title").textContent = b.dataset.name;
   const scale = Number(b.dataset.scale) || 1;
   const src = scale === 1 ? b.dataset.model : `scaled/${scale}/${b.dataset.model.replace(/^models\//, "")}`;
+  const it = data.items.find((x) => x.id === b.dataset.id) || { name: b.dataset.name, price: 0 };
+  // Floating label: the name drops in letter by letter, the price pops, the description fades in
+  const label = `<div slot="hotspot-label" class="mv-label" data-position="0 1 0"><div class="mv-card">
+      <div class="mv-name">${[...it.name].map((ch, k) => `<span style="--d:${k * 45}ms">${ch === " " ? "&nbsp;" : esc(ch)}</span>`).join("")}</div>
+      <div class="mv-price">${money(it.price)}</div>
+      ${it.description ? `<div class="mv-desc">${esc(it.description)}</div>` : ""}
+    </div></div>`;
   $("#viewer-stage").innerHTML = `<model-viewer src="${esc(src)}" alt="3D model of ${esc(b.dataset.name)}"
     ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
-    camera-controls touch-action="pan-y" shadow-intensity="1">
+    camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%">
+    ${label}
     <button slot="ar-button" type="button" class="btn ar-btn">View on your table (AR)</button>
   </model-viewer>`;
+  // Once the model has loaded, float the label just above its top
+  const mv = $("#viewer-stage model-viewer");
+  mv.addEventListener("load", () => {
+    const d = mv.getDimensions(), c = mv.getBoundingBoxCenter();
+    mv.updateHotspot({ name: "hotspot-label", position: `${c.x} ${c.y + d.y / 2 + d.y * 0.06} ${c.z}` });
+    // Aim the camera a little above the model's middle so the model sits low and the label has headroom
+    mv.cameraTarget = `${c.x}m ${c.y + d.y * 0.22}m ${c.z}m`;
+    // Tall models: if the label still pokes out of the top, zoom out a bit and check again
+    const lab = mv.querySelector(".mv-label");
+    let pct = 150, tries = 0;
+    const fit = () => {
+      if (!mv.isConnected || tries++ > 8) return;
+      const r = lab.getBoundingClientRect(), s = mv.getBoundingClientRect();
+      if (r.height && r.top < s.top + 6) {
+        pct += 15;
+        mv.cameraOrbit = `auto auto ${pct}%`;
+        if (mv.jumpCameraToGoal) mv.jumpCameraToGoal();
+        setTimeout(fit, 120);
+      }
+    };
+    setTimeout(fit, 250);
+  });
   viewer.hidden = false;
 });
 $("#viewer-close").addEventListener("click", closeViewer);
