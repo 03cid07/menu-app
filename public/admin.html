@@ -25,11 +25,20 @@
       </div>
       <label for="description">Description</label><textarea id="description" rows="2"></textarea>
       <label for="ingredients">Ingredients</label><input id="ingredients" placeholder="e.g. Espresso, milk, caramel syrup">
+      <label for="imageFile">Photo</label>
+      <input id="imageFile" type="file" accept="image/*">
+      <input type="hidden" id="image">
+      <div id="image-preview" hidden><img id="image-img" alt="Photo preview"><button class="btn ghost" type="button" id="image-remove">Remove photo</button></div>
       <label for="modelFile">3D model (.glb)</label>
       <input id="modelFile" type="file" accept=".glb,model/gltf-binary">
       <input type="hidden" id="model">
       <div id="model-current"></div>
       <button class="btn ghost" type="button" id="model-remove" hidden>Remove 3D model</button>
+      <div id="size-box" hidden>
+        <label for="modelScale">AR size: <strong id="scale-label">100</strong>% of the original</label>
+        <input id="modelScale" type="range" min="1" max="200" step="1" value="100">
+        <div id="model-size"></div>
+      </div>
       <label><input id="available" type="checkbox" checked style="width:auto"> Available today</label>
       <button class="btn" type="submit" id="save">Add item</button>
       <button class="btn ghost" type="button" id="cancel" hidden>Cancel edit</button>

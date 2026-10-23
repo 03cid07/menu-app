@@ -19,7 +19,15 @@ nav.cats button { border: 1px solid var(--line); background: var(--surface); col
 nav.cats button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 main { max-width: 760px; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
 section.cat h2 { font-size: 1.5rem; margin: 2rem 0 .5rem; }
-.item { display: grid; grid-template-columns: 1fr auto; gap: .25rem 1rem; padding: .9rem 0; border-bottom: 1px solid var(--line); }
+.item { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
+.thumb { width: 96px; height: 96px; flex: none; border-radius: 12px; object-fit: cover; background: var(--surface); border: 1px solid var(--line); }
+.thumb.ph { display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; color: var(--accent); }
+.info { flex: 1; min-width: 0; }
+.head { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; }
+.admin-row { display: flex; align-items: center; gap: .75rem; }
+.admin-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+#image-preview { display: flex; align-items: center; gap: .75rem; margin-top: .5rem; }
+#image-img { width: 80px; height: 80px; object-fit: cover; border-radius: 10px; }
 .item h3 { margin: 0; font-size: 1.1rem; }
 .item p { margin: 0; color: var(--muted); grid-column: 1; max-width: 60ch; }
 .price { font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -46,4 +54,4 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 .ar-btn { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); margin: 0; }
 .viewer-hint { color: var(--muted); font-size: .9rem; margin: .6rem 0 0; }
 #model-current { color: var(--muted); font-size: .9rem; margin-top: .3rem; }
-@media (max-width: 520px) { .row { grid-template-columns: 1fr; } .admin-item { flex-direction: column; align-items: flex-start; } }
+@media (max-width: 520px) { .thumb { width: 78px; height: 78px; } .head { flex-direction: column; gap: 0; } .row { grid-template-columns: 1fr; } .admin-item { flex-direction: column; align-items: flex-start; } }

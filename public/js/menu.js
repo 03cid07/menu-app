@@ -15,11 +15,13 @@ function render() {
     if (!items.length) return "";
     return `<section class="cat"><h2>${esc(c)}</h2>${items.map((i) => `
       <article class="item ${i.available ? "" : "sold-out"}">
-        <h3>${esc(i.name)}${i.available ? "" : '<span class="badge">Sold out</span>'}</h3>
-        <span class="price">${money(i.price)}</span>
-        ${i.description ? `<p>${esc(i.description)}</p>` : ""}
-        ${i.ingredients ? `<p class="ingredients"><strong>Ingredients:</strong> ${esc(i.ingredients)}</p>` : ""}
-        ${i.model ? `<button type="button" class="ar-open" data-model="${esc(i.model)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
+        ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="${esc(i.name)}" loading="lazy">` : `<div class="thumb ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`}
+        <div class="info">
+          <div class="head"><h3>${esc(i.name)}${i.available ? "" : '<span class="badge">Sold out</span>'}</h3><span class="price">${money(i.price)}</span></div>
+          ${i.description ? `<p>${esc(i.description)}</p>` : ""}
+          ${i.ingredients ? `<p class="ingredients"><strong>Ingredients:</strong> ${esc(i.ingredients)}</p>` : ""}
+          ${i.model ? `<button type="button" class="ar-open" data-model="${esc(i.model)}" data-scale="${esc(i.modelScale || 1)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
+        </div>
       </article>`).join("")}</section>`;
   }).join("");
   $("#menu").innerHTML = html || '<p class="empty">No items yet. Add some on the admin page.</p>';
@@ -49,7 +51,9 @@ $("#menu").addEventListener("click", (e) => {
   const b = e.target.closest(".ar-open");
   if (!b) return;
   $("#viewer-title").textContent = b.dataset.name;
-  $("#viewer-stage").innerHTML = `<model-viewer src="${esc(b.dataset.model)}" alt="3D model of ${esc(b.dataset.name)}"
+  const scale = Number(b.dataset.scale) || 1;
+  const src = scale === 1 ? b.dataset.model : `scaled/${scale}/${b.dataset.model.replace(/^models\//, "")}`;
+  $("#viewer-stage").innerHTML = `<model-viewer src="${esc(src)}" alt="3D model of ${esc(b.dataset.name)}"
     ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
     camera-controls touch-action="pan-y" shadow-intensity="1">
     <button slot="ar-button" type="button" class="btn ar-btn">View on your table (AR)</button>

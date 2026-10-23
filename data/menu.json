@@ -48,6 +48,18 @@
       "ingredients": "scxgsfdg",
       "model": "models/model.glb",
       "available": true
+    },
+    {
+      "id": "mvklbf5p",
+      "name": "asffqe",
+      "price": 1234,
+      "category": "Starters",
+      "description": "dsvsd",
+      "ingredients": "sdgsa",
+      "model": "models/model_50cm.glb",
+      "available": true,
+      "image": "images/mvkm2ysu-ing6r.jpg",
+      "modelScale": 1
     }
   ]
 }
