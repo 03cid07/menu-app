@@ -183,7 +183,7 @@ $("#menu").addEventListener("click", (e) => {
         else puff("i", "spark", { "--x": `${rnd(-90, 90)}px`, "--y": `${rnd(-10, 120)}px` }, 1500);
       }, 260);
     } else {
-      // Munching: three squash-and-stretch chews, a short rest, repeat; crumbs fly on each chew
+      // Munching: model stays still; crumbs fly on each of three chews, a short rest, repeat
       const t0 = performance.now(), BURST = 0.7, CYCLE = 2600;
       let lastChew = -1;
       const tick = (now) => {
@@ -200,7 +200,6 @@ $("#menu").addEventListener("click", (e) => {
             if (chew === 1) puff("b", "nom", { "--x": `${rnd(50, 80)}px` }, 1100, "nom nom!");
           }
         } else lastChew = -1;
-        mv.scale = `${1 + 0.045 * s} ${1 - 0.09 * s} ${1 + 0.045 * s}`;
         raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
@@ -209,7 +208,7 @@ $("#menu").addEventListener("click", (e) => {
   // Keep the effect anchored to the top of the model as the camera moves
   const place = () => {
     placeRaf = 0;
-    if (!mv.isConnected) return;
+    if (!mv.isConnected || inAR) return;
     const r = fxpt.getBoundingClientRect(), w = wrap.getBoundingClientRect();
     origin.style.left = `${r.left - w.left}px`;
     origin.style.top = `${r.top - w.top}px`;
@@ -223,10 +222,24 @@ $("#menu").addEventListener("click", (e) => {
     schedulePlace(); setTimeout(schedulePlace, 300); setTimeout(schedulePlace, 900);
     if (fxOn) startFx();
   });
-  // Pause while the phone camera (AR) is open so the model keeps its true shape
+  // In AR (WebXR camera view) the page itself is hidden, so the effect layer is moved inside
+  // <model-viewer>, which is what the browser shows on top of the camera. Effects keep running there.
+  const fxLayer = wrap.querySelector(".fx");
+  let inAR = false;
   mv.addEventListener("ar-status", (e) => {
-    if (e.detail.status === "session-started") stopFx();
-    else if (e.detail.status === "not-presenting" && fxOn) startFx();
+    if (e.detail.status === "session-started") {
+      inAR = true;
+      fxLayer.classList.add("in-ar");
+      mv.appendChild(fxLayer);
+      origin.style.left = "50%"; origin.style.top = "52%"; // no hotspot tracking in AR: spawn near screen center
+      if (fxOn) startFx();
+    } else if (e.detail.status === "not-presenting") {
+      inAR = false;
+      fxLayer.classList.remove("in-ar");
+      wrap.insertBefore(fxLayer, mv);
+      schedulePlace();
+      if (fxOn) startFx();
+    }
   });
   fxBtn.addEventListener("click", () => {
     fxOn = !fxOn;
