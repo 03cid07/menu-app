@@ -3,32 +3,86 @@ const $ = (s) => document.querySelector(s);
 const money = (n) => `${data.currency}${Number(n).toLocaleString()}`;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
-function render() {
-  $("#name").textContent = data.restaurant;
-  document.title = `${data.restaurant} menu`;
-  const cats = ["All", ...data.categories];
-  $("#cats").innerHTML = cats
-    .map((c) => `<button aria-pressed="${c === active}" data-c="${esc(c)}">${esc(c)}</button>`).join("");
-  const shown = data.categories.filter((c) => active === "All" || c === active);
-  const html = shown.map((c) => {
-    const items = data.items.filter((i) => i.category === c);
-    if (!items.length) return "";
-    return `<section class="cat"><h2>${esc(c)}</h2>${items.map((i) => `
+// ---- Filter & sort state ----
+// Categories now live inside the Filter panel, so remove the old button row if the page still has it
+document.querySelector("nav.cats")?.remove();
+// Make sure the filter bar has a place on the page, even if index.html is an older copy
+if (!$("#fs")) { const el = document.createElement("div"); el.id = "fs"; $("#menu").before(el); }
+const view = { avail: false, ar: false, photo: false, sort: "featured", open: "" };
+const SORTS = { featured: "Featured", low: "Price, low to high", high: "Price, high to low", az: "Name, A to Z" };
+const FILTERS = [["Availability", [["avail", "Available now"]]], ["Extras", [["ar", "3D / AR"], ["photo", "With photo"]]]];
+const filterCount = () => ["avail", "ar", "photo"].filter((k) => view[k]).length + (active !== "All" ? 1 : 0);
+const CHEV = '<svg class="chev" viewBox="0 0 12 8" width="14" height="10" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+const itemHtml = (i, showCat) => `
       <article class="item ${i.available ? "" : "sold-out"}">
         ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="${esc(i.name)}" loading="lazy">` : `<div class="thumb ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`}
         <div class="info">
           <div class="head"><h3>${esc(i.name)}${i.available ? "" : '<span class="badge">Sold out</span>'}</h3><span class="price">${money(i.price)}</span></div>
+          ${showCat ? `<small class="itemcat">${esc(i.category)}</small>` : ""}
           ${i.description ? `<p>${esc(i.description)}</p>` : ""}
           ${i.ingredients ? `<p class="ingredients"><strong>Ingredients:</strong> ${esc(i.ingredients)}</p>` : ""}
           ${i.model ? `<button type="button" class="ar-open" data-model="${esc(i.model)}" data-scale="${esc(i.modelScale || 1)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
         </div>
-      </article>`).join("")}</section>`;
-  }).join("");
-  $("#menu").innerHTML = html || '<p class="empty">No items yet. Add some on the admin page.</p>';
+      </article>`;
+
+function visibleItems() {
+  const list = data.items.filter((i) => (active === "All" || i.category === active)
+    && (!view.avail || i.available) && (!view.ar || i.model) && (!view.photo || i.image));
+  if (view.sort === "low") list.sort((x, y) => x.price - y.price);
+  if (view.sort === "high") list.sort((x, y) => y.price - x.price);
+  if (view.sort === "az") list.sort((x, y) => x.name.localeCompare(y.name));
+  return list;
 }
 
-$("#cats").addEventListener("click", (e) => {
-  if (e.target.dataset.c) { active = e.target.dataset.c; render(); }
+function renderBar() {
+  const n = filterCount(), f = view.open === "filter", s = view.open === "sort";
+  const focused = document.activeElement && document.activeElement.closest("#fs") ? document.activeElement : null;
+  const key = focused && (focused.dataset.open ? `[data-open="${focused.dataset.open}"]` : focused.dataset.f ? `[data-f="${focused.dataset.f}"]` : focused.dataset.c ? `[data-c="${focused.dataset.c.replace(/"/g, "\\\"")}"]` : focused.name === "sort" ? `input[value="${focused.value}"]` : "");
+  $("#fs").innerHTML = `<div class="fs-bar">
+      <button type="button" class="fs-tab" data-open="filter" aria-expanded="${f}" aria-controls="fs-filter">Filter${n ? ` (${n})` : ""}${CHEV}</button>
+      <button type="button" class="fs-tab" data-open="sort" aria-expanded="${s}" aria-controls="fs-sort">Sort by${CHEV}</button>
+    </div>
+    <div class="fs-panel" id="fs-filter" ${f ? "" : "hidden"}>
+      <div class="fs-row"><span class="fs-label">Category</span>${["All", ...data.categories].map((c) => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c === active}">${esc(c)}</button>`).join("")}</div>
+      ${FILTERS.map(([label, chips]) => `<div class="fs-row"><span class="fs-label">${label}</span>${chips.map(([k, t]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="${view[k]}">${t}</button>`).join("")}</div>`).join("")}
+      ${n ? '<button type="button" class="linkbtn" data-clear>Clear all</button>' : ""}
+    </div>
+    <div class="fs-panel" id="fs-sort" ${s ? "" : "hidden"} role="radiogroup" aria-label="Sort by">
+      ${Object.entries(SORTS).map(([k, t]) => `<label class="radio"><input type="radio" name="sort" value="${k}" ${view.sort === k ? "checked" : ""}><span>${t}</span></label>`).join("")}
+    </div>`;
+  if (key) { const el = $("#fs").querySelector(key); if (el) el.focus(); }
+}
+
+function render() {
+  $("#name").textContent = data.restaurant;
+  document.title = `${data.restaurant} menu`;
+  renderBar();
+  const items = visibleItems();
+  let html;
+  if (!data.items.length) html = '<p class="empty">No items yet. Add some on the admin page.</p>';
+  else if (!items.length) html = '<p class="empty">No dishes match these filters. <button type="button" class="linkbtn" data-clear>Clear filters</button></p>';
+  else if (view.sort === "featured") {
+    html = data.categories.map((c) => {
+      const inCat = items.filter((i) => i.category === c);
+      return inCat.length ? `<section class="cat"><h2>${esc(c)}</h2>${inCat.map((i) => itemHtml(i, false)).join("")}</section>` : "";
+    }).join("");
+  } else html = `<section class="cat"><h2>${SORTS[view.sort]}</h2>${items.map((i) => itemHtml(i, true)).join("")}</section>`;
+  $("#menu").innerHTML = html;
+}
+
+$("#fs").addEventListener("click", (e) => {
+  const t = e.target.closest("[data-open],[data-f],[data-c]");
+  if (!t) return;
+  if (t.dataset.c !== undefined) active = t.dataset.c;
+  else if (t.dataset.open) view.open = view.open === t.dataset.open ? "" : t.dataset.open;
+  else view[t.dataset.f] = !view[t.dataset.f];
+  render();
+});
+$("#fs").addEventListener("change", (e) => { if (e.target.name === "sort") { view.sort = e.target.value; render(); } });
+document.addEventListener("click", (e) => {
+  if (!e.target.closest("[data-clear]")) return;
+  view.avail = view.ar = view.photo = false; active = "All"; render();
 });
 
 fetch("/api/menu").then((r) => r.json()).then((d) => { data = d; render(); })

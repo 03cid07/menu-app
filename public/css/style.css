@@ -55,3 +55,23 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 .viewer-hint { color: var(--muted); font-size: .9rem; margin: .6rem 0 0; }
 #model-current { color: var(--muted); font-size: .9rem; margin-top: .3rem; }
 @media (max-width: 520px) { .thumb { width: 78px; height: 78px; } .head { flex-direction: column; gap: 0; } .row { grid-template-columns: 1fr; } .admin-item { flex-direction: column; align-items: flex-start; } }
+
+/* ---- Filter / sort bar ---- */
+#fs { max-width: 760px; margin: 0 auto; padding: 0 1.25rem; }
+.fs-bar { display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); margin-top: 1rem; }
+.fs-tab { display: flex; justify-content: space-between; align-items: center; gap: .5rem; background: none; border: 0; color: var(--ink); font: inherit; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: .85rem 0; cursor: pointer; }
+.fs-tab + .fs-tab { border-left: 1px solid var(--ink); padding-left: 1rem; }
+.fs-tab .chev { transition: transform .15s; flex: none; }
+.fs-tab[aria-expanded="true"] .chev { transform: rotate(180deg); }
+.fs-panel { padding: .9rem 0 1rem; border-bottom: 1px solid var(--ink); }
+.fs-panel[hidden] { display: none; }
+.fs-row { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin: .45rem 0; }
+.fs-label { min-width: 7.5rem; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .78rem; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.chip { border: 1.5px solid var(--accent); background: transparent; color: var(--ink); padding: .35rem .95rem; border-radius: 999px; font: inherit; font-weight: 500; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.radio { display: flex; align-items: center; gap: .7rem; padding: .4rem 0; cursor: pointer; font-weight: 500; }
+.radio input { appearance: none; -webkit-appearance: none; width: 1.35rem; height: 1.35rem; margin: 0; border: 1.5px solid var(--ink); border-radius: 50%; background: transparent; flex: none; padding: 0; }
+.radio input:checked { background: var(--accent); box-shadow: inset 0 0 0 3px var(--bg); border-color: var(--accent); }
+.linkbtn { background: none; border: 0; padding: 0; margin-top: .5rem; color: var(--accent); font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+.itemcat { display: block; color: var(--muted); font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; }
+@media (max-width: 520px) { .fs-label { min-width: 100%; } }
