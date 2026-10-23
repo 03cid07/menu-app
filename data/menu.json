@@ -40,19 +40,13 @@
       "available": true
     },
     {
-      "id": "mvhviatb",
-      "name": "mark",
+      "id": "mvjlh54p",
+      "name": "cube",
       "price": 123,
       "category": "Starters",
-      "description": "btw",
-      "available": true
-    },
-    {
-      "id": "mvhvj60x",
-      "name": "asfa",
-      "price": 234,
-      "category": "Mains",
-      "description": "asf",
+      "description": "",
+      "ingredients": "scxgsfdg",
+      "model": "models/model.glb",
       "available": true
     }
   ]

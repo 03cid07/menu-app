@@ -36,4 +36,14 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 .admin-item { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .7rem 0; border-bottom: 1px solid var(--line); }
 .msg { min-height: 1.4em; margin-top: .75rem; font-weight: 600; }
 .msg.error { color: var(--alert); }
+.item .ingredients { font-size: .9rem; }
+.ar-open { grid-column: 1; justify-self: start; margin-top: .4rem; border: 1px solid var(--accent); background: transparent; color: var(--accent); padding: .35rem .8rem; border-radius: 999px; font: inherit; font-weight: 600; cursor: pointer; }
+.viewer { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.viewer[hidden] { display: none; }
+.viewer-box { background: var(--surface); color: var(--ink); border-radius: 12px; width: min(560px, 100%); padding: 1rem; }
+.viewer-top { display: flex; justify-content: space-between; align-items: center; }
+#viewer-stage model-viewer { width: 100%; height: min(60vh, 420px); background: var(--bg); border-radius: 10px; margin-top: .6rem; }
+.ar-btn { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); margin: 0; }
+.viewer-hint { color: var(--muted); font-size: .9rem; margin: .6rem 0 0; }
+#model-current { color: var(--muted); font-size: .9rem; margin-top: .3rem; }
 @media (max-width: 520px) { .row { grid-template-columns: 1fr; } .admin-item { flex-direction: column; align-items: flex-start; } }
