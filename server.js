@@ -6,6 +6,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PIN = process.env.ADMIN_PIN || "1234"; // change this!
 const DATA_FILE = path.join(__dirname, "data", "menu.json");
+const RATINGS_FILE = path.join(__dirname, "data", "ratings.json");
 const MODELS_DIR = path.join(__dirname, "public", "models");
 const IMAGES_DIR = path.join(__dirname, "public", "images");
 fs.mkdirSync(MODELS_DIR, { recursive: true });
@@ -61,8 +62,37 @@ app.get("/scaled/:scale/:file", (req, res) => {
   res.type("model/gltf-binary").set("Cache-Control", "no-cache").send(s === 1 ? buf : scaleGlb(buf, s));
 });
 
-// Public: read the menu
-app.get("/api/menu", (_req, res) => res.json(load()));
+// ---- Ratings: { itemId: { deviceId: stars } }, kept apart from menu.json ----
+const loadRatings = () => { try { return JSON.parse(fs.readFileSync(RATINGS_FILE, "utf8")); } catch { return {}; } };
+const saveRatings = (r) => fs.writeFileSync(RATINGS_FILE, JSON.stringify(r, null, 2));
+const summary = (byDevice = {}) => {
+  const v = Object.values(byDevice);
+  return { avg: v.length ? Math.round((v.reduce((a, b) => a + b, 0) / v.length) * 10) / 10 : 0, count: v.length };
+};
+
+// Public: read the menu (each item also carries its rating summary)
+app.get("/api/menu", (_req, res) => {
+  const d = load(), r = loadRatings();
+  d.items = d.items.map((i) => ({ ...i, rating: summary(r[i.id]) }));
+  res.json(d);
+});
+
+// Public: rate a dish 1-5 stars. One rating per device per dish (rating again replaces it).
+const hits = new Map(); // simple per-visitor limit: 30 ratings per 10 minutes
+app.post("/api/items/:id/rate", (req, res) => {
+  const ip = req.get("cf-connecting-ip") || req.ip, now = Date.now();
+  const recent = (hits.get(ip) || []).filter((t) => now - t < 600000);
+  if (recent.length >= 30) return res.status(429).json({ error: "Too many ratings, try again later" });
+  const stars = Number(req.body.stars), device = String(req.body.device || "");
+  if (!Number.isInteger(stars) || stars < 1 || stars > 5) return res.status(400).json({ error: "Stars must be 1 to 5" });
+  if (!/^[A-Za-z0-9-]{8,64}$/.test(device)) return res.status(400).json({ error: "Invalid device" });
+  if (!load().items.some((x) => x.id === req.params.id)) return res.status(404).json({ error: "Item not found" });
+  recent.push(now); hits.set(ip, recent);
+  const all = loadRatings();
+  (all[req.params.id] = all[req.params.id] || {})[device] = stars;
+  saveRatings(all);
+  res.json(summary(all[req.params.id]));
+});
 
 // Admin: add, edit, delete items
 app.post("/api/items", requirePin, (req, res) => {
@@ -82,6 +112,7 @@ app.post("/api/items", requirePin, (req, res) => {
 });
 
 app.put("/api/items/:id", requirePin, (req, res) => {
+  delete req.body.rating; // ratings come from customers only
   const data = load();
   const i = data.items.findIndex((x) => x.id === req.params.id);
   if (i < 0) return res.status(404).json({ error: "Item not found" });
@@ -124,6 +155,7 @@ app.delete("/api/items/:id", requirePin, (req, res) => {
   const data = load();
   data.items = data.items.filter((x) => x.id !== req.params.id);
   save(data);
+  const rt = loadRatings(); if (rt[req.params.id]) { delete rt[req.params.id]; saveRatings(rt); }
   res.status(204).end();
 });
 

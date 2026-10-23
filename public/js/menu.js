@@ -15,11 +15,46 @@ const filterCount = () => ["avail", "ar", "photo"].filter((k) => view[k]).length
 const SEARCH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const CHEV = '<svg class="chev" viewBox="0 0 12 8" width="14" height="10" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+
+// ---- Ratings + product detail card (opens when a dish is tapped) ----
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode: ratings still work this visit */ } },
+};
+let devId = store.get("menuDevice");
+if (!devId) { devId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 12); store.set("menuDevice", devId); }
+const myRatings = () => { try { return JSON.parse(store.get("menuRatings") || "{}"); } catch { return {}; } };
+function ratingHtml(i, long) {
+  const r = i.rating || { avg: 0, count: 0 };
+  if (!r.count) return long ? '<div class="rating"><span class="stars" aria-hidden="true"></span><span class="rcount">No ratings yet</span></div>' : "";
+  return `<div class="rating"><span class="stars" style="--pct:${(r.avg / 5) * 100}%" role="img" aria-label="${r.avg} out of 5 stars"></span><span class="rnum">${r.avg.toFixed(1)}</span><span class="rcount">(${r.count}${long ? ` rating${r.count === 1 ? "" : "s"}` : ""})</span></div>`;
+}
+function rateHtml(i) {
+  const mine = myRatings()[i.id] || 0;
+  return `<h3 class="sheet-sub">${mine ? "Your rating" : "Rate this dish"}</h3>
+    <div class="rate-stars" role="group" aria-label="Rate this dish">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="rate-star${n <= mine ? " on" : ""}" data-n="${n}" aria-label="${n} star${n === 1 ? "" : "s"}" aria-pressed="${n === mine}">\u2605</button>`).join("")}</div>
+    <p class="rate-msg" role="status">${mine ? "Tap a star to change it." : "Tap a star to rate."}</p>`;
+}
+function sheetHtml(i) {
+  return `<button type="button" class="sheet-close" aria-label="Close">\u00d7</button>
+    ${i.image ? `<img class="sheet-hero" src="${esc(i.image)}" alt="${esc(i.name)}">` : `<div class="sheet-hero sheet-ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`}
+    <div class="sheet-body">
+      <div class="sheet-head"><h2 id="sheet-title">${esc(i.name)}</h2><span class="price big">${money(i.price)}</span></div>
+      <div class="sheet-meta"><small class="itemcat">${esc(i.category)}</small><span class="tag ${i.available ? "ok" : "no"}">${i.available ? "Available" : "Sold out"}</span></div>
+      <div class="sheet-rating">${ratingHtml(i, true)}</div>
+      ${i.description ? `<h3 class="sheet-sub">Description</h3><p class="sheet-text">${esc(i.description)}</p>` : ""}
+      ${i.ingredients ? `<h3 class="sheet-sub">Ingredients</h3><p class="sheet-text">${esc(i.ingredients)}</p>` : ""}
+      ${i.model ? `<button type="button" class="ar-open sheet-ar" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-scale="${esc(i.modelScale || 1)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
+      <div class="sheet-rate">${rateHtml(i)}</div>
+    </div>`;
+}
+
 const itemHtml = (i, showCat) => `
-      <article class="item ${i.available ? "" : "sold-out"}">
+      <article class="item ${i.available ? "" : "sold-out"}" data-id="${esc(i.id)}">
         ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="${esc(i.name)}" loading="lazy">` : `<div class="thumb ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`}
         <div class="info">
-          <div class="head"><h3>${esc(i.name)}${i.available ? "" : '<span class="badge">Sold out</span>'}</h3><span class="price">${money(i.price)}</span></div>
+          <div class="head"><h3><button type="button" class="item-open" aria-haspopup="dialog">${esc(i.name)}</button>${i.available ? "" : '<span class="badge">Sold out</span>'}</h3><span class="price">${money(i.price)}</span></div>
+          ${ratingHtml(i, false)}
           ${showCat ? `<small class="itemcat">${esc(i.category)}</small>` : ""}
           ${i.description ? `<p>${esc(i.description)}</p>` : ""}
           ${i.ingredients ? `<p class="ingredients"><strong>Ingredients:</strong> ${esc(i.ingredients)}</p>` : ""}
@@ -104,6 +139,65 @@ document.addEventListener("click", (e) => {
   view.avail = view.ar = view.photo = false; view.q = ""; active = "All"; render();
 });
 
+
+// ---- Product detail card ----
+const sheet = document.createElement("div");
+sheet.className = "sheet";
+sheet.hidden = true;
+sheet.innerHTML = '<div class="sheet-box" role="dialog" aria-modal="true" aria-labelledby="sheet-title"></div>';
+document.body.appendChild(sheet);
+const sheetBox = sheet.querySelector(".sheet-box");
+let sheetItem = null, sheetOpener = null;
+function openSheet(id, opener) {
+  sheetItem = data.items.find((x) => x.id === id);
+  if (!sheetItem) return;
+  sheetOpener = opener || null;
+  sheetBox.innerHTML = sheetHtml(sheetItem);
+  sheetBox.scrollTop = 0;
+  sheet.hidden = false;
+  document.body.classList.add("no-scroll");
+  sheetBox.querySelector(".sheet-close").focus();
+}
+function closeSheet() {
+  if (sheet.hidden) return;
+  sheet.hidden = true;
+  document.body.classList.remove("no-scroll");
+  const back = sheetItem && document.querySelector(`.item[data-id="${CSS.escape(sheetItem.id)}"] .item-open`);
+  (back || sheetOpener)?.focus?.();
+  sheetItem = null;
+}
+document.addEventListener("click", (e) => {
+  const card = e.target.closest("#menu .item[data-id]");
+  if (!card) return;
+  const inner = e.target.closest("button, a");
+  if (inner && !inner.classList.contains("item-open")) return; // e.g. the 3D / AR button keeps its own job
+  openSheet(card.dataset.id, card.querySelector(".item-open"));
+});
+sheet.addEventListener("click", (e) => {
+  if (e.target === sheet || e.target.closest(".sheet-close")) return closeSheet();
+  const star = e.target.closest(".rate-star");
+  if (!star || !sheetItem) return;
+  const item = sheetItem, n = Number(star.dataset.n), msg = sheetBox.querySelector(".rate-msg");
+  msg.textContent = "Saving\u2026";
+  fetch(`/api/items/${encodeURIComponent(item.id)}/rate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stars: n, device: devId }) })
+    .then((r) => r.json().then((j) => { if (!r.ok) throw new Error(j.error || "Could not save your rating"); return j; }))
+    .then((sum) => {
+      item.rating = sum;
+      const mine = myRatings(); mine[item.id] = n; store.set("menuRatings", JSON.stringify(mine));
+      if (sheetItem !== item) return;
+      sheetBox.querySelector(".sheet-rating").innerHTML = ratingHtml(item, true);
+      sheetBox.querySelector(".sheet-rate").innerHTML = rateHtml(item);
+      sheetBox.querySelector(".rate-msg").textContent = `Thanks! You rated ${n} star${n === 1 ? "" : "s"}.`;
+      sheetBox.querySelector(`.rate-star[data-n="${n}"]`).focus();
+      renderList();
+    })
+    .catch((err) => { msg.textContent = err.message || "Could not save your rating"; });
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!viewer.hidden) closeViewer(); else closeSheet();
+});
+
 fetch("/api/menu").then((r) => r.json()).then((d) => { data = d; render(); })
   .catch(() => ($("#menu").innerHTML = '<p class="empty">Could not load the menu. Check that the server is running.</p>'));
 
@@ -131,7 +225,7 @@ document.body.appendChild(viewer);
 
 const closeViewer = () => { viewer.hidden = true; $("#viewer-stage").innerHTML = ""; };
 
-$("#menu").addEventListener("click", (e) => {
+document.addEventListener("click", (e) => {
   const b = e.target.closest(".ar-open");
   if (!b) return;
   $("#viewer-title").textContent = b.dataset.name;
