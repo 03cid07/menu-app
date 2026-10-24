@@ -49,17 +49,14 @@ function sheetHtml(i) {
     </div>`;
 }
 
-const itemHtml = (i, showCat) => `
+// List row: just the photo and the name. Everything else lives in the detail card (openSheet).
+const itemHtml = (i) => `
       <article class="item ${i.available ? "" : "sold-out"}" data-id="${esc(i.id)}">
-        ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="${esc(i.name)}" loading="lazy">` : `<div class="thumb ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`}
+        ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="" loading="lazy">` : `<div class="thumb ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`}
         <div class="info">
-          <div class="head"><h3><button type="button" class="item-open" aria-haspopup="dialog">${esc(i.name)}</button>${i.available ? "" : '<span class="badge">Sold out</span>'}</h3><span class="price">${money(i.price)}</span></div>
-          ${ratingHtml(i, false)}
-          ${showCat ? `<small class="itemcat">${esc(i.category)}</small>` : ""}
-          ${i.description ? `<p>${esc(i.description)}</p>` : ""}
-          ${i.ingredients ? `<p class="ingredients"><strong>Ingredients:</strong> ${esc(i.ingredients)}</p>` : ""}
-          ${i.model ? `<button type="button" class="ar-open" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-scale="${esc(i.modelScale || 1)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
+          <h3><button type="button" class="item-open" aria-haspopup="dialog">${esc(i.name)}</button>${i.available ? "" : '<span class="badge">Sold out</span>'}</h3>
         </div>
+        <span class="chevron" aria-hidden="true">\u203a</span>
       </article>`;
 
 function visibleItems() {
@@ -111,9 +108,9 @@ function renderList() {
   else if (view.sort === "featured") {
     html = data.categories.map((c) => {
       const inCat = items.filter((i) => i.category === c);
-      return inCat.length ? `<section class="cat"><h2>${esc(c)}</h2>${inCat.map((i) => itemHtml(i, false)).join("")}</section>` : "";
+      return inCat.length ? `<section class="cat"><h2>${esc(c)}</h2>${inCat.map((i) => itemHtml(i)).join("")}</section>` : "";
     }).join("");
-  } else html = `<section class="cat"><h2>${SORTS[view.sort]}</h2>${items.map((i) => itemHtml(i, true)).join("")}</section>`;
+  } else html = `<section class="cat"><h2>${SORTS[view.sort]}</h2>${items.map((i) => itemHtml(i)).join("")}</section>`;
   $("#menu").innerHTML = html;
 }
 

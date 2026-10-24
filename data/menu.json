@@ -76,6 +76,32 @@
       "model": "models/model_50cm.glb",
       "modelScale": 1,
       "available": true
+    },
+    {
+      "id": "mvm8paos",
+      "name": "avocado",
+      "price": 12,
+      "category": "Starters",
+      "description": "sdvsd",
+      "ingredients": "sdvsd",
+      "image": "",
+      "model": "models/Avocado.glb",
+      "modelScale": 1,
+      "temp": "",
+      "available": true
+    },
+    {
+      "id": "mvmj9j5w",
+      "name": "leftover cake",
+      "price": 20,
+      "category": "Mains",
+      "description": "leftover cake ",
+      "ingredients": "caramel ",
+      "image": "",
+      "model": "models/leftover_cake_36cm.glb",
+      "modelScale": 1,
+      "temp": "",
+      "available": false
     }
   ]
 }

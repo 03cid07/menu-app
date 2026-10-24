@@ -169,3 +169,9 @@ body.no-scroll { overflow: hidden; }
 .rate-star { background: none; border: 0; padding: 0 .1rem; min-width: 44px; min-height: 44px; font-size: 2rem; line-height: 1; color: var(--star-off); cursor: pointer; }
 .rate-star.on { color: var(--star); }
 .rate-msg { margin: 0; color: var(--muted); font-size: .9rem; min-height: 1.4em; }
+
+/* ---- Simple list rows: photo + name, tap for the card ---- */
+.item { align-items: center; }
+.item .info { display: flex; align-items: center; }
+.item h3 { font-size: 1.2rem; }
+.chevron { flex: none; font-size: 1.8rem; line-height: 1; color: var(--muted); }
