@@ -35,16 +35,43 @@ function rateHtml(i) {
     <div class="rate-stars" role="group" aria-label="Rate this dish">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="rate-star${n <= mine ? " on" : ""}" data-n="${n}" aria-label="${n} star${n === 1 ? "" : "s"}" aria-pressed="${n === mine}">\u2605</button>`).join("")}</div>
     <p class="rate-msg" role="status">${mine ? "Tap a star to change it." : "Tap a star to rate."}</p>`;
 }
+const galleryOf = (i) => (i.images && i.images.length ? i.images : i.image ? [i.image] : []);
+function heroHtml(i) {
+  const g = galleryOf(i);
+  if (!g.length) return `<div class="sheet-hero sheet-ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`;
+  if (g.length === 1) return `<img class="sheet-hero" src="${esc(g[0])}" alt="${esc(i.name)}">`;
+  return `<div class="gallery" role="group" aria-roledescription="carousel" aria-label="Photos of ${esc(i.name)}">
+      <div class="gal-track" tabindex="0">${g.map((src, n) => `<img class="gal-slide" src="${esc(src)}" alt="${esc(i.name)}, photo ${n + 1} of ${g.length}"${n ? ' loading="lazy"' : ""}>`).join("")}</div>
+      <button type="button" class="gal-nav prev" aria-label="Previous photo" disabled>\u2039</button>
+      <button type="button" class="gal-nav next" aria-label="Next photo">\u203a</button>
+      <span class="gal-count" aria-live="polite">1 / ${g.length}</span>
+      <div class="gal-dots">${g.map((_, n) => `<button type="button" class="gal-dot" data-g="${n}" aria-label="Show photo ${n + 1}"${n ? "" : ' aria-current="true"'}></button>`).join("")}</div>
+    </div>`;
+}
+// Keep the arrows, dots and counter in step with the photo being shown
+function galSync(track) {
+  const g = track.parentElement, count = track.children.length;
+  const n = Math.max(0, Math.min(count - 1, Math.round(track.scrollLeft / (track.clientWidth || 1))));
+  g.querySelectorAll(".gal-dot").forEach((d, k) => (k === n ? d.setAttribute("aria-current", "true") : d.removeAttribute("aria-current")));
+  g.querySelector(".gal-count").textContent = `${n + 1} / ${count}`;
+  g.querySelector(".prev").disabled = n === 0;
+  g.querySelector(".next").disabled = n === count - 1;
+  return n;
+}
+function galGo(track, n) {
+  const to = Math.max(0, Math.min(track.children.length - 1, n));
+  track.scrollTo({ left: to * track.clientWidth, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
 function sheetHtml(i) {
   return `<button type="button" class="sheet-close" aria-label="Close">\u00d7</button>
-    ${i.image ? `<img class="sheet-hero" src="${esc(i.image)}" alt="${esc(i.name)}">` : `<div class="sheet-hero sheet-ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`}
+    ${heroHtml(i)}
     <div class="sheet-body">
       <div class="sheet-head"><h2 id="sheet-title">${esc(i.name)}</h2><span class="price big">${money(i.price)}</span></div>
       <div class="sheet-meta"><small class="itemcat">${esc(i.category)}</small><span class="tag ${i.available ? "ok" : "no"}">${i.available ? "Available" : "Sold out"}</span></div>
       <div class="sheet-rating">${ratingHtml(i, true)}</div>
       ${i.description ? `<h3 class="sheet-sub">Description</h3><p class="sheet-text">${esc(i.description)}</p>` : ""}
       ${i.ingredients ? `<h3 class="sheet-sub">Ingredients</h3><p class="sheet-text">${esc(i.ingredients)}</p>` : ""}
-      ${i.model ? `<button type="button" class="ar-open sheet-ar" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-scale="${esc(i.modelScale || 1)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
+      ${i.model ? `<button type="button" class="ar-open sheet-ar" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
       <div class="sheet-rate">${rateHtml(i)}</div>
     </div>`;
 }
@@ -172,6 +199,11 @@ document.addEventListener("click", (e) => {
 });
 sheet.addEventListener("click", (e) => {
   if (e.target === sheet || e.target.closest(".sheet-close")) return closeSheet();
+  const gb = e.target.closest(".gal-nav, .gal-dot");
+  if (gb) {
+    const track = gb.closest(".gallery").querySelector(".gal-track");
+    return galGo(track, gb.dataset.g !== undefined ? Number(gb.dataset.g) : galSync(track) + (gb.classList.contains("next") ? 1 : -1));
+  }
   const star = e.target.closest(".rate-star");
   if (!star || !sheetItem) return;
   const item = sheetItem, n = Number(star.dataset.n), msg = sheetBox.querySelector(".rate-msg");
@@ -190,6 +222,13 @@ sheet.addEventListener("click", (e) => {
     })
     .catch((err) => { msg.textContent = err.message || "Could not save your rating"; });
 });
+// Scroll events don't bubble, so listen while they travel down to the gallery
+let galRaf = 0;
+sheetBox.addEventListener("scroll", (e) => {
+  const t = e.target;
+  if (!t.classList || !t.classList.contains("gal-track") || galRaf) return;
+  galRaf = requestAnimationFrame(() => { galRaf = 0; galSync(t); });
+}, true);
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!viewer.hidden) closeViewer(); else closeSheet();
@@ -226,8 +265,7 @@ document.addEventListener("click", (e) => {
   const b = e.target.closest(".ar-open");
   if (!b) return;
   $("#viewer-title").textContent = b.dataset.name;
-  const scale = Number(b.dataset.scale) || 1;
-  const src = scale === 1 ? b.dataset.model : `scaled/${scale}/${b.dataset.model.replace(/^models\//, "")}`;
+  const src = b.dataset.model;
   const it = data.items.find((x) => x.id === b.dataset.id) || { name: b.dataset.name, price: 0, category: "" };
   const kind = fxKind(it);
   // Floating label: the name drops in letter by letter, the price pops, the description fades in

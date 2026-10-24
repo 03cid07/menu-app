@@ -199,3 +199,29 @@ body.no-scroll { overflow: hidden; }
 .navlink:hover { color: var(--ink); }
 .navlink[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
 .topnav + .home-box { padding-top: 1.5rem; }
+
+/* ---- Photo gallery in the detail card ---- */
+.gallery { position: relative; }
+.gal-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.gal-track::-webkit-scrollbar { display: none; }
+.gal-slide { flex: 0 0 100%; width: 100%; aspect-ratio: 4 / 3; max-height: 280px; object-fit: cover; scroll-snap-align: center; scroll-snap-stop: always; }
+.gal-nav { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(0,0,0,.55); color: #fff; font-size: 1.6rem; line-height: 1; cursor: pointer; }
+.gal-nav.prev { left: 8px; } .gal-nav.next { right: 8px; }
+.gal-nav:disabled { opacity: .25; cursor: default; }
+.gal-count { position: absolute; left: 10px; top: 10px; background: rgba(0,0,0,.6); color: #fff; font-size: .8rem; font-weight: 600; padding: .15rem .6rem; border-radius: 999px; }
+.gal-dots { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; gap: 2px; }
+.gal-dot { position: relative; width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; }
+.gal-dot::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 0 2px rgba(0,0,0,.6); }
+.gal-dot[aria-current="true"]::after { inset: 5px; background: #fff; }
+
+/* ---- Admin: photo manager ---- */
+.photo-grid { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .5rem; }
+.photo-tile { position: relative; width: 96px; }
+.photo-tile img { display: block; width: 96px; height: 96px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.cover-tag { position: absolute; top: 4px; left: 4px; background: var(--accent); color: var(--accent-ink); font-size: .7rem; font-weight: 700; padding: 0 .4rem; border-radius: 999px; }
+.photo-btns { display: flex; gap: 3px; margin-top: 4px; }
+.pb { flex: 1; min-height: 32px; padding: 0; font: inherit; font-size: 1.1rem; line-height: 1; color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+.pb:disabled { opacity: .35; cursor: default; }
+.pb.danger { color: var(--alert); }
+
+.hint { color: var(--muted); font-size: .9rem; margin: 0 0 .75rem; max-width: 60ch; }

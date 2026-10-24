@@ -25,42 +25,17 @@ const requirePin = (req, res, next) =>
 const validModel = (m) => m === undefined || m === "" || /^models\/[A-Za-z0-9._-]+\.glb$/i.test(m);
 
 // An image value must be empty or a file inside public/images
-const validImage = (m) => m === undefined || m === "" || /^images\/[A-Za-z0-9._-]+\.(jpg|png|webp)$/i.test(m);
+const IMG_RE = /^images\/[A-Za-z0-9._-]+\.(jpg|png|webp)$/i;
+const validImage = (m) => m === undefined || m === "" || IMG_RE.test(m);
+
+// A gallery is a list of up to 8 photo paths; the first one is the cover (also kept in item.image)
+const validImages = (a) => a === undefined || (Array.isArray(a) && a.length <= 8 && a.every((x) => typeof x === "string" && IMG_RE.test(x)));
 
 // Drink serving temperature must be empty (auto), "hot" or "cold"
+// Reuse the spelling of an existing category when only the capitals differ ("drinks" -> "Drinks")
+const canonCat = (data, c) => { const t = String(c).trim(); return data.categories.find((x) => x.toLowerCase() === t.toLowerCase()) || t; };
+
 const validTemp = (t) => t === undefined || t === "" || t === "hot" || t === "cold";
-
-// AR size multiplier must be between 1% and 1000%
-const validScale = (s) => s === undefined || (Number.isFinite(Number(s)) && Number(s) >= 0.01 && Number(s) <= 10);
-
-// Return a copy of a .glb with a scale node wrapped around the scene (shape and textures untouched)
-function scaleGlb(buf, factor) {
-  const jsonLen = buf.readUInt32LE(12);
-  const gltf = JSON.parse(buf.toString("utf8", 20, 20 + jsonLen).replace(/[\0 ]+$/, ""));
-  const scene = gltf.scenes[gltf.scene || 0];
-  gltf.nodes.push({ name: "SizeFix", scale: [factor, factor, factor], children: [...scene.nodes] });
-  scene.nodes = [gltf.nodes.length - 1];
-  let json = Buffer.from(JSON.stringify(gltf));
-  json = Buffer.concat([json, Buffer.alloc((4 - (json.length % 4)) % 4, 0x20)]);
-  const rest = buf.subarray(20 + jsonLen); // BIN chunk, kept as-is
-  const head = Buffer.alloc(20);
-  head.write("glTF", 0, "ascii");
-  head.writeUInt32LE(2, 4);
-  head.writeUInt32LE(20 + json.length + rest.length, 8);
-  head.writeUInt32LE(json.length, 12);
-  head.write("JSON", 16, "ascii");
-  return Buffer.concat([head, json, rest]);
-}
-
-// Public: a model resized on the fly, e.g. /scaled/0.25/model.glb (name ends in .glb so AR apps accept it)
-app.get("/scaled/:scale/:file", (req, res) => {
-  const s = Number(req.params.scale);
-  if (!/^[A-Za-z0-9._-]+\.glb$/i.test(req.params.file) || !(s >= 0.01 && s <= 10)) return res.status(400).end();
-  const file = path.join(MODELS_DIR, req.params.file);
-  if (!fs.existsSync(file)) return res.status(404).end();
-  const buf = fs.readFileSync(file);
-  res.type("model/gltf-binary").set("Cache-Control", "no-cache").send(s === 1 ? buf : scaleGlb(buf, s));
-});
 
 // ---- Ratings: { itemId: { deviceId: stars } }, kept apart from menu.json ----
 const loadRatings = () => { try { return JSON.parse(fs.readFileSync(RATINGS_FILE, "utf8")); } catch { return {}; } };
@@ -97,14 +72,15 @@ app.post("/api/items/:id/rate", (req, res) => {
 // Admin: add, edit, delete items
 app.post("/api/items", requirePin, (req, res) => {
   const data = load();
-  const { name, price, category, description = "", ingredients = "", image = "", model = "", modelScale = 1, temp = "", available = true } = req.body;
-  if (!name || price === undefined || !category)
+  const { name, price, category: rawCategory, description = "", ingredients = "", image = "", images, model = "", temp = "", available = true } = req.body;
+  if (!name || price === undefined || !rawCategory || !String(rawCategory).trim())
     return res.status(400).json({ error: "Name, price and category are required" });
   if (!validModel(model)) return res.status(400).json({ error: "Invalid 3D model file" });
-  if (!validImage(image)) return res.status(400).json({ error: "Invalid photo" });
-  if (!validScale(modelScale)) return res.status(400).json({ error: "AR size must be between 1% and 1000%" });
+  if (!validImage(image) || !validImages(images)) return res.status(400).json({ error: "Invalid photos (up to 8 JPG, PNG or WebP)" });
+  const category = canonCat(data, rawCategory);
+  const gallery = Array.isArray(images) ? images : image ? [image] : [];
   if (!validTemp(temp)) return res.status(400).json({ error: "Serving must be hot or cold" });
-  const item = { id: Date.now().toString(36), name, price: Number(price), category, description, ingredients, image, model, modelScale: Number(modelScale), temp, available };
+  const item = { id: Date.now().toString(36), name, price: Number(price), category, description, ingredients, image: gallery[0] || "", images: gallery, model, temp, available };
   data.items.push(item);
   if (!data.categories.includes(category)) data.categories.push(category);
   save(data);
@@ -117,11 +93,15 @@ app.put("/api/items/:id", requirePin, (req, res) => {
   const i = data.items.findIndex((x) => x.id === req.params.id);
   if (i < 0) return res.status(404).json({ error: "Item not found" });
   if (!validModel(req.body.model)) return res.status(400).json({ error: "Invalid 3D model file" });
-  if (!validImage(req.body.image)) return res.status(400).json({ error: "Invalid photo" });
-  if (!validScale(req.body.modelScale)) return res.status(400).json({ error: "AR size must be between 1% and 1000%" });
+  if (!validImage(req.body.image) || !validImages(req.body.images)) return res.status(400).json({ error: "Invalid photos (up to 8 JPG, PNG or WebP)" });
   if (!validTemp(req.body.temp)) return res.status(400).json({ error: "Serving must be hot or cold" });
   data.items[i] = { ...data.items[i], ...req.body, id: req.params.id, price: Number(req.body.price ?? data.items[i].price) };
-  if (req.body.modelScale !== undefined) data.items[i].modelScale = Number(req.body.modelScale);
+  if (req.body.images !== undefined || req.body.image !== undefined) {
+    const g = Array.isArray(req.body.images) ? req.body.images : req.body.image ? [req.body.image] : [];
+    data.items[i].images = g; data.items[i].image = g[0] || "";
+  }
+  if (req.body.category !== undefined && !String(req.body.category).trim()) return res.status(400).json({ error: "Category is required" });
+  data.items[i].category = canonCat(data, data.items[i].category);
   if (!data.categories.includes(data.items[i].category)) data.categories.push(data.items[i].category);
   save(data);
   res.json(data.items[i]);
@@ -156,6 +136,30 @@ app.delete("/api/items/:id", requirePin, (req, res) => {
   data.items = data.items.filter((x) => x.id !== req.params.id);
   save(data);
   const rt = loadRatings(); if (rt[req.params.id]) { delete rt[req.params.id]; saveRatings(rt); }
+  res.status(204).end();
+});
+
+// Admin: rename a category. Typing the name of another category merges the two (fixes "Drinks" / "drinks").
+app.put("/api/categories", requirePin, (req, res) => {
+  const data = load(), from = String(req.body.from ?? ""), typed = String(req.body.to ?? "").trim();
+  if (!data.categories.includes(from)) return res.status(404).json({ error: "Category not found" });
+  if (!typed || typed.length > 40) return res.status(400).json({ error: "Name must be 1 to 40 characters" });
+  const other = data.categories.find((x) => x !== from && x.toLowerCase() === typed.toLowerCase());
+  const to = other || typed;
+  data.items.forEach((i) => { if (i.category === from) i.category = to; });
+  data.categories = other ? data.categories.filter((x) => x !== from) : data.categories.map((x) => (x === from ? to : x));
+  save(data);
+  res.json({ categories: data.categories, merged: !!other });
+});
+
+// Admin: delete a category, only when no dish uses it
+app.delete("/api/categories", requirePin, (req, res) => {
+  const data = load(), name = String(req.query.name ?? "");
+  if (!data.categories.includes(name)) return res.status(404).json({ error: "Category not found" });
+  const n = data.items.filter((i) => i.category === name).length;
+  if (n) return res.status(409).json({ error: `${n} dish${n === 1 ? "" : "es"} still use "${name}". Move them to another category first, or rename this one to merge it.` });
+  data.categories = data.categories.filter((x) => x !== name);
+  save(data);
   res.status(204).end();
 });
 

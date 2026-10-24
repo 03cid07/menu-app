@@ -4,8 +4,7 @@
   "categories": [
     "Starters",
     "Mains",
-    "Drinks",
-    "drinks"
+    "Drinks"
   ],
   "items": [
     {
@@ -50,7 +49,13 @@
       "model": "models/model_50cm.glb",
       "available": true,
       "image": "images/mvkm2ysu-ing6r.jpg",
-      "modelScale": 1
+      "modelScale": 1,
+      "images": [
+        "images/mvml1onc-lxoc2.jpg",
+        "images/mvkm2ysu-ing6r.jpg",
+        "images/mvml1onz-sj0js.jpg"
+      ],
+      "temp": ""
     },
     {
       "id": "mvl1v9tk",
@@ -84,11 +89,14 @@
       "category": "Starters",
       "description": "sdvsd",
       "ingredients": "sdvsd",
-      "image": "",
+      "image": "images/mvmluw3l-le1p0.jpg",
       "model": "models/Avocado.glb",
       "modelScale": 1,
       "temp": "",
-      "available": true
+      "available": true,
+      "images": [
+        "images/mvmluw3l-le1p0.jpg"
+      ]
     },
     {
       "id": "mvmj9j5w",
@@ -97,11 +105,15 @@
       "category": "Mains",
       "description": "leftover cake ",
       "ingredients": "caramel ",
-      "image": "",
+      "image": "images/mvmlnt2w-akh1p.jpg",
       "model": "models/leftover_cake_36cm.glb",
       "modelScale": 1,
       "temp": "",
-      "available": false
+      "available": true,
+      "images": [
+        "images/mvmlnt2w-akh1p.jpg",
+        "images/mvmlnt5e-tfwry.jpg"
+      ]
     }
   ]
 }
