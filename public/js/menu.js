@@ -17,6 +17,8 @@ const CHEV = '<svg class="chev" viewBox="0 0 12 8" width="14" height="10" aria-h
 
 
 // ---- Ratings + product detail card (opens when a dish is tapped) ----
+// true when there is no Node server (e.g. GitHub Pages): menu comes from menu.json and rating is read-only
+let staticMode = false;
 const store = {
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, v); } catch { /* private mode: ratings still work this visit */ } },
@@ -30,6 +32,7 @@ function ratingHtml(i, long) {
   return `<div class="rating"><span class="stars" style="--pct:${(r.avg / 5) * 100}%" role="img" aria-label="${r.avg} out of 5 stars"></span><span class="rnum">${r.avg.toFixed(1)}</span><span class="rcount">(${r.count}${long ? ` rating${r.count === 1 ? "" : "s"}` : ""})</span></div>`;
 }
 function rateHtml(i) {
+  if (staticMode) return "";
   const mine = myRatings()[i.id] || 0;
   return `<h3 class="sheet-sub">${mine ? "Your rating" : "Rate this dish"}</h3>
     <div class="rate-stars" role="group" aria-label="Rate this dish">${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="rate-star${n <= mine ? " on" : ""}" data-n="${n}" aria-label="${n} star${n === 1 ? "" : "s"}" aria-pressed="${n === mine}">\u2605</button>`).join("")}</div>
@@ -239,8 +242,11 @@ document.addEventListener("keydown", (e) => {
   if (!viewer.hidden) closeViewer(); else closeSheet();
 });
 
-fetch("/api/menu").then((r) => r.json()).then((d) => { data = d; render(); })
-  .catch(() => ($("#menu").innerHTML = '<p class="empty">Could not load the menu. Check that the server is running.</p>'));
+fetch("api/menu")
+  .then((r) => { if (!r.ok) throw new Error("no api"); return r.json(); })
+  .catch(() => { staticMode = true; return fetch("menu.json").then((r) => r.json()); })
+  .then((d) => { data = d; render(); })
+  .catch(() => ($("#menu").innerHTML = '<p class="empty">Could not load the menu. Please refresh the page.</p>'));
 
 // ---- Category animations: food gets munched, hot drinks steam, cold drinks frost over ----
 const DRINK_RE = /drink|beverage|juice|coffee|tea\b|shake|smoothie|soda|cocktail|beer|wine/i;
