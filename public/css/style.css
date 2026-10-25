@@ -390,3 +390,20 @@ body.has-list .home-box { padding-bottom: 7rem; }
 .mylist-total strong { font-size: 1.4rem; color: var(--accent); font-variant-numeric: tabular-nums; }
 .mylist-foot .btn.ghost { margin: 0; padding: .5rem .9rem; }
 @media (max-width: 420px) { .ml-row { grid-template-columns: 1fr auto; } .ml-sub { grid-column: 2; grid-row: 1; } .ml-step { grid-column: 1 / -1; } }
+
+/* ---- Done button + receipt ---- */
+.mylist-actions { display: flex; gap: .6rem; margin-top: 1rem; }
+.mylist-actions .btn { flex: 1; margin: 0; padding: .75rem 1rem; }
+.mylist-foot { margin-top: 1rem; }
+.receipt { margin-top: .9rem; padding: 1.1rem 1rem; border-radius: 14px; background: var(--bg); border: 1px dashed var(--line); font-variant-numeric: tabular-nums; }
+.rc-head { display: flex; flex-direction: column; align-items: center; gap: .15rem; text-align: center; padding-bottom: .8rem; border-bottom: 1px dashed var(--line); }
+.rc-head strong { font-size: 1.25rem; }
+.rc-head span { color: var(--muted); font-size: .85rem; }
+.rc-rows { list-style: none; margin: .8rem 0; padding: 0 0 .8rem; border-bottom: 1px dashed var(--line); }
+.rc-rows li { display: grid; grid-template-columns: 2.4rem 1fr auto; gap: .5rem; padding: .3rem 0; }
+.rc-q { color: var(--muted); font-weight: 700; }
+.rc-n { font-weight: 600; min-width: 0; }
+.rc-p { font-weight: 700; }
+.rc-total { display: flex; justify-content: space-between; align-items: baseline; font-size: 1.1rem; }
+.rc-total strong { font-size: 1.5rem; color: var(--accent); }
+.rc-note { margin: .9rem 0 0; text-align: center; color: var(--muted); font-size: .85rem; }

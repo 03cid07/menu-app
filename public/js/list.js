@@ -44,11 +44,27 @@ listStatus.setAttribute("role", "status");
 document.body.appendChild(listStatus);
 const drawerBox = drawer.querySelector(".mylist-box");
 
+let drawerView = "list", receiptTime = null;
+const CLOSE_BTN = '<button type="button" class="sheet-close mylist-close" aria-label="Close">\u00d7</button>';
+
+function receiptHtml(rows) {
+  const when = receiptTime.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  return `<div class="mylist-top"><h2 id="mylist-title">Receipt</h2>${CLOSE_BTN}</div>
+    <div class="receipt">
+      <div class="rc-head"><strong>${esc(data.restaurant)}</strong><span>${esc(when)}</span></div>
+      <ul class="rc-rows">${rows.map(([it, q]) => `<li><span class="rc-q">${q}\u00d7</span><span class="rc-n">${esc(it.name)}${it.available ? "" : " (sold out)"}</span><span class="rc-p">${money(Number(it.price) * q)}</span></li>`).join("")}</ul>
+      <div class="rc-total"><span>Total</span><strong>${money(listTotal())}</strong></div>
+      <p class="rc-note">Show this to your server to order. Tip: take a screenshot so you can keep it.</p>
+    </div>
+    <div class="mylist-actions"><button type="button" class="btn ghost" data-back-list>Back to list</button><button type="button" class="btn" data-new-list>New list</button></div>`;
+}
+
 function drawerHtml() {
   const rows = listEntries();
-  if (!rows.length) return `<div class="mylist-top"><h2 id="mylist-title">My list</h2><button type="button" class="sheet-close mylist-close" aria-label="Close">\u00d7</button></div>
+  if (!rows.length) return `<div class="mylist-top"><h2 id="mylist-title">My list</h2>${CLOSE_BTN}</div>
     <p class="mylist-empty">Your list is empty. Tap + on a dish to add it.</p>`;
-  return `<div class="mylist-top"><h2 id="mylist-title">My list</h2><button type="button" class="sheet-close mylist-close" aria-label="Close">\u00d7</button></div>
+  if (drawerView === "receipt") return receiptHtml(rows);
+  return `<div class="mylist-top"><h2 id="mylist-title">My list</h2>${CLOSE_BTN}</div>
     <p class="mylist-hint">Show this list to your server when you're ready to order.</p>
     <ul class="mylist-rows">${rows.map(([it, q]) => `<li class="ml-row" data-id="${esc(it.id)}">
       <div class="ml-name">${esc(it.name)}<small>${money(it.price)} each${it.available ? "" : " \u00b7 sold out"}</small></div>
@@ -56,8 +72,8 @@ function drawerHtml() {
         <button type="button" data-dec aria-label="Remove one ${esc(it.name)}">${ICON_MINUS}</button><span aria-live="polite">${q}</span><button type="button" data-inc aria-label="Add one ${esc(it.name)}"${it.available ? "" : " disabled"}>${ICON_PLUS}</button>
       </div>
       <span class="ml-sub">${money(Number(it.price) * q)}</span></li>`).join("")}</ul>
-    <div class="mylist-foot"><div class="mylist-total"><span>Total</span><strong>${money(listTotal())}</strong></div>
-      <button type="button" class="btn ghost" data-clear-list>Clear list</button></div>`;
+    <div class="mylist-foot"><div class="mylist-total"><span>Total</span><strong>${money(listTotal())}</strong></div></div>
+    <div class="mylist-actions"><button type="button" class="btn ghost" data-clear-list>Clear list</button><button type="button" class="btn" data-done>Done</button></div>`;
 }
 
 // Refresh every + button, the detail card button, the floating bar and (if open) the drawer
@@ -86,6 +102,7 @@ function listSet(id, q) {
 }
 
 function openList() {
+  drawerView = "list";
   drawerBox.innerHTML = drawerHtml();
   drawer.hidden = false;
   document.body.classList.add("no-scroll");
@@ -102,7 +119,9 @@ function closeList() {
 bar.addEventListener("click", openList);
 drawer.addEventListener("click", (e) => {
   if (e.target === drawer || e.target.closest(".mylist-close")) return closeList();
-  if (e.target.closest("[data-clear-list]")) { myList = {}; listSave(); listSync(); return closeList(); }
+  if (e.target.closest("[data-clear-list], [data-new-list]")) { myList = {}; listSave(); listSync(); return closeList(); }
+  if (e.target.closest("[data-done]")) { drawerView = "receipt"; receiptTime = new Date(); drawerBox.innerHTML = drawerHtml(); drawerBox.scrollTop = 0; return drawerBox.querySelector(".mylist-close").focus(); }
+  if (e.target.closest("[data-back-list]")) { drawerView = "list"; drawerBox.innerHTML = drawerHtml(); return drawerBox.querySelector(".mylist-close").focus(); }
   const row = e.target.closest(".ml-row");
   if (!row) return;
   const id = row.dataset.id;
