@@ -76,13 +76,14 @@ function sheetHtml(i) {
     </div>`;
 }
 
-// List row: just the photo and the name. Everything else lives in the detail card (openSheet).
+// List row: photo, name and price. Everything else lives in the detail card (openSheet).
 const itemHtml = (i) => `
       <article class="item ${i.available ? "" : "sold-out"}" data-id="${esc(i.id)}">
         ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="" loading="lazy">` : `<div class="thumb ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`}
         <div class="info">
           <h3><button type="button" class="item-open" aria-haspopup="dialog">${esc(i.name)}</button>${i.available ? "" : '<span class="badge">Sold out</span>'}</h3>
         </div>
+        <span class="row-price">${money(i.price)}</span>
         <span class="chevron" aria-hidden="true">\u203a</span>
       </article>`;
 
