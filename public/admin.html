@@ -9,13 +9,22 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="top"><h1>Manage menu</h1><p><a href="/">View public menu</a></p></header>
-  <main>
-    <div class="panel">
-      <label for="pin">Admin PIN</label>
-      <input id="pin" type="password" autocomplete="off">
+  <nav class="adminnav" aria-label="Admin sections">
+    <div class="adminnav-in">
+      <div class="adminnav-tabs" role="tablist">
+        <button class="navlink" role="tab" data-tab="items" aria-selected="true">Items</button>
+        <button class="navlink" role="tab" data-tab="add" aria-selected="false" id="tab-add">Add item</button>
+        <button class="navlink" role="tab" data-tab="cats" aria-selected="false">Categories</button>
+      </div>
+      <div class="adminnav-side">
+        <input id="pin" type="password" autocomplete="off" placeholder="Admin PIN" aria-label="Admin PIN">
+        <a href="/" class="viewlink">View menu</a>
+      </div>
     </div>
-    <form class="panel" id="form">
+  </nav>
+  <main>
+    <div class="msg" id="msg" role="status"></div>
+    <form class="panel" id="form" data-panel="add" hidden>
       <h2 id="form-title">Add item</h2>
       <input type="hidden" id="id">
       <label for="name">Name</label><input id="name" required>
@@ -44,12 +53,11 @@
       <label><input id="available" type="checkbox" checked style="width:auto"> Available today</label>
       <button class="btn" type="submit" id="save">Add item</button>
       <button class="btn ghost" type="button" id="cancel" hidden>Cancel edit</button>
-      <div class="msg" id="msg" role="status"></div>
     </form>
-    <div class="panel"><h2>Categories</h2>
+    <div class="panel" data-panel="cats" hidden><h2>Categories</h2>
       <p class="hint">Rename a category to change its name. Rename it to the name of another one to merge them, for example "drinks" into "Drinks". A category can be deleted once no dish uses it.</p>
       <div id="cat-manage"></div><div class="msg" id="cat-msg" role="status"></div></div>
-    <div class="panel"><h2>Current items</h2><div id="list"></div></div>
+    <div class="panel" data-panel="items"><h2>Current items</h2><div id="list"></div></div>
   </main>
   <script src="js/admin.js"></script>
 </body>
