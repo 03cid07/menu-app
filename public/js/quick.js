@@ -74,6 +74,7 @@
   }
 
   home.addEventListener("click", (e) => {
+    if (e.target.closest(".add-btn")) return; // + is handled by list.js
     const card = e.target.closest(".item[data-id]");
     if (card) return openSheet(card.dataset.id, card.querySelector(".item-open"));
     const b = e.target.closest("button");

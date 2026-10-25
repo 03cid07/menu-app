@@ -71,7 +71,10 @@ function sheetHtml(i) {
       <div class="sheet-rating">${ratingHtml(i, true)}</div>
       ${i.description ? `<h3 class="sheet-sub">Description</h3><p class="sheet-text">${esc(i.description)}</p>` : ""}
       ${i.ingredients ? `<h3 class="sheet-sub">Ingredients</h3><p class="sheet-text">${esc(i.ingredients)}</p>` : ""}
-      ${i.model ? `<button type="button" class="ar-open sheet-ar" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
+      <div class="sheet-actions">
+        ${addSheetHtml(i)}
+        ${i.model ? `<button type="button" class="ar-open sheet-ar" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
+      </div>
       <div class="sheet-rate">${rateHtml(i)}</div>
     </div>`;
 }
@@ -84,6 +87,7 @@ const itemHtml = (i) => `
           <h3><button type="button" class="item-open" aria-haspopup="dialog">${esc(i.name)}</button>${i.available ? "" : '<span class="badge">Sold out</span>'}</h3>
         </div>
         <span class="row-price">${money(i.price)}</span>
+        ${addBtnHtml(i)}
         <span class="chevron" aria-hidden="true">\u203a</span>
       </article>`;
 
