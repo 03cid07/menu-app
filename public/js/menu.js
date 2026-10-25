@@ -288,9 +288,10 @@ document.addEventListener("click", (e) => {
       <div class="mv-price">${money(it.price)}</div>
       ${it.description ? `<div class="mv-desc">${esc(it.description)}</div>` : ""}
     </div><button type="button" class="mv-toggle" aria-expanded="true" aria-label="Hide details">${CHEV}</button></div>`;
-  $("#viewer-stage").innerHTML = `<div class="stage-wrap" data-fx="${kind}"><div class="fx" aria-hidden="true"><div class="fx-origin"></div></div><model-viewer src="${esc(src)}" alt="3D model of ${esc(b.dataset.name)}"
+  $("#viewer-stage").innerHTML = `<div class="stage-wrap" data-fx="${kind}"><div class="fx" aria-hidden="true"><div class="fx-origin"></div></div><div class="mv-loader" role="status" aria-live="polite"><div class="mv-spin" aria-hidden="true"></div><div class="mv-ltext">Loading 3D model\u2026 <span class="mv-pct">0%</span></div><div class="mv-lbar" aria-hidden="true"><i></i></div></div><model-viewer src="${esc(src)}" alt="3D model of ${esc(b.dataset.name)}"
     ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
     camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%">
+    <div slot="progress-bar" class="mv-topbar" aria-hidden="true"><i></i></div>
     ${label}
     <button slot="ar-button" type="button" class="btn ar-btn">View on your table (AR)</button>
     <div slot="hotspot-fx" class="mv-fxpt" data-position="0 0 0"></div>
@@ -298,6 +299,17 @@ document.addEventListener("click", (e) => {
   <button type="button" class="fx-toggle" aria-pressed="${fxOn}">Effects: ${fxOn ? "on" : "off"}</button></div>`;
   // Once the model has loaded, float the label just above its top
   const mv = $("#viewer-stage model-viewer");
+  // Visible loading indicator: spinner + percentage, removed once the model is ready (or shows an error)
+  const topbar = mv.querySelector(".mv-topbar i"), loader = $("#viewer-stage .mv-loader"), pct = loader.querySelector(".mv-pct"), lbar = loader.querySelector(".mv-lbar i");
+  mv.addEventListener("progress", (e) => {
+    const p = Math.round((e.detail.totalProgress || 0) * 100);
+    pct.textContent = `${p}%`; lbar.style.width = `${p}%`; topbar.style.width = `${p}%`;
+  });
+  mv.addEventListener("load", () => { loader.remove(); mv.querySelector(".mv-topbar")?.remove(); });
+  mv.addEventListener("error", () => {
+    loader.classList.add("failed");
+    loader.innerHTML = '<div class="mv-ltext">Could not load the 3D model. Please close and try again.</div>';
+  });
 
   // ---- Animation layer ----
   const wrap = $("#viewer-stage .stage-wrap"), origin = wrap.querySelector(".fx-origin");

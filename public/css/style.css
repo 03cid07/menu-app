@@ -111,7 +111,7 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 .stage-wrap { position: relative; margin-top: .6rem; border-radius: 10px; background: var(--bg); overflow: hidden; }
 .stage-wrap[data-fx="hot"] { background: radial-gradient(ellipse at 50% 90%, rgba(255,140,60,.38), transparent 70%), var(--bg); }
 .stage-wrap[data-fx="cold"] { background: radial-gradient(ellipse at 50% 90%, rgba(90,180,255,.42), transparent 70%), var(--bg); }
-#viewer-stage model-viewer { position: relative; z-index: 1; margin-top: 0; background: transparent; --poster-color: transparent; }
+#viewer-stage model-viewer { position: relative; z-index: 1; margin-top: 0; background: transparent; --poster-color: transparent; --progress-bar-color: #4cd9a8; --progress-mask: rgba(255,255,255,.3); --progress-bar-height: 8px; }
 .fx { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
 .stage-wrap[data-fx="food"] .fx { z-index: 2; }
 .fx-origin { position: absolute; left: 50%; top: 40%; width: 0; height: 0; }
@@ -424,3 +424,22 @@ body.has-list .home-box { padding-bottom: 7rem; }
 /* Highlight tags set by the admin (Popular / New / Hot) */
 .hl { display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: .1rem .5rem; border-radius: 999px; margin-left: .5rem; vertical-align: middle; background: var(--accent); color: #fff; }
 .hl-new { background: #2f7de1; } .hl-hot { background: var(--alert); }
+
+/* Loading indicator shown while the 3D model downloads */
+.mv-loader { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .9rem; pointer-events: none; background: rgba(0,0,0,.35); color: #fff; text-align: center; padding: 1rem; }
+.mv-spin { width: 54px; height: 54px; border-radius: 50%; border: 5px solid rgba(255,255,255,.25); border-top-color: #fff; animation: mvSpin .9s linear infinite; }
+.mv-ltext { font-weight: 700; font-size: 1.05rem; text-shadow: 0 2px 6px rgba(0,0,0,.7); }
+.mv-lbar { width: min(260px, 70%); height: 8px; border-radius: 999px; background: rgba(255,255,255,.25); overflow: hidden; }
+.mv-lbar i { display: block; height: 100%; width: 0; background: #fff; border-radius: 999px; transition: width .2s ease; }
+.mv-loader.failed .mv-spin, .mv-loader.failed .mv-lbar { display: none; }
+@keyframes mvSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .mv-spin { animation-duration: 3s; } }
+
+/* Bright loading bar along the top of the 3D view (replaces the default black one) */
+.mv-topbar { position: absolute; top: 0; left: 0; right: 0; height: 8px; background: rgba(255,255,255,.3); border-radius: 10px 10px 0 0; overflow: hidden; pointer-events: none; }
+.mv-topbar i { display: block; height: 100%; width: 0; background: #4cd9a8; box-shadow: 0 0 10px #4cd9a8; transition: width .2s ease; }
+
+/* Quick menu: multi-select answers and the ingredient note */
+.home-card.pick[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.home-card.pick[aria-pressed="true"] strong::before { content: "\2713\00a0\00a0"; color: var(--accent); }
+.home-note { color: var(--muted); font-size: .85rem; margin: 0 0 .8rem; }
