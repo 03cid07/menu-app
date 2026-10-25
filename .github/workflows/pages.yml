@@ -1,0 +1,54 @@
+# Publishes the customer side of CupView to GitHub Pages.
+# The admin runs locally (start-menu.bat); push your changes and this rebuilds the site.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build static site
+        run: |
+          mkdir _site
+          cp -r public/. _site/
+          cp data/menu.json _site/menu.json
+          # admin tools need the Node server, so they are not published
+          rm -f _site/admin.html _site/qr-print.html _site/js/admin.js
+          touch _site/.nojekyll
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Make the QR code for the live link
+        run: |
+          npm ci
+          URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/"
+          echo "Menu link: $URL"
+          node -e "require('qrcode').toFile('_site/qr.png', process.argv[1], { width: 1200, margin: 2 }, (e) => { if (e) throw e; })" "$URL"
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
