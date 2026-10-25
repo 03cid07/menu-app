@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Menu QR sign</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eceeea; color: #14212b; font-family: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif; }
+    .bar { display: flex; justify-content: center; align-items: center; gap: .8rem; padding: 1rem; flex-wrap: wrap; }
+    .bar p { margin: 0; color: #5d6b75; font-size: .9rem; }
+    .bar button { font: inherit; font-weight: 600; padding: .6rem 1.3rem; border: 0; border-radius: 8px; background: #0f5c5c; color: #fff; cursor: pointer; }
+    .sign { width: min(105mm, 92vw); margin: 0 auto 2rem; padding: 12mm 8mm 10mm; background: #fff; border-radius: 6mm; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+    .sign h1 { margin: 0; font-size: 22pt; line-height: 1.1; font-weight: 800; letter-spacing: -.01em; }
+    .sign .scan { margin: 3mm 0 6mm; font-size: 14pt; font-weight: 600; color: #0f5c5c; }
+    .sign img { display: block; width: 70mm; height: 70mm; margin: 0 auto; }
+    .sign .how { margin: 6mm 0 0; font-size: 11pt; color: #14212b; }
+    .sign .url { margin: 3mm 0 0; font-size: 8pt; color: #5d6b75; word-break: break-all; }
+    @page { margin: 10mm; }
+    @media print {
+      body { background: #fff; }
+      .bar { display: none; }
+      .sign { box-shadow: none; border-radius: 0; margin: 0 auto; border: 1px dashed #999; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bar"><button type="button" id="print">Print</button><p>Print on plain paper, cut along the dashed line, and fold or stand it on the table.</p></div>
+  <div class="sign">
+    <h1 id="name">Menu</h1>
+    <p class="scan">Scan to view the menu in AR</p>
+    <img id="qr" alt="QR code that opens the menu">
+    <p class="how">Point your phone camera at the code.<br>No app to install.</p>
+    <p class="url" id="url"></p>
+  </div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    function show(url) {
+      document.getElementById("qr").src = "/qr.svg?url=" + encodeURIComponent(url);
+      document.getElementById("url").textContent = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    }
+    const given = params.get("url");
+    if (given) show(given);
+    else fetch("/api/qr-url").then((r) => r.json()).then((j) => show(j.url));
+    fetch("/api/menu").then((r) => r.json()).then((d) => { document.getElementById("name").textContent = d.restaurant; document.title = d.restaurant + " menu QR sign"; }).catch(() => {});
+    document.getElementById("print").addEventListener("click", () => window.print());
+  </script>
+</body>
+</html>

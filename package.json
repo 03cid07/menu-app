@@ -3,6 +3,12 @@
   "version": "1.0.0",
   "description": "Starter web app for a digital menu system",
   "main": "server.js",
-  "scripts": { "start": "node server.js", "dev": "node --watch server.js" },
-  "dependencies": { "express": "^4.19.2" }
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "qrcode": "^1.5.4"
+  }
 }

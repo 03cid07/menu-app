@@ -1,6 +1,11 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
+
+// QR codes need the "qrcode" package. If it is missing the rest of the app still runs.
+let QRCode = null;
+try { QRCode = require("qrcode"); } catch { console.warn("QR codes are off: run  npm install  once, then start the app again."); }
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -162,5 +167,36 @@ app.delete("/api/categories", requirePin, (req, res) => {
   save(data);
   res.status(204).end();
 });
+
+
+// ---- QR code for the menu link ----
+// The QR must hold a link a customer's phone can open (not localhost), and AR needs https.
+// Link order: PUBLIC_URL setting > the tunnel link written by start-tunnel.ps1 > the address this page was opened on.
+const TUNNEL_FILE = path.join(os.tmpdir(), "cupview-public-url.txt");
+const cleanUrl = (u) => { try { const x = new URL(String(u || "").trim()); return /^https?:$/.test(x.protocol) ? x.href : null; } catch { return null; } };
+function publicUrl(req) {
+  const env = cleanUrl(process.env.PUBLIC_URL);
+  if (env) return { url: env, source: "PUBLIC_URL" };
+  try { const t = cleanUrl(fs.readFileSync(TUNNEL_FILE, "utf8")); if (t) return { url: t, source: "tunnel" }; } catch { /* no tunnel running */ }
+  const proto = String(req.get("x-forwarded-proto") || req.protocol).split(",")[0].trim();
+  const host = String(req.get("x-forwarded-host") || req.get("host")).split(",")[0].trim();
+  return { url: `${proto}://${host}/`, source: "request" };
+}
+app.get("/api/qr-url", (req, res) => res.json(publicUrl(req)));
+
+const QR_OPTS = { margin: 2, errorCorrectionLevel: "M", color: { dark: "#111111", light: "#ffffff" } };
+async function sendQr(req, res, kind) {
+  if (!QRCode) return res.status(503).type("text").send("QR codes need one setup step: stop the app, run  npm install  and start it again.");
+  const url = cleanUrl(req.query.url) || publicUrl(req).url;
+  if (url.length > 500) return res.status(400).type("text").send("That link is too long.");
+  try {
+    res.set("Cache-Control", "no-store");
+    if (kind === "svg") return res.type("image/svg+xml").send(await QRCode.toString(url, { ...QR_OPTS, type: "svg" }));
+    const size = Math.min(2000, Math.max(200, parseInt(req.query.size, 10) || 600));
+    res.type("png").send(await QRCode.toBuffer(url, { ...QR_OPTS, width: size }));
+  } catch { res.status(500).type("text").send("Could not make the QR code."); }
+}
+app.get("/qr.png", (req, res) => sendQr(req, res, "png"));
+app.get("/qr.svg", (req, res) => sendQr(req, res, "svg"));
 
 app.listen(PORT, () => console.log(`Menu app running at http://localhost:${PORT}`));

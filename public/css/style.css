@@ -407,3 +407,14 @@ body.has-list .home-box { padding-bottom: 7rem; }
 .rc-total { display: flex; justify-content: space-between; align-items: baseline; font-size: 1.1rem; }
 .rc-total strong { font-size: 1.5rem; color: var(--accent); }
 .rc-note { margin: .9rem 0 0; text-align: center; color: var(--muted); font-size: .85rem; }
+
+/* ---- Admin: QR code tab ---- */
+.qr-note { min-height: 1.4em; margin: .5rem 0 0; font-weight: 600; font-size: .9rem; color: var(--muted); }
+.qr-note.ok { color: var(--accent); }
+.qr-note.error { color: var(--alert); }
+.qr-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1.25rem; margin-top: 1rem; }
+.qr-img { width: 240px; height: 240px; border-radius: 12px; background: #fff; border: 1px solid var(--line); }
+.qr-side { flex: 1; min-width: 220px; }
+.qr-actions { display: flex; flex-wrap: wrap; gap: .6rem; }
+.qr-actions .btn { margin: 0; padding: .6rem 1.1rem; text-decoration: none; display: inline-block; }
+.qr-tip { margin: 1rem 0 0; }

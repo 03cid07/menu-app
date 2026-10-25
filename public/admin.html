@@ -15,6 +15,7 @@
         <button class="navlink" role="tab" data-tab="items" aria-selected="true">Items</button>
         <button class="navlink" role="tab" data-tab="add" aria-selected="false" id="tab-add">Add item</button>
         <button class="navlink" role="tab" data-tab="cats" aria-selected="false">Categories</button>
+        <button class="navlink" role="tab" data-tab="qr" aria-selected="false">QR code</button>
       </div>
       <div class="adminnav-side">
         <input id="pin" type="password" autocomplete="off" placeholder="Admin PIN" aria-label="Admin PIN">
@@ -57,6 +58,23 @@
     <div class="panel" data-panel="cats" hidden><h2>Categories</h2>
       <p class="hint">Rename a category to change its name. Rename it to the name of another one to merge them, for example "drinks" into "Drinks". A category can be deleted once no dish uses it.</p>
       <div id="cat-manage"></div><div class="msg" id="cat-msg" role="status"></div></div>
+    <div class="panel" data-panel="qr" hidden>
+      <h2>QR code</h2>
+      <p class="hint">Customers scan this to open the menu on their phone. No app to install. Print it and put it on the tables.</p>
+      <label for="qr-url">Menu link</label>
+      <input id="qr-url" type="url" inputmode="url" autocomplete="off" placeholder="https://...">
+      <p class="qr-note" id="qr-note" role="status"></p>
+      <div class="qr-row">
+        <img id="qr-img" class="qr-img" width="240" height="240" alt="QR code that opens the menu">
+        <div class="qr-side">
+          <div class="qr-actions">
+            <a class="btn" id="qr-download" download="menu-qr.png">Download PNG</a>
+            <a class="btn ghost" id="qr-print" target="_blank" rel="noopener">Print table sign</a>
+          </div>
+          <p class="hint qr-tip">Print it at least 4 cm wide, dark on a light background, and scan it with both an iPhone and an Android phone before you use it.</p>
+        </div>
+      </div>
+    </div>
     <div class="panel" data-panel="items"><h2>Current items</h2><div id="list"></div></div>
   </main>
   <script src="js/admin.js"></script>

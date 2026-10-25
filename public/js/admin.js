@@ -179,3 +179,29 @@ $("#cat-manage").addEventListener("click", async (e) => {
 
 showTab(location.hash.slice(1) || "items");
 refresh();
+
+
+// ---- QR code tab: shows the menu link as a QR code, with download and print ----
+(() => {
+  const input = $("#qr-url"), img = $("#qr-img"), note = $("#qr-note");
+  const SOURCE = { PUBLIC_URL: "Using the PUBLIC_URL setting.", tunnel: "Using your tunnel link (filled in automatically).", request: "Using the address this page was opened on." };
+  let timer = 0, source = "request";
+  function update() {
+    const raw = input.value.trim();
+    let u = null;
+    try { u = new URL(raw); if (!/^https?:$/.test(u.protocol)) u = null; } catch { u = null; }
+    $("#qr-download").removeAttribute("href"); $("#qr-print").removeAttribute("href");
+    if (!u) { img.removeAttribute("src"); note.className = "qr-note error"; note.textContent = "Type a full link that starts with https://"; return; }
+    const q = encodeURIComponent(u.href);
+    img.src = `/qr.png?size=480&url=${q}`;
+    $("#qr-download").href = `/qr.png?size=1200&url=${q}`;
+    $("#qr-print").href = `/qr-print.html?url=${q}`;
+    const local = /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(u.hostname);
+    if (local) { note.className = "qr-note error"; note.textContent = "This is a localhost link. It will not open on customers' phones. Start the tunnel (start-all.bat) and use the link it gives you."; }
+    else if (u.protocol !== "https:") { note.className = "qr-note error"; note.textContent = "This link is not https. The menu will open, but AR needs https to work on phones."; }
+    else { note.className = "qr-note ok"; note.textContent = (SOURCE[source] || "") + " Scan it with your phone to test."; }
+  }
+  input.addEventListener("input", () => { source = ""; clearTimeout(timer); timer = setTimeout(update, 300); });
+  fetch("/api/qr-url").then((r) => r.json()).then((j) => { input.value = j.url; source = j.source; update(); })
+    .catch(() => { input.value = location.origin + "/"; update(); });
+})();

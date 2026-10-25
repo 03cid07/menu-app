@@ -10,7 +10,7 @@ $log = "$env:TEMP\cloudflared.log"
 Remove-Item $log -ErrorAction SilentlyContinue
 
 Write-Host "Starting tunnel, please wait..." -ForegroundColor Yellow
-$p = Start-Process $exe -ArgumentList "tunnel --url http://localhost:3000" `
+$p = Start-Process $exe -ArgumentList "tunnel --url http://localhost:3000 --protocol http2" `
      -RedirectStandardError $log -NoNewWindow -PassThru
 
 $link = $null
@@ -24,14 +24,19 @@ for ($i = 0; $i -lt 60 -and -not $link; $i++) {
 
 if ($link) {
     Set-Clipboard $link
+    # Let the app's QR code page know the public link (the app reads this file)
+    Set-Content -Path (Join-Path $env:TEMP "cupview-public-url.txt") -Value $link -NoNewline
     Write-Host ""
     Write-Host "YOUR LINK (already copied to clipboard):" -ForegroundColor Green
     Write-Host $link -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Paste it into a chat to yourself and open it on your phone."
+    Write-Host "The QR code tab on the admin page now uses this link automatically."
     Write-Host "Keep this window open. Close it to stop the tunnel."
 } else {
     Write-Host "Could not find the link. Check your internet and try again." -ForegroundColor Red
 }
 
 Wait-Process -Id $p.Id
+# Tunnel closed: forget the link so the QR code never points at a dead address
+Remove-Item (Join-Path $env:TEMP "cupview-public-url.txt") -ErrorAction SilentlyContinue
