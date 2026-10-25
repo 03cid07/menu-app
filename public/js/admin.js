@@ -110,7 +110,7 @@ $("#form").addEventListener("submit", async (e) => {
     if (file) { say("Uploading 3D model…"); showModel(await uploadModel(file)); }
     const body = { name: $("#name").value, price: $("#price").value, category: $("#category").value,
                    description: $("#description").value, ingredients: $("#ingredients").value, images: photos.map((p) => p.path),
-                   model: $("#model").value,
+                   model: $("#model").value, label: $("#label").value,
                    temp: DRINK_RE.test($("#category").value) ? $("#temp").value : "",
                    available: $("#available").checked };
     const id = $("#id").value;
@@ -144,7 +144,7 @@ $("#list").addEventListener("click", async (e) => {
       const i = data.items.find((x) => x.id === t.dataset.edit);
       $("#id").value = i.id; $("#name").value = i.name; $("#price").value = i.price;
       $("#category").value = i.category; $("#description").value = i.description; $("#available").checked = i.available;
-      $("#ingredients").value = i.ingredients || ""; $("#temp").value = i.temp || ""; syncTemp(); showModel(i.model || ""); $("#modelFile").value = ""; photos = gallery(i).map((path) => ({ path })); renderPhotos(); $("#imageFile").value = "";
+      $("#ingredients").value = i.ingredients || ""; $("#temp").value = i.temp || ""; $("#label").value = i.label || ""; syncTemp(); showModel(i.model || ""); $("#modelFile").value = ""; photos = gallery(i).map((path) => ({ path })); renderPhotos(); $("#imageFile").value = "";
       $("#form-title").textContent = "Edit item"; $("#save").textContent = "Save changes"; $("#cancel").hidden = false;
       $("#tab-add").textContent = "Edit item"; showTab("add"); $("#name").focus();
     } else if (t.dataset.toggle) {

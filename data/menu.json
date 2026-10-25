@@ -1,8 +1,7 @@
 {
-  "restaurant": "My Restaurant",
+  "restaurant": "cupview",
   "currency": "₱",
   "categories": [
-    "Starters",
     "Mains",
     "Drinks"
   ],
@@ -11,7 +10,7 @@
       "id": "a1",
       "name": "Crispy Lumpia",
       "price": 120,
-      "category": "Starters",
+      "category": "Mains",
       "description": "Pork and vegetable rolls with sweet chili dip.",
       "available": true
     },
@@ -43,7 +42,7 @@
       "id": "mvklbf5p",
       "name": "asffqe",
       "price": 1234,
-      "category": "Starters",
+      "category": "Mains",
       "description": "oasdjhfoihvcoiwe ishjdfiowhsoei iosdhfoivhwoihe oisdhvoiwho vwu9 suidv",
       "ingredients": "sdgsa",
       "model": "models/model_50cm.glb",
@@ -86,7 +85,7 @@
       "id": "mvm8paos",
       "name": "avocado",
       "price": 12,
-      "category": "Starters",
+      "category": "Mains",
       "description": "sdvsd",
       "ingredients": "sdvsd",
       "image": "images/mvmluw3l-le1p0.jpg",

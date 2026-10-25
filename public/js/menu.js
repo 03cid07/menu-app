@@ -70,7 +70,7 @@ function sheetHtml(i) {
     ${heroHtml(i)}
     <div class="sheet-body">
       <div class="sheet-head"><h2 id="sheet-title">${esc(i.name)}</h2><span class="price big">${money(i.price)}</span></div>
-      <div class="sheet-meta"><small class="itemcat">${esc(i.category)}</small><span class="tag ${i.available ? "ok" : "no"}">${i.available ? "Available" : "Sold out"}</span></div>
+      <div class="sheet-meta"><small class="itemcat">${esc(i.category)}</small><span class="tag ${i.available ? "ok" : "no"}">${i.available ? "Available" : "Sold out"}</span>${labelHtml(i)}</div>
       <div class="sheet-rating">${ratingHtml(i, true)}</div>
       ${i.description ? `<h3 class="sheet-sub">Description</h3><p class="sheet-text">${esc(i.description)}</p>` : ""}
       ${i.ingredients ? `<h3 class="sheet-sub">Ingredients</h3><p class="sheet-text">${esc(i.ingredients)}</p>` : ""}
@@ -82,12 +82,15 @@ function sheetHtml(i) {
     </div>`;
 }
 
+const LABELS = { popular: "Popular", new: "New", hot: "Hot" };
+const labelHtml = (i) => (LABELS[i.label] ? `<span class="hl hl-${i.label}">${LABELS[i.label]}</span>` : "");
+
 // List row: photo, name and price. Everything else lives in the detail card (openSheet).
 const itemHtml = (i) => `
       <article class="item ${i.available ? "" : "sold-out"}" data-id="${esc(i.id)}">
         ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="" loading="lazy">` : `<div class="thumb ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`}
         <div class="info">
-          <h3><button type="button" class="item-open" aria-haspopup="dialog">${esc(i.name)}</button>${i.available ? "" : '<span class="badge">Sold out</span>'}</h3>
+          <h3><button type="button" class="item-open" aria-haspopup="dialog">${esc(i.name)}</button>${labelHtml(i)}${i.available ? "" : '<span class="badge">Sold out</span>'}</h3>
         </div>
         <span class="row-price">${money(i.price)}</span>
         ${addBtnHtml(i)}
@@ -314,14 +317,14 @@ document.addEventListener("click", (e) => {
     if (kind === "hot") {
       timer = setInterval(() => {
         if (!mv.isConnected) return stopFx();
-        puff("i", "steam", { "--x": `${rnd(-16, 16)}px`, "--dx": `${rnd(-28, 28)}px`, "--t": `${rnd(2.2, 3.4)}s` }, 3500);
-      }, 330);
+        puff("i", "steam", { "--x": `${rnd(-28, 28)}px`, "--dx": `${rnd(-40, 40)}px`, "--t": `${rnd(2.4, 3.6)}s` }, 3700);
+      }, 160);
     } else if (kind === "cold") {
       timer = setInterval(() => {
         if (!mv.isConnected) return stopFx();
-        if (Math.random() < 0.55) puff("i", "mist", { "--x": `${rnd(-30, 30)}px`, "--dx": `${rnd(-40, 40)}px`, "--t": `${rnd(2.6, 3.8)}s` }, 3900);
-        else puff("i", "spark", { "--x": `${rnd(-90, 90)}px`, "--y": `${rnd(-10, 120)}px` }, 1500);
-      }, 260);
+        if (Math.random() < 0.5) puff("i", "mist", { "--x": `${rnd(-45, 45)}px`, "--dx": `${rnd(-50, 50)}px`, "--t": `${rnd(2.6, 3.8)}s` }, 3900);
+        else puff("i", "spark", { "--x": `${rnd(-110, 110)}px`, "--y": `${rnd(-10, 150)}px` }, 1500);
+      }, 130);
     } else {
       // Munching: model stays still; crumbs fly on each of three chews, a short rest, repeat
       const t0 = performance.now(), BURST = 0.7, CYCLE = 2600;
@@ -336,7 +339,7 @@ document.addEventListener("click", (e) => {
           const chew = Math.floor(u * 3);
           if (chew !== lastChew && u * 3 - chew > 0.5) {
             lastChew = chew;
-            for (let k = 0; k < 3; k++) puff("i", "crumb", { "--x": `${rnd(-70, 70)}px`, "--y": `${rnd(20, 90)}px`, "--dx": `${rnd(-40, 40)}px`, "--up": `${rnd(-30, -8)}px` }, 1100);
+            for (let k = 0; k < 7; k++) puff("i", "crumb", { "--x": `${rnd(-70, 70)}px`, "--y": `${rnd(20, 90)}px`, "--dx": `${rnd(-40, 40)}px`, "--up": `${rnd(-30, -8)}px` }, 1100);
             if (chew === 1) puff("b", "nom", { "--x": `${rnd(50, 80)}px` }, 1100, "nom nom!");
           }
         } else lastChew = -1;
@@ -371,12 +374,14 @@ document.addEventListener("click", (e) => {
       inAR = true;
       fxLayer.classList.add("in-ar");
       mv.appendChild(fxLayer);
+      fxBtn.classList.add("in-ar"); mv.appendChild(fxBtn); // the on/off button must live inside <model-viewer> to stay visible over the camera
       origin.style.left = "50%"; origin.style.top = "52%"; // no hotspot tracking in AR: spawn near screen center
       if (fxOn) startFx();
     } else if (e.detail.status === "not-presenting") {
       inAR = false;
       fxLayer.classList.remove("in-ar");
       wrap.insertBefore(fxLayer, mv);
+      fxBtn.classList.remove("in-ar"); wrap.appendChild(fxBtn);
       schedulePlace();
       if (fxOn) startFx();
     }
