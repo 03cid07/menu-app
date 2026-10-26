@@ -53,11 +53,15 @@
       <label for="imageFile">Photos <small>(the first one is the cover, up to 8)</small></label>
       <input id="imageFile" type="file" accept="image/*" multiple>
       <div id="photo-grid" class="photo-grid"></div>
-      <label for="modelFile">3D model (.glb)</label>
-      <input id="modelFile" type="file" accept=".glb,model/gltf-binary">
+      <label for="modelFile">3D model <small>(.glb, plus its texture images if it has any)</small></label>
+      <input id="modelFile" type="file" accept=".glb,.jpg,.jpeg,.png,model/gltf-binary" multiple>
+      <p class="hint model-hint">Choosing a file opens the 3D fixer, where you can add textures, set the real size and add effects.</p>
       <input type="hidden" id="model">
       <div id="model-current"></div>
-      <button class="btn ghost" type="button" id="model-remove" hidden>Remove 3D model</button>
+      <div class="model-actions">
+        <button class="btn ghost" type="button" id="model-edit" hidden>Adjust in 3D fixer</button>
+        <button class="btn ghost" type="button" id="model-remove" hidden>Remove 3D model</button>
+      </div>
       <label><input id="available" type="checkbox" checked style="width:auto"> Available today</label>
       <button class="btn" type="submit" id="save">Add item</button>
       <button class="btn ghost" type="button" id="cancel" hidden>Cancel edit</button>
@@ -84,6 +88,98 @@
     </div>
     <div class="panel" data-panel="items"><h2>Current items</h2><div id="list"></div></div>
   </main>
+  <div class="gf" id="gf" role="dialog" aria-modal="true" aria-labelledby="gf-title" hidden>
+    <div class="gf-box" tabindex="-1">
+      <div class="gf-top">
+        <div><h2 id="gf-title">3D model fixer</h2><p class="gf-file" id="gf-file"></p></div>
+        <button type="button" class="gf-x" id="gf-close" aria-label="Close the fixer">&times;</button>
+      </div>
+      <div class="gf-body">
+        <div class="gf-drop" id="gf-drop">
+          <span>Does the model have separate texture images (.jpg / .png)? Drop them here or</span>
+          <button type="button" class="chip" id="gf-addtex">Add textures</button>
+          <input id="gf-in" type="file" accept=".glb,.jpg,.jpeg,.png" multiple hidden>
+        </div>
+        <div class="gf-grid">
+          <div class="gf-card gf-viewcard">
+            <div class="gf-stage">
+              <div class="gf-corner">cm</div>
+              <div class="gf-rx"><canvas id="gf-rulerX"></canvas></div>
+              <div class="gf-ry"><canvas id="gf-rulerY"></canvas></div>
+              <div class="gf-view" id="gf-view">
+                <canvas id="gf-grid"></canvas>
+                <model-viewer id="gf-mv" autoplay camera-controls disable-zoom disable-pan touch-action="pan-y" interaction-prompt="none"
+                  camera-orbit="0deg 90deg auto" field-of-view="30deg" min-field-of-view="30deg" max-field-of-view="30deg" shadow-intensity="0" alt="Model preview"></model-viewer>
+                <canvas id="gf-overlay"></canvas>
+              </div>
+            </div>
+            <div class="gf-zoombar">
+              <button type="button" class="chip" id="gf-zout" title="Zoom out">&minus;</button>
+              <button type="button" class="chip" id="gf-zin" title="Zoom in">+</button>
+              <button type="button" class="chip" id="gf-zfit" title="Zoom so the model fills the area">Fit model</button>
+              <button type="button" class="chip" id="gf-front" title="Turn the model to face the front">Front</button>
+              <span id="gf-viewlabel"></span>
+            </div>
+            <p class="gf-hint">Scroll over the area (or use + / -) to zoom; the rulers follow. Rulers are in real cm, centred on the model. The coloured band on each ruler shows how much room the model takes up. The dashed box shows width x height while the model faces front.</p>
+            <p class="gf-was" id="gf-was"></p>
+          </div>
+          <div>
+            <div class="gf-tabs" id="gf-tabs" role="group" aria-label="Fixer steps">
+              <button type="button" class="chip" data-t="tex" aria-pressed="true">1 Textures</button>
+              <button type="button" class="chip" data-t="size" aria-pressed="false">2 Size</button>
+              <button type="button" class="chip" data-t="fx" id="gf-fxtab" aria-pressed="false">3 Effects</button>
+            </div>
+            <div class="gf-card gf-pane gf-cur" data-pane="tex">
+              <strong>1. Textures</strong>
+              <ul class="gf-tex" id="gf-texlist"></ul>
+              <label for="gf-tmax">Texture size (longest side)</label>
+              <select id="gf-tmax">
+                <option value="0">Keep original</option>
+                <option value="2048">2048 px</option>
+                <option value="1024" selected>1024 px (good for phones)</option>
+                <option value="512">512 px</option>
+              </select>
+              <p class="gf-was" id="gf-outsize"></p>
+            </div>
+            <div class="gf-card gf-pane" data-pane="size">
+              <strong>2. Size (as shown in AR)</strong>
+              <div class="gf-dims">
+                <div><b id="gf-dw">-</b><small>width cm</small></div>
+                <div><b id="gf-dh">-</b><small>height cm</small></div>
+                <div><b id="gf-dd">-</b><small>depth cm</small></div>
+              </div>
+              <label for="gf-cm">Longest side (cm)</label>
+              <input id="gf-cm" type="number" min="0.1" step="0.5">
+              <label for="gf-pct">Scale: <span id="gf-pctlabel">100</span>%</label>
+              <input id="gf-pct" type="range" min="1" max="300" value="100">
+              <div class="gf-presets">
+                <button type="button" class="chip" data-p="10">10%</button>
+                <button type="button" class="chip" data-p="25">25%</button>
+                <button type="button" class="chip" data-p="50">50%</button>
+                <button type="button" class="chip" data-p="75">75%</button>
+                <button type="button" class="chip" data-p="100">Original</button>
+              </div>
+              <label>Compare with real objects</label>
+              <div id="gf-refs"></div>
+            </div>
+            <div class="gf-card gf-pane" data-pane="fx">
+              <strong>3. Food &amp; drink effects <span class="gf-opt">(optional)</span></strong>
+              <p class="gf-was">Tick any effects you like and set how strong they are. They are built into the finished model, so customers see them in the menu viewer.</p>
+              <div id="gf-fxlist"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="gf-foot">
+        <div class="gf-msg" id="gf-msg" role="status"></div>
+        <button type="button" class="btn ghost" id="gf-cancel">Cancel</button>
+        <button type="button" class="btn ghost" id="gf-dl" disabled>Download copy</button>
+        <button type="button" class="btn" id="gf-use" disabled>Use this model</button>
+      </div>
+    </div>
+  </div>
+  <script src="js/glb-tools.js"></script>
+  <script src="js/glb-fixer.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

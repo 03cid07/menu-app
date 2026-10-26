@@ -68,10 +68,24 @@ function renderPhotos() {
     <div class="photo-btns"><button type="button" class="pb" data-pl="${n}" aria-label="Move photo ${n + 1} earlier" ${n === 0 ? "disabled" : ""}>\u2039</button><button type="button" class="pb" data-pr="${n}" aria-label="Move photo ${n + 1} later" ${n === photos.length - 1 ? "disabled" : ""}>\u203a</button><button type="button" class="pb danger" data-px="${n}" aria-label="Remove photo ${n + 1}">\u00d7</button></div></div>`).join("");
 }
 
-function showModel(path) {
-  $("#model").value = path || "";
-  $("#model-current").textContent = path ? `Current 3D model: ${path}` : "";
-  $("#model-remove").hidden = !path;
+// 3D model of the item being edited: `#model` holds the saved path, `pendingModel` is a finished file from the fixer that uploads on save
+let pendingModel = null;
+const mb = (n) => (n / 1048576).toFixed(2) + " MB";
+function syncModelUi() {
+  const saved = $("#model").value;
+  $("#model-current").textContent = pendingModel ? `New 3D model ready: ${pendingModel.name} (${mb(pendingModel.size)}). It uploads when you save.` : saved ? `Current 3D model: ${saved}` : "";
+  $("#model-edit").hidden = !(pendingModel || saved);
+  $("#model-remove").hidden = !(pendingModel || saved);
+  $("#model-remove").textContent = pendingModel ? "Discard new model" : "Remove 3D model";
+}
+function showModel(path) { $("#model").value = path || ""; pendingModel = null; syncModelUi(); }
+
+// Open the 3D fixer for a .glb (and any texture images picked with it); keep the finished file for the save step
+async function fixModel(list) {
+  if (!list.some((f) => /\.glb$/i.test(f.name))) { say("Choose a .glb file. If it has texture images (.jpg / .png), choose them together with it.", true); return; }
+  if (!window.GlbFixer) { say("The 3D fixer did not load. Refresh the page and try again.", true); return; }
+  const file = await GlbFixer.open(list);
+  if (file) { pendingModel = file; syncModelUi(); say("3D model ready. It uploads when you save the item."); }
 }
 
 async function refresh() {
@@ -106,8 +120,7 @@ $("#form").addEventListener("submit", async (e) => {
       say(`Uploading photo ${k + 1} of ${todo.length}…`);
       p.path = await uploadImage(p.file); delete p.file; // kept as uploaded, so a retry won't upload it twice
     }
-    const file = $("#modelFile").files[0];
-    if (file) { say("Uploading 3D model…"); showModel(await uploadModel(file)); }
+    if (pendingModel) { say("Uploading 3D model…"); showModel(await uploadModel(pendingModel)); }
     const body = { name: $("#name").value, price: $("#price").value, category: $("#category").value,
                    description: $("#description").value, ingredients: $("#ingredients").value, images: photos.map((p) => p.path),
                    model: $("#model").value, label: $("#label").value,
@@ -135,7 +148,27 @@ $("#photo-grid").addEventListener("click", (e) => {
   else { const m = b.dataset.pl !== undefined ? n - 1 : n + 1; [photos[n], photos[m]] = [photos[m], photos[n]]; }
   renderPhotos();
 });
-$("#model-remove").addEventListener("click", () => { showModel(""); $("#modelFile").value = ""; });
+$("#model-remove").addEventListener("click", () => {
+  if (pendingModel) { pendingModel = null; syncModelUi(); say("New 3D model discarded."); }   // back to the saved one, if any
+  else showModel("");
+  $("#modelFile").value = "";
+});
+$("#modelFile").addEventListener("change", () => {
+  const list = [...$("#modelFile").files];
+  $("#modelFile").value = "";                       // so choosing the same file again still opens the fixer
+  if (list.length) fixModel(list);
+});
+$("#model-edit").addEventListener("click", async () => {
+  try {
+    if (pendingModel) return fixModel([pendingModel]);
+    const path = $("#model").value;
+    say("Loading 3D model…");
+    const res = await fetch("/" + path.replace(/^\//, ""));
+    if (!res.ok) throw new Error("Could not load the saved 3D model (error " + res.status + ")");
+    say("");
+    await fixModel([new File([await res.blob()], path.split("/").pop(), { type: "model/gltf-binary" })]);
+  } catch (err) { say(err.message, true); }
+});
 
 $("#list").addEventListener("click", async (e) => {
   const t = e.target;

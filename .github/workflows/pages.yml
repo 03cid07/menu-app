@@ -31,7 +31,7 @@ jobs:
           cp -r public/. _site/
           cp data/menu.json _site/menu.json
           # admin tools need the Node server, so they are not published
-          rm -f _site/admin.html _site/qr-print.html _site/js/admin.js
+          rm -f _site/admin.html _site/qr-print.html _site/js/admin.js _site/js/glb-fixer.js _site/js/glb-tools.js
           touch _site/.nojekyll
 
       - uses: actions/setup-node@v4

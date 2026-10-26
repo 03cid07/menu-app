@@ -105,14 +105,15 @@
       "description": "leftover cake ",
       "ingredients": "caramel ",
       "image": "images/mvmlnt2w-akh1p.jpg",
-      "model": "models/leftover_cake_36cm.glb",
+      "model": "models/leftover_cake_36cm_fx.glb",
       "modelScale": 1,
       "temp": "",
       "available": true,
       "images": [
         "images/mvmlnt2w-akh1p.jpg",
         "images/mvmlnt5e-tfwry.jpg"
-      ]
+      ],
+      "label": ""
     }
   ]
 }
