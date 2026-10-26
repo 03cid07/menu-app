@@ -148,6 +148,24 @@ function cylGeo() {                                    // open tube, radius 1, f
   for (let i = 0; i < N; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
   return { pos, nor, idx };
 }
+const xform = (g, fn) => { const pos = []; for (let i = 0; i < g.pos.length; i += 3) pos.push(...fn(g.pos[i], g.pos[i + 1], g.pos[i + 2])); return { pos, nor: g.nor, idx: g.idx }; };
+const mergeGeo = (a, b) => ({ pos: [...a.pos, ...b.pos], nor: [...a.nor, ...b.nor], idx: [...a.idx, ...b.idx.map((i) => i + a.pos.length / 3)] });
+function fishGeo() {                                   // small cartoon fish, nose toward +X
+  const body = xform(sphereGeo(), (x, y, z) => [x, y * 0.55, z * 0.38]);
+  const tail = xform(sphereGeo(), (x, y, z) => [x * 0.38 - 1.15, y * 0.55, z * 0.1]);
+  return mergeGeo(body, tail);
+}
+function jellyfishGeo() {                              // dome + 4 dangling tentacles
+  const A = 10, B = 4, pos = [], nor = [], idx = [];
+  for (let j = 0; j <= B; j++) for (let i = 0; i <= A; i++) {
+    const v = (j / B) * 1.5708, u = (i / A) * 6.28319, x = Math.sin(v) * Math.cos(u), y = Math.cos(v), z = Math.sin(v) * Math.sin(u);
+    pos.push(x, y, z); nor.push(x, y, z);
+  }
+  for (let j = 0; j < B; j++) for (let i = 0; i < A; i++) { const a = j * (A + 1) + i, b = a + A + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  let g = { pos, nor, idx };
+  for (const [tx, tz] of [[0.45, 0], [-0.45, 0], [0, 0.45], [0, -0.45]]) g = mergeGeo(g, xform(cubeGeo(), (x, y, z) => [x * 0.08 + tx, y * 1.1 - 0.55, z * 0.08 + tz]));
+  return g;
+}
 const qMul = (a, b) => [a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1], a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0], a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3], a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2]];
 const qAxis = (a, ang) => { const s = Math.sin(ang / 2); return [a[0] * s, a[1] * s, a[2] * s, Math.cos(ang / 2)]; };
 
@@ -168,6 +186,7 @@ function applyEffects(buf, size, ctr, fxs) {
   const mix = (t, k) => t.forEach((v, i) => { tint[i] *= 1 + (v - 1) * k; });
   if (on("golden")) mix([1, 0.84, 0.55], on("golden"));
   if (on("cold")) mix([0.78, 0.92, 1], on("cold"));
+  if (on("bikini")) mix([0.84, 0.97, 1], on("bikini") * 0.7);
   const gloss = on("gloss"), glow = on("glow");
   for (const m of gltf.materials) {
     const p = (m.pbrMetallicRoughness = m.pbrMetallicRoughness || {});
@@ -330,10 +349,51 @@ function applyEffects(buf, size, ctr, fxs) {
     }
   }
 
-  /* --- whole-model motion: spin / float / jelly / munch (pivot sits at the model's base) --- */
-  const spin = on("spin"), flt = on("float"), jel = on("jelly"), mun = on("munch"), hvn = on("heaven");
+  if ((s = on("bikini"))) {                            // Bikini Bottom: sandy sea floor, swaying kelp, fish, jellyfish and bubbles
+    const foot = Math.max(sx, sz) / 2, cb = Math.max(foot, maxDim * 0.3);
+    const still = (mesh, t, sc) => { gltf.nodes.push({ mesh, translation: t, scale: sc }); roots.push(gltf.nodes.length - 1); };
+    const sandR = cb * 1.35;
+    still(addMesh(sphereGeo(), mat([0.93, 0.82, 0.55, 1], [0.12, 0.1, 0.05], 1, false)), [cx, minY - sandR * 0.08, cz], [sandR, sandR * 0.12, sandR]);
+    const kelp = [[0.15, 0.55, 0.25, 1], [0.2, 0.66, 0.3, 1]].map((c) => addMesh(sphereGeo(), mat(c, [0.02, 0.1, 0.04], 0.8, false)));
+    const nk = 4 + Math.round(3 * s);
+    for (let i = 0; i < nk; i++) {
+      const a = (i / nk) * 6.283 + R() * 0.6, d = cb * (0.95 + 0.25 * R()), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d;
+      const h = H * (0.8 + 0.7 * R()), w = maxDim * (0.035 + 0.02 * R()), ph = R() * 6.283;
+      emit({ mesh: kelp[i % 2], cycles: 1, phase: 0,
+        pos: (u) => [x + Math.sin(6.283 * 2 * u + ph) * h * 0.09, minY + h * 0.9, z], scl: () => [w, h * 0.9, w * 0.5],
+        rot: (tt) => qAxis([0, 0, 1], 0.2 * Math.sin(6.283 * 2 * tt + ph)) });
+    }
+    const fishMeshes = [[1, 0.55, 0.15, 1], [1, 0.85, 0.2, 1], [0.25, 0.7, 0.85, 1]].map((c) => addMesh(fishGeo(), mat(c, [0.1, 0.05, 0], 0.5, false)));
+    const nf = 3 + Math.round(2 * s);
+    for (let i = 0; i < nf; i++) {
+      const rad = cb * (1.1 + 0.4 * R()), turns = 1 + (i % 2), off = R() * 6.283, y = minY + H * (0.3 + 0.8 * R()), size = maxDim * (0.1 + 0.04 * R());
+      emit({ mesh: fishMeshes[i % 3], cycles: 1, phase: 0,
+        pos: (u) => [cx + Math.cos(6.283 * turns * u + off) * rad, y + Math.sin(6.283 * 3 * u + i) * maxDim * 0.03, cz + Math.sin(6.283 * turns * u + off) * rad],
+        scl: () => [size, size, size], rot: (tt) => qAxis([0, 1, 0], -(6.283 * turns * tt + off) - 1.5708) });
+    }
+    const jf = addMesh(jellyfishGeo(), mat([1, 0.6, 0.8, 0.55], [0.5, 0.2, 0.35], 0.4, true));
+    for (let i = 0; i < 2; i++) {
+      const a = R() * 6.283, d = cb * (0.9 + 0.3 * R()), x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d, size = maxDim * (0.12 + 0.05 * R());
+      const y0 = minY + H * 0.1, y1 = top + H * 0.5;
+      emit({ mesh: jf, cycles: 1, phase: Math.floor((i * K) / 2) / K,
+        pos: (u) => [x + Math.sin(u * 6.283 * 2) * foot * 0.1, y0 + (y1 - y0) * u, z],
+        scl: (u) => { const e = grow(Math.pow(Math.sin(Math.PI * u), 0.6)), p = Math.sin(6.283 * 8 * u); return [size * e * (1 + 0.1 * p), size * e * (1 - 0.16 * p), size * e * (1 + 0.1 * p)]; } });
+    }
+    const bub = addMesh(sphereGeo(), mat([0.8, 0.95, 1, 0.4], [0.1, 0.15, 0.2], 0.1, true));
+    const nb = 8 + Math.round(8 * s);
+    for (let i = 0; i < nb; i++) {
+      const a = R() * 6.283, d = cb * Math.sqrt(R()) * 1.2, x = cx + Math.cos(a) * d, z = cz + Math.sin(a) * d, size = maxDim * (0.02 + 0.03 * R());
+      const y0 = minY, y1 = top + H * 0.7;
+      emit({ mesh: bub, cycles: R() < 0.5 ? 1 : 2, phase: phase(),
+        pos: (u) => [x + Math.sin(u * 9 + i) * foot * 0.05, y0 + (y1 - y0) * u, z],
+        scl: (u) => { const e = grow(Math.sqrt(Math.sin(Math.PI * u))); return [size * e, size * e, size * e]; } });
+    }
+  }
+
+  /* --- whole-model motion: spin / float / jelly / munch / underwater sway (pivot sits at the model's base) --- */
+  const spin = on("spin"), flt = on("float"), jel = on("jelly"), mun = on("munch"), hvn = on("heaven"), bik = on("bikini");
   let rootNodes = scene.nodes.slice();
-  if (spin || flt || jel || mun || hvn) {
+  if (spin || flt || jel || mun || hvn || bik) {
     gltf.nodes.push({ name: "FoodFXModel", translation: [-cx, -minY, -cz], children: rootNodes });
     const mi = gltf.nodes.length - 1;
     const kids = [mi]; let halo = -1;
@@ -353,13 +413,14 @@ function applyEffects(buf, size, ctr, fxs) {
     const chew = (tt) => { const t = tt * T, ph = (t % 2) / 2; return ph >= 0.75 ? 0 : Math.sqrt(Math.sin((Math.PI * ph) / 0.75)); };   // 1.5 s of chewing, 0.5 s rest, every 2 s
     const bob = (tt) => Math.abs(Math.sin(6.283 * 2 * tt * T));
     const spinN = Math.max(1, Math.round(4 * spin));
-    if (spin || mun) chan(pi, "rotation", "VEC4", fill(4, (tt) => {
+    if (spin || mun || bik) chan(pi, "rotation", "VEC4", fill(4, (tt) => {
       let q = spin ? qAxis([0, 1, 0], 6.283 * spinN * tt) : [0, 0, 0, 1];
       if (mun) q = qMul(q, qAxis([1, 0, 0], 0.16 * mun * chew(tt) * Math.sin(6.283 * 2 * tt * T)));
+      if (bik) q = qMul(q, qAxis([0, 0, 1], 0.05 * bik * Math.sin(6.283 * 2 * tt)));
       return q;
     }), KM);
-    if (flt || mun || hvn) { const A = H * (0.03 + 0.08 * flt), B = H * 0.05 * mun, L = H * (0.5 + hvn);
-      chan(pi, "translation", "VEC3", fill(3, (tt) => [cx, minY + (flt ? A * (0.5 + 0.5 * Math.sin(6.283 * 2 * tt)) : 0) + (mun ? B * chew(tt) * bob(tt) : 0) + (hvn ? L * asc(tt) : 0), cz]), KM); }
+    if (flt || mun || hvn || bik) { const A = H * (0.03 + 0.08 * flt), B = H * 0.05 * mun, L = H * (0.5 + hvn);
+      chan(pi, "translation", "VEC3", fill(3, (tt) => [cx, minY + (flt ? A * (0.5 + 0.5 * Math.sin(6.283 * 2 * tt)) : 0) + (mun ? B * chew(tt) * bob(tt) : 0) + (hvn ? L * asc(tt) : 0) + (bik ? H * 0.03 * bik * (0.5 + 0.5 * Math.sin(6.283 * 3 * tt)) : 0), cz]), KM); }
     if (jel || mun) { const a = 0.03 + 0.12 * jel;
       chan(pi, "scale", "VEC3", fill(3, (tt) => {
         const w = jel ? Math.sin(6.283 * 4 * tt) : 0, sq = mun ? 1 - 0.07 * mun * chew(tt) * bob(tt) : 1;

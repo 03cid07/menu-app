@@ -9,7 +9,7 @@ try { QRCode = require("qrcode"); } catch { console.warn("QR codes are off: run 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_PIN = process.env.ADMIN_PIN || "1234"; // change this!
+const ADMIN_PIN = process.env.ADMIN_PIN || "1111"; // change this!
 const DATA_FILE = path.join(__dirname, "data", "menu.json");
 const RATINGS_FILE = path.join(__dirname, "data", "ratings.json");
 const MODELS_DIR = path.join(__dirname, "public", "models");

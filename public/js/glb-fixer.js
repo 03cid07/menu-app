@@ -380,6 +380,7 @@
     { id: "spin", g: "Shine & motion", icon: "🔄", name: "Turntable spin", note: "Slowly rotates like a display stand" },
     { id: "munch", g: "Fun", icon: "⛏️", name: "Minecraft munch", note: "Shakes and crumbles like eating food in Minecraft" },
     { id: "heaven", g: "Fun", icon: "😇", name: "Going to heaven", note: "Floats up off a cloud with a halo and a beam of light" },
+    { id: "bikini", g: "Fun", icon: "🧽", name: "Bikini Bottom", note: "Underwater: sandy floor, kelp, fish, jellyfish and bubbles" },
   ];
   const RECIPES = [
     ["Hot dish", { steam: 0.6, glow: 0.5, gloss: 0.5 }], ["Cold drink", { fizz: 0.6, cold: 0.6, float: 0.4 }],
