@@ -290,7 +290,7 @@ document.addEventListener("click", (e) => {
     </div><button type="button" class="mv-toggle" aria-expanded="true" aria-label="Hide details">${CHEV}</button></div>`;
   $("#viewer-stage").innerHTML = `<div class="stage-wrap" data-fx="${kind}"><div class="fx" aria-hidden="true"><div class="fx-origin"></div></div><div class="mv-loader" role="status" aria-live="polite"><div class="mv-spin" aria-hidden="true"></div><div class="mv-ltext">Loading 3D model\u2026 <span class="mv-pct">0%</span></div><div class="mv-lbar" aria-hidden="true"><i></i></div></div><model-viewer src="${esc(src)}" alt="3D model of ${esc(b.dataset.name)}"
     ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
-    camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%">
+    autoplay camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%">
     <div slot="progress-bar" class="mv-topbar" aria-hidden="true"><i></i></div>
     ${label}
     <button slot="ar-button" type="button" class="btn ar-btn">View on your table (AR)</button>
