@@ -110,6 +110,7 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 #viewer-stage model-viewer { position: relative; z-index: 1; margin-top: 0; background: transparent; --poster-color: transparent; --progress-bar-color: #4cd9a8; --progress-mask: rgba(255,255,255,.3); --progress-bar-height: 8px; }
 .fx-toggle { position: absolute; top: 8px; right: 8px; z-index: 3; font: inherit; font-size: .75rem; padding: .2rem .65rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
 
+.fx-toggle:disabled { opacity: .6; cursor: default; }
 .fx-toggle.in-ar { top: max(12px, env(safe-area-inset-top)); right: auto; left: 12px; z-index: 11; pointer-events: auto; font-size: .9rem; padding: .45rem .95rem; background: rgba(0,0,0,.6); color: #fff; border-color: rgba(255,255,255,.6); }
 
 /* ---- Ratings + product detail card ---- */

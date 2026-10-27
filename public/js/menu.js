@@ -319,14 +319,13 @@ document.addEventListener("click", (e) => {
     const r = T.stripEffects(T.parseGlb(await (await fetch(src)).arrayBuffer()));
     return r.had ? URL.createObjectURL(new Blob([T.buildGlb(r.gltf, r.bin)], { type: "model/gltf-binary" })) : null;
   })().catch(() => null));
-  viewerCleanup = () => { swap++; if (plainP) plainP.then((u) => u && URL.revokeObjectURL(u)); };
+  viewerCleanup = () => { swap++; document.removeEventListener("visibilitychange", comeBack); if (plainP) plainP.then((u) => u && URL.revokeObjectURL(u)); };
   const showFx = async (on) => {
     const my = ++swap;
     fxBtn.disabled = true;
     const url = on ? src : await plain();
     if (my !== swap || !mv.isConnected) return;
-    mv.arModes = on ? "webxr scene-viewer quick-look" : "webxr quick-look";   // Android Scene Viewer needs a real URL, so it only works with effects on
-    if (!url || mv.getAttribute("src") === url) { fxBtn.disabled = false; if (!mv.getAttribute("src")) mv.src = src; return; }
+    if (!url || mv.src === url) { if (!fxBtn.classList.contains("none")) fxBtn.disabled = false; if (!mv.src) mv.src = src; return; }
     const o = mv.getCameraOrbit && mv.loaded ? mv.getCameraOrbit() : null;
     mv.addEventListener("load", () => {
       fxBtn.disabled = false;
@@ -334,8 +333,21 @@ document.addEventListener("click", (e) => {
     }, { once: true });
     mv.src = url;
   };
-  if (fxOn) mv.addEventListener("load", () => plain().then((u) => { if (u && mv.isConnected) fxBtn.hidden = false; }), { once: true });
-  else plain().then((u) => { if (u && mv.isConnected) fxBtn.hidden = false; showFx(false); });   // starts with effects off: wait for the plain copy before showing anything
+  const ready = (u) => {                                         // the button is always there; it is dimmed on models that have no effects
+    if (!mv.isConnected) return;
+    fxBtn.hidden = false;
+    if (u) fxBtn.disabled = false;
+    else { fxBtn.classList.add("none"); fxBtn.disabled = true; fxBtn.textContent = "No effects"; fxBtn.removeAttribute("aria-pressed"); }
+  };
+  if (fxOn) mv.addEventListener("load", () => { fxBtn.hidden = false; fxBtn.disabled = true; plain().then(ready); }, { once: true });
+  else { fxBtn.hidden = false; fxBtn.disabled = true; plain().then((u) => { ready(u); showFx(false); }); }   // starts with effects off: wait for the plain copy before showing anything
+  // Android phones without WebXR open Google's Scene Viewer for AR. It needs the real file address, so for that trip the model is shown as saved
+  // (with its effects); the plain copy comes back when the customer returns to the page.
+  let xr = false;
+  if (navigator.xr && navigator.xr.isSessionSupported) navigator.xr.isSessionSupported("immersive-ar").then((v) => { xr = v; }).catch(() => {});
+  mv.querySelector(".ar-btn").addEventListener("click", () => { if (!fxOn && !xr && /Android/i.test(navigator.userAgent) && mv.src !== src) mv.src = src; }, true);
+  const comeBack = () => { if (document.visibilityState === "visible" && !fxOn && mv.isConnected && mv.src === src) showFx(false); };
+  document.addEventListener("visibilitychange", comeBack);
   // In AR (WebXR camera view) the page itself is hidden, so the on/off button is moved inside <model-viewer>, which is what the browser shows over the camera.
   mv.addEventListener("ar-status", (e) => {
     if (e.detail.status === "session-started") { fxBtn.classList.add("in-ar"); mv.appendChild(fxBtn); }
