@@ -435,9 +435,6 @@ body.has-list .home-box { padding-bottom: 7rem; }
 @keyframes mvSpin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .mv-spin { animation-duration: 3s; } }
 
-/* Bright loading bar along the top of the 3D view (replaces the default black one) */
-.mv-topbar { position: absolute; top: 0; left: 0; right: 0; height: 8px; background: rgba(255,255,255,.3); border-radius: 10px 10px 0 0; overflow: hidden; pointer-events: none; }
-.mv-topbar i { display: block; height: 100%; width: 0; background: #4cd9a8; box-shadow: 0 0 10px #4cd9a8; transition: width .2s ease; }
 
 /* Quick menu: multi-select answers and the ingredient note */
 .home-card.pick[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }

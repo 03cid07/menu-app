@@ -291,7 +291,7 @@ document.addEventListener("click", (e) => {
   $("#viewer-stage").innerHTML = `<div class="stage-wrap" data-fx="${kind}"><div class="mv-loader" role="status" aria-live="polite"><div class="mv-spin" aria-hidden="true"></div><div class="mv-ltext">Loading 3D model\u2026 <span class="mv-pct">0%</span></div><div class="mv-lbar" aria-hidden="true"><i></i></div></div><model-viewer ${fxOn ? `src="${esc(src)}"` : ""} alt="3D model of ${esc(b.dataset.name)}"
     ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
     autoplay camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%">
-    <div slot="progress-bar" class="mv-topbar" aria-hidden="true"><i></i></div>
+    <div slot="progress-bar" aria-hidden="true"></div>
     ${label}
     <button slot="ar-button" type="button" class="btn ar-btn">View on your table (AR)</button>
   </model-viewer>
@@ -299,12 +299,12 @@ document.addEventListener("click", (e) => {
   // Once the model has loaded, float the label just above its top
   const mv = $("#viewer-stage model-viewer");
   // Visible loading indicator: spinner + percentage, removed once the model is ready (or shows an error)
-  const topbar = mv.querySelector(".mv-topbar i"), loader = $("#viewer-stage .mv-loader"), pct = loader.querySelector(".mv-pct"), lbar = loader.querySelector(".mv-lbar i");
+  const loader = $("#viewer-stage .mv-loader"), pct = loader.querySelector(".mv-pct"), lbar = loader.querySelector(".mv-lbar i");
   mv.addEventListener("progress", (e) => {
     const p = Math.round((e.detail.totalProgress || 0) * 100);
-    pct.textContent = `${p}%`; lbar.style.width = `${p}%`; topbar.style.width = `${p}%`;
+    pct.textContent = `${p}%`; lbar.style.width = `${p}%`;
   });
-  mv.addEventListener("load", () => { loader.remove(); mv.querySelector(".mv-topbar")?.remove(); });
+  mv.addEventListener("load", () => { loader.remove(); });
   mv.addEventListener("error", () => {
     loader.classList.add("failed");
     loader.innerHTML = '<div class="mv-ltext">Could not load the 3D model. Please close and try again.</div>';
