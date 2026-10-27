@@ -251,13 +251,14 @@ fetch("api/menu")
   .then((d) => { data = d; render(); })
   .catch(() => ($("#menu").innerHTML = '<p class="empty">Could not load the menu. Please refresh the page.</p>'));
 
-// ---- Category animations: food gets munched, hot drinks steam, cold drinks frost over ----
+// ---- Food / hot drink / cold drink sorting (the Quick menu uses this) ----
 const DRINK_RE = /drink|beverage|juice|coffee|tea\b|shake|smoothie|soda|cocktail|beer|wine/i;
 const COLD_RE = /iced|ice\b|cold|juice|shake|smoothie|soda|lemonade|frappe|cooler|beer/i;
 function fxKind(it) {
   if (!DRINK_RE.test(it.category || "")) return "food";
   return it.temp === "cold" || (!it.temp && COLD_RE.test(it.name)) ? "cold" : "hot";
 }
+// ---- Effects (the heaven effect is baked into the 3D model; the customer can switch it off) ----
 // Effects start on, unless the phone asks for reduced motion
 let fxOn = !matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -281,14 +282,13 @@ document.addEventListener("click", (e) => {
   $("#viewer-title").textContent = b.dataset.name;
   const src = b.dataset.model;
   const it = data.items.find((x) => x.id === b.dataset.id) || { name: b.dataset.name, price: 0, category: "" };
-  const kind = fxKind(it);
   // Floating label: the name drops in letter by letter, the price pops, the description fades in
   const label = `<div slot="hotspot-label" class="mv-label" data-position="0 1 0"><div class="mv-card">
       <div class="mv-name">${[...it.name].map((ch, k) => `<span style="--d:${k * 45}ms">${ch === " " ? "&nbsp;" : esc(ch)}</span>`).join("")}</div>
       <div class="mv-price">${money(it.price)}</div>
       ${it.description ? `<div class="mv-desc">${esc(it.description)}</div>` : ""}
     </div><button type="button" class="mv-toggle" aria-expanded="true" aria-label="Hide details">${CHEV}</button></div>`;
-  $("#viewer-stage").innerHTML = `<div class="stage-wrap" data-fx="${kind}"><div class="mv-loader" role="status" aria-live="polite"><div class="mv-spin" aria-hidden="true"></div><div class="mv-ltext">Loading 3D model\u2026 <span class="mv-pct">0%</span></div><div class="mv-lbar" aria-hidden="true"><i></i></div></div><model-viewer ${fxOn ? `src="${esc(src)}"` : ""} alt="3D model of ${esc(b.dataset.name)}"
+  $("#viewer-stage").innerHTML = `<div class="stage-wrap"><div class="mv-loader" role="status" aria-live="polite"><div class="mv-spin" aria-hidden="true"></div><div class="mv-ltext">Loading 3D model\u2026 <span class="mv-pct">0%</span></div><div class="mv-lbar" aria-hidden="true"><i></i></div></div><model-viewer ${fxOn ? `src="${esc(src)}"` : ""} alt="3D model of ${esc(b.dataset.name)}"
     ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
     autoplay camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%">
     <div slot="progress-bar" aria-hidden="true"></div>
