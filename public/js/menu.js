@@ -312,13 +312,13 @@ document.addEventListener("click", (e) => {
 
   // ---- Effects button: the effects are baked into the .glb, so "off" shows a copy of the model with them taken out ----
   const wrap = $("#viewer-stage .stage-wrap"), fxBtn = wrap.querySelector(".fx-toggle");
-  let plainP = null, swap = 0;
+  let plainP = null, plainErr = null, swap = 0;
   const plain = () => plainP || (plainP = (async () => {         // blob URL of the model without its effects (null if it has none)
     const T = window.GlbTools;
     if (!T) return null;
     const r = T.stripEffects(T.parseGlb(await (await fetch(src)).arrayBuffer()));
     return r.had ? URL.createObjectURL(new Blob([T.buildGlb(r.gltf, r.bin)], { type: "model/gltf-binary" })) : null;
-  })().catch(() => null));
+  })().catch((e) => { plainErr = e; console.error("Effects: could not prepare the model without effects", e); return null; }));
   viewerCleanup = () => { swap++; document.removeEventListener("visibilitychange", comeBack); if (plainP) plainP.then((u) => u && URL.revokeObjectURL(u)); };
   const showFx = async (on) => {
     const my = ++swap;
@@ -337,7 +337,7 @@ document.addEventListener("click", (e) => {
     if (!mv.isConnected) return;
     fxBtn.hidden = false;
     if (u) fxBtn.disabled = false;
-    else { fxBtn.classList.add("none"); fxBtn.disabled = true; fxBtn.textContent = "No effects"; fxBtn.removeAttribute("aria-pressed"); }
+    else { fxBtn.classList.add("none"); fxBtn.disabled = true; fxBtn.textContent = plainErr ? "Effects unavailable" : "No effects"; fxBtn.removeAttribute("aria-pressed"); }
   };
   if (fxOn) mv.addEventListener("load", () => { fxBtn.hidden = false; fxBtn.disabled = true; plain().then(ready); }, { once: true });
   else { fxBtn.hidden = false; fxBtn.disabled = true; plain().then((u) => { ready(u); showFx(false); }); }   // starts with effects off: wait for the plain copy before showing anything
