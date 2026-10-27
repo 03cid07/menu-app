@@ -226,6 +226,10 @@
     for (const f of list) {
       if (/\.glb$/i.test(f.name)) {
         try { parsed = T.parseGlb(await f.arrayBuffer()); } catch (e) { return msg(e.message, true); }
+        const old = T.stripEffects(parsed);              // a model saved with effects opens clean, with those effects ticked, so they can be changed or switched off
+        parsed = { gltf: old.gltf, bin: old.bin };
+        for (const k in fx) delete fx[k];
+        Object.assign(fx, old.fx); syncFxUi();
         glbName = f.name; origCm = null; origCenter = null; fxResult = null; scaleF = 1; spanCm = 0; userZoom = false;
         $("#gf-mv").setAttribute("scale", "1 1 1");
         $("#gf-file").textContent = f.name;

@@ -188,7 +188,12 @@ function applyEffects(buf, size, ctr, fxs) {
   if (on("cold")) mix([0.78, 0.92, 1], on("cold"));
   if (on("bikini")) mix([0.84, 0.97, 1], on("bikini") * 0.7);
   const gloss = on("gloss"), glow = on("glow");
+  const changesLook = tint.some((v) => v !== 1) || gloss || glow;
   for (const m of gltf.materials) {
+    if (changesLook && !(m.extras && m.extras.fxOrig)) {   // remember the untouched look so the effects can be undone later
+      const o = m.pbrMetallicRoughness || {};
+      m.extras = { ...(m.extras || {}), fxOrig: JSON.parse(JSON.stringify({ bc: o.baseColorFactor || null, rough: o.roughnessFactor ?? null, em: m.emissiveFactor || null, cc: (m.extensions && m.extensions.KHR_materials_clearcoat) || null })) };   // a copy, because bc is changed in place below
+    }
     const p = (m.pbrMetallicRoughness = m.pbrMetallicRoughness || {});
     const bc = (p.baseColorFactor = p.baseColorFactor || [1, 1, 1, 1]);
     for (let i = 0; i < 3; i++) bc[i] = Math.min(1, bc[i] * tint[i]);
@@ -428,6 +433,8 @@ function applyEffects(buf, size, ctr, fxs) {
       }), KM); }
   }
   scene.nodes = [...rootNodes, ...roots];
+  const used = {}; for (const k in fxs) if (fxs[k] > 0) used[k] = fxs[k];
+  gltf.extras = { ...(gltf.extras || {}), foodFx: { v: 1, fx: used } };   // so the fixer can show (and undo) these effects when the file is opened again
 
   if (anim.channels.length) gltf.animations = [anim, ...(gltf.animations || [])];   // first, so a plain "autoplay" picks it
   if (gloss) gltf.extensionsUsed = [...new Set([...(gltf.extensionsUsed || []), "KHR_materials_clearcoat"])];
@@ -438,6 +445,110 @@ function applyEffects(buf, size, ctr, fxs) {
   return { glb: buildGlb(gltf, out), hasAnim: anim.channels.length > 0 };
 }
 
-const api = { parseGlb, buildGlb, embedTextures, resizeGlb, applyEffects, baseName };
+/* ---------- undo: take baked effects back out of a .glb ----------
+   Works on files made by applyEffects (also older ones that have no saved settings).
+   parsed = { gltf, bin } from parseGlb. Returns { gltf, bin, fx, had }: the clean model, the effect settings that
+   were baked in (so the fixer can tick them again), and whether anything was found. */
+const FX_WRAP = /^FoodFX(Model|Pivot|Halo)$/;
+function stripEffects(parsed) {
+  const g0 = parsed.gltf, meshName = (n) => (n.mesh !== undefined && g0.meshes && g0.meshes[n.mesh] ? g0.meshes[n.mesh].name : "");
+  const isFx = (n) => FX_WRAP.test(n.name || "") || meshName(n) === "FX";
+  const saved = g0.extras && g0.extras.foodFx;
+  const found = (g0.nodes || []).some(isFx) || (g0.animations || []).some((a) => a.name === "FoodFX") || !!saved || (g0.materials || []).some((m) => m.extras && m.extras.fxOrig);
+  if (!found) return { gltf: g0, bin: parsed.bin, fx: {}, had: false };
+
+  const gltf = structuredClone(g0), nodes = gltf.nodes || [];
+  const fx = saved ? { ...saved.fx } : (nodes.some((n) => n.name === "FoodFXHalo") ? { heaven: 0.6 } : {});   // older files: only the halo tells us what was on
+
+  // 1) put the model's own nodes back where the effect wrappers were, drop every effect node
+  const unwrap = (list) => {
+    const out = [];
+    for (const c of list || []) {
+      const n = nodes[c];
+      if (n.name === "FoodFXPivot") { for (const k of n.children || []) if (nodes[k].name === "FoodFXModel") out.push(...unwrap(nodes[k].children)); }
+      else if (!isFx(n)) out.push(c);
+    }
+    return out;
+  };
+  for (const sc of gltf.scenes || []) sc.nodes = unwrap(sc.nodes);
+  for (const n of nodes) if (!isFx(n) && n.children) { n.children = unwrap(n.children); if (!n.children.length) delete n.children; }
+
+  // 2) the effect animation and the original look of the materials
+  if (gltf.animations) { gltf.animations = gltf.animations.filter((a) => a.name !== "FoodFX"); if (!gltf.animations.length) delete gltf.animations; }
+  for (const m of gltf.materials || []) {
+    const o = m.extras && m.extras.fxOrig; if (!o) continue;
+    const p = (m.pbrMetallicRoughness = m.pbrMetallicRoughness || {});
+    if (o.bc) p.baseColorFactor = o.bc; else delete p.baseColorFactor;
+    if (o.rough !== null) p.roughnessFactor = o.rough; else delete p.roughnessFactor;
+    if (o.em) m.emissiveFactor = o.em; else delete m.emissiveFactor;
+    if (m.extensions) { if (o.cc) m.extensions.KHR_materials_clearcoat = o.cc; else delete m.extensions.KHR_materials_clearcoat; if (!Object.keys(m.extensions).length) delete m.extensions; }
+    delete m.extras.fxOrig; if (!Object.keys(m.extras).length) delete m.extras;
+  }
+  if (gltf.extras) { delete gltf.extras.foodFx; if (!Object.keys(gltf.extras).length) delete gltf.extras; }
+
+  // 3) throw away what nothing uses any more (effect nodes, meshes, materials, vertex data) and rebuild the binary
+  const exts = gltf.extensionsUsed || [];
+  if (exts.some((e) => /draco|meshopt/i.test(e))) return { gltf, bin: parsed.bin, fx, had: true };   // compressed files: leave the unused bytes in place
+  return { ...compact(gltf, parsed.bin), fx, had: true };
+}
+
+function compact(gltf, bin) {                          // drop unreachable nodes/meshes/materials/accessors/bufferViews and renumber
+  const nodes = gltf.nodes || [], keepN = new Set(), todo = [];
+  for (const sc of gltf.scenes || []) todo.push(...(sc.nodes || []));
+  for (const sk of gltf.skins || []) { todo.push(...(sk.joints || [])); if (sk.skeleton !== undefined) todo.push(sk.skeleton); }
+  while (todo.length) { const i = todo.pop(); if (keepN.has(i)) continue; keepN.add(i); todo.push(...(nodes[i].children || [])); }
+  const keepM = new Set(), keepMat = new Set(), keepA = new Set(), keepV = new Set();
+  const addA = (i) => { if (i !== undefined) keepA.add(i); };
+  for (const i of keepN) if (nodes[i].mesh !== undefined) keepM.add(nodes[i].mesh);
+  for (const i of keepM) for (const pr of gltf.meshes[i].primitives) {
+    if (pr.material !== undefined) keepMat.add(pr.material);
+    Object.values(pr.attributes || {}).forEach(addA); addA(pr.indices);
+    for (const t of pr.targets || []) Object.values(t).forEach(addA);
+  }
+  const anims = (gltf.animations || []).map((a) => {   // drop channels aimed at removed nodes
+    const ch = a.channels.filter((c) => c.target.node === undefined || keepN.has(c.target.node));
+    return { ...a, channels: ch };
+  }).filter((a) => a.channels.length);
+  for (const a of anims) for (const s of a.samplers) { addA(s.input); addA(s.output); }
+  for (const sk of gltf.skins || []) addA(sk.inverseBindMatrices);
+  for (const i of keepA) { const a = gltf.accessors[i]; if (a.bufferView !== undefined) keepV.add(a.bufferView); if (a.sparse) { keepV.add(a.sparse.indices.bufferView); keepV.add(a.sparse.values.bufferView); } }
+  for (const im of gltf.images || []) if (im.bufferView !== undefined) keepV.add(im.bufferView);
+
+  const remap = (keep) => { const m = new Map(); let k = 0; [...keep].sort((a, b) => a - b).forEach((i) => m.set(i, k++)); return m; };
+  const rN = remap(keepN), rM = remap(keepM), rMat = remap(keepMat), rA = remap(keepA), rV = remap(keepV);
+  const pick = (arr, m) => [...m.keys()].map((i) => arr[i]);
+
+  // binary: keep the used buffer views, in order, 4-byte aligned
+  const chunks = []; let len = 0;
+  const views = pick(gltf.bufferViews || [], rV).map((v) => {
+    const o = (v.byteOffset || 0), part = bin.subarray(o, o + v.byteLength);
+    const padded = new Uint8Array(part.length + ((4 - (part.length % 4)) % 4)); padded.set(part);
+    chunks.push(padded); const nv = { ...v, byteOffset: len }; len += padded.length; return nv;
+  });
+  const out = new Uint8Array(len); let p = 0; for (const c of chunks) { out.set(c, p); p += c.length; }
+
+  const ren = (v, m) => (v === undefined ? v : m.get(v));
+  const g = { ...gltf };
+  g.nodes = pick(nodes, rN).map((n) => { const c = { ...n }; if (c.children) c.children = c.children.map((i) => rN.get(i)); if (c.mesh !== undefined) c.mesh = rM.get(c.mesh); return c; });
+  g.meshes = pick(gltf.meshes || [], rM).map((m) => ({ ...m, primitives: m.primitives.map((pr) => {
+    const q = { ...pr, attributes: Object.fromEntries(Object.entries(pr.attributes).map(([k, v]) => [k, rA.get(v)])) };
+    if (pr.indices !== undefined) q.indices = rA.get(pr.indices);
+    if (pr.material !== undefined) q.material = rMat.get(pr.material);
+    if (pr.targets) q.targets = pr.targets.map((t) => Object.fromEntries(Object.entries(t).map(([k, v]) => [k, rA.get(v)])));
+    return q; }) }));
+  g.materials = pick(gltf.materials || [], rMat);
+  g.accessors = pick(gltf.accessors || [], rA).map((a) => { const c = { ...a }; if (c.bufferView !== undefined) c.bufferView = rV.get(c.bufferView); if (c.sparse) c.sparse = { ...c.sparse, indices: { ...c.sparse.indices, bufferView: rV.get(c.sparse.indices.bufferView) }, values: { ...c.sparse.values, bufferView: rV.get(c.sparse.values.bufferView) } }; return c; });
+  g.bufferViews = views;
+  if (g.images) g.images = g.images.map((im) => (im.bufferView !== undefined ? { ...im, bufferView: rV.get(im.bufferView) } : im));
+  if (g.scenes) g.scenes = g.scenes.map((sc) => ({ ...sc, nodes: (sc.nodes || []).map((i) => rN.get(i)) }));
+  if (g.skins) g.skins = g.skins.map((sk) => ({ ...sk, joints: sk.joints.map((i) => rN.get(i)), skeleton: ren(sk.skeleton, rN), inverseBindMatrices: ren(sk.inverseBindMatrices, rA) }));
+  if (anims.length) g.animations = anims.map((a) => ({ ...a, channels: a.channels.map((c) => ({ ...c, target: { ...c.target, node: ren(c.target.node, rN) } })),
+    samplers: a.samplers.map((s) => ({ ...s, input: rA.get(s.input), output: rA.get(s.output) })) })); else delete g.animations;
+  g.buffers = [{ ...((gltf.buffers && gltf.buffers[0]) || {}), byteLength: len }];
+  if (!len) delete g.buffers[0].byteLength;
+  return { gltf: g, bin: out };
+}
+
+const api = { parseGlb, buildGlb, embedTextures, resizeGlb, applyEffects, stripEffects, baseName };
 if (typeof module !== "undefined" && module.exports) module.exports = api; else root.GlbTools = api;
 })(typeof window !== "undefined" ? window : globalThis);

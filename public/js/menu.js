@@ -260,7 +260,6 @@ function fxKind(it) {
 }
 // Effects start on, unless the phone asks for reduced motion
 let fxOn = !matchMedia("(prefers-reduced-motion: reduce)").matches;
-const rnd = (a, b) => a + Math.random() * (b - a);
 
 // ---- 3D / AR viewer (opens when a customer taps "View in 3D / AR") ----
 const viewer = document.createElement("div");
@@ -273,7 +272,8 @@ viewer.innerHTML = `<div class="viewer-box" role="dialog" aria-modal="true" aria
 </div>`;
 document.body.appendChild(viewer);
 
-const closeViewer = () => { viewer.hidden = true; $("#viewer-stage").innerHTML = ""; };
+let viewerCleanup = () => {};
+const closeViewer = () => { viewerCleanup(); viewerCleanup = () => {}; viewer.hidden = true; $("#viewer-stage").innerHTML = ""; };
 
 document.addEventListener("click", (e) => {
   const b = e.target.closest(".ar-open");
@@ -288,15 +288,14 @@ document.addEventListener("click", (e) => {
       <div class="mv-price">${money(it.price)}</div>
       ${it.description ? `<div class="mv-desc">${esc(it.description)}</div>` : ""}
     </div><button type="button" class="mv-toggle" aria-expanded="true" aria-label="Hide details">${CHEV}</button></div>`;
-  $("#viewer-stage").innerHTML = `<div class="stage-wrap" data-fx="${kind}"><div class="fx" aria-hidden="true"><div class="fx-origin"></div></div><div class="mv-loader" role="status" aria-live="polite"><div class="mv-spin" aria-hidden="true"></div><div class="mv-ltext">Loading 3D model\u2026 <span class="mv-pct">0%</span></div><div class="mv-lbar" aria-hidden="true"><i></i></div></div><model-viewer src="${esc(src)}" alt="3D model of ${esc(b.dataset.name)}"
+  $("#viewer-stage").innerHTML = `<div class="stage-wrap" data-fx="${kind}"><div class="mv-loader" role="status" aria-live="polite"><div class="mv-spin" aria-hidden="true"></div><div class="mv-ltext">Loading 3D model\u2026 <span class="mv-pct">0%</span></div><div class="mv-lbar" aria-hidden="true"><i></i></div></div><model-viewer ${fxOn ? `src="${esc(src)}"` : ""} alt="3D model of ${esc(b.dataset.name)}"
     ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
     autoplay camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%">
     <div slot="progress-bar" class="mv-topbar" aria-hidden="true"><i></i></div>
     ${label}
     <button slot="ar-button" type="button" class="btn ar-btn">View on your table (AR)</button>
-    <div slot="hotspot-fx" class="mv-fxpt" data-position="0 0 0"></div>
   </model-viewer>
-  <button type="button" class="fx-toggle" aria-pressed="${fxOn}">Effects: ${fxOn ? "on" : "off"}</button></div>`;
+  <button type="button" class="fx-toggle" aria-pressed="${fxOn}" hidden>Effects: ${fxOn ? "on" : "off"}</button></div>`;
   // Once the model has loaded, float the label just above its top
   const mv = $("#viewer-stage model-viewer");
   // Visible loading indicator: spinner + percentage, removed once the model is ready (or shows an error)
@@ -311,100 +310,44 @@ document.addEventListener("click", (e) => {
     loader.innerHTML = '<div class="mv-ltext">Could not load the 3D model. Please close and try again.</div>';
   });
 
-  // ---- Animation layer ----
-  const wrap = $("#viewer-stage .stage-wrap"), origin = wrap.querySelector(".fx-origin");
-  const fxpt = mv.querySelector(".mv-fxpt"), fxBtn = wrap.querySelector(".fx-toggle");
-  let timer = 0, raf = 0, placeRaf = 0;
-  const puff = (tag, cls, vars, life, text) => {
-    const el = document.createElement(tag);
-    el.className = cls;
-    if (text) el.textContent = text;
-    for (const k in vars) el.style.setProperty(k, vars[k]);
-    origin.appendChild(el);
-    setTimeout(() => el.remove(), life);
+  // ---- Effects button: the effects are baked into the .glb, so "off" shows a copy of the model with them taken out ----
+  const wrap = $("#viewer-stage .stage-wrap"), fxBtn = wrap.querySelector(".fx-toggle");
+  let plainP = null, swap = 0;
+  const plain = () => plainP || (plainP = (async () => {         // blob URL of the model without its effects (null if it has none)
+    const T = window.GlbTools;
+    if (!T) return null;
+    const r = T.stripEffects(T.parseGlb(await (await fetch(src)).arrayBuffer()));
+    return r.had ? URL.createObjectURL(new Blob([T.buildGlb(r.gltf, r.bin)], { type: "model/gltf-binary" })) : null;
+  })().catch(() => null));
+  viewerCleanup = () => { swap++; if (plainP) plainP.then((u) => u && URL.revokeObjectURL(u)); };
+  const showFx = async (on) => {
+    const my = ++swap;
+    fxBtn.disabled = true;
+    const url = on ? src : await plain();
+    if (my !== swap || !mv.isConnected) return;
+    mv.arModes = on ? "webxr scene-viewer quick-look" : "webxr quick-look";   // Android Scene Viewer needs a real URL, so it only works with effects on
+    if (!url || mv.getAttribute("src") === url) { fxBtn.disabled = false; if (!mv.getAttribute("src")) mv.src = src; return; }
+    const o = mv.getCameraOrbit && mv.loaded ? mv.getCameraOrbit() : null;
+    mv.addEventListener("load", () => {
+      fxBtn.disabled = false;
+      if (o) { mv.cameraOrbit = `${o.theta}rad ${o.phi}rad auto`; if (mv.jumpCameraToGoal) mv.jumpCameraToGoal(); }
+    }, { once: true });
+    mv.src = url;
   };
-  const stopFx = () => { clearInterval(timer); cancelAnimationFrame(raf); mv.scale = "1 1 1"; origin.textContent = ""; };
-  const startFx = () => {
-    stopFx();
-    if (kind === "hot") {
-      timer = setInterval(() => {
-        if (!mv.isConnected) return stopFx();
-        puff("i", "steam", { "--x": `${rnd(-28, 28)}px`, "--dx": `${rnd(-40, 40)}px`, "--t": `${rnd(2.4, 3.6)}s` }, 3700);
-      }, 160);
-    } else if (kind === "cold") {
-      timer = setInterval(() => {
-        if (!mv.isConnected) return stopFx();
-        if (Math.random() < 0.5) puff("i", "mist", { "--x": `${rnd(-45, 45)}px`, "--dx": `${rnd(-50, 50)}px`, "--t": `${rnd(2.6, 3.8)}s` }, 3900);
-        else puff("i", "spark", { "--x": `${rnd(-110, 110)}px`, "--y": `${rnd(-10, 150)}px` }, 1500);
-      }, 130);
-    } else {
-      // Munching: model stays still; crumbs fly on each of three chews, a short rest, repeat
-      const t0 = performance.now(), BURST = 0.7, CYCLE = 2600;
-      let lastChew = -1;
-      const tick = (now) => {
-        if (!mv.isConnected) return stopFx();
-        const t = ((now - t0) % CYCLE) / CYCLE;
-        let s = 0;
-        if (t < BURST) {
-          const u = t / BURST;
-          s = Math.sin(Math.PI * u) * (0.5 - 0.5 * Math.cos(Math.PI * 6 * u)); // 3 smooth pulses
-          const chew = Math.floor(u * 3);
-          if (chew !== lastChew && u * 3 - chew > 0.5) {
-            lastChew = chew;
-            for (let k = 0; k < 7; k++) puff("i", "crumb", { "--x": `${rnd(-70, 70)}px`, "--y": `${rnd(20, 90)}px`, "--dx": `${rnd(-40, 40)}px`, "--up": `${rnd(-30, -8)}px` }, 1100);
-            if (chew === 1) puff("b", "nom", { "--x": `${rnd(50, 80)}px` }, 1100, "nom nom!");
-          }
-        } else lastChew = -1;
-        raf = requestAnimationFrame(tick);
-      };
-      raf = requestAnimationFrame(tick);
-    }
-  };
-  // Keep the effect anchored to the top of the model as the camera moves
-  const place = () => {
-    placeRaf = 0;
-    if (!mv.isConnected || inAR) return;
-    const r = fxpt.getBoundingClientRect(), w = wrap.getBoundingClientRect();
-    origin.style.left = `${r.left - w.left}px`;
-    origin.style.top = `${r.top - w.top}px`;
-  };
-  const schedulePlace = () => { if (!placeRaf) placeRaf = requestAnimationFrame(place); };
-  mv.addEventListener("camera-change", schedulePlace);
-  window.addEventListener("resize", schedulePlace);
-  mv.addEventListener("load", () => {
-    const d = mv.getDimensions(), c = mv.getBoundingBoxCenter();
-    mv.updateHotspot({ name: "hotspot-fx", position: `${c.x} ${c.y + d.y / 2} ${c.z}` });
-    schedulePlace(); setTimeout(schedulePlace, 300); setTimeout(schedulePlace, 900);
-    if (fxOn) startFx();
-  });
-  // In AR (WebXR camera view) the page itself is hidden, so the effect layer is moved inside
-  // <model-viewer>, which is what the browser shows on top of the camera. Effects keep running there.
-  const fxLayer = wrap.querySelector(".fx");
-  let inAR = false;
+  if (fxOn) mv.addEventListener("load", () => plain().then((u) => { if (u && mv.isConnected) fxBtn.hidden = false; }), { once: true });
+  else plain().then((u) => { if (u && mv.isConnected) fxBtn.hidden = false; showFx(false); });   // starts with effects off: wait for the plain copy before showing anything
+  // In AR (WebXR camera view) the page itself is hidden, so the on/off button is moved inside <model-viewer>, which is what the browser shows over the camera.
   mv.addEventListener("ar-status", (e) => {
-    if (e.detail.status === "session-started") {
-      inAR = true;
-      fxLayer.classList.add("in-ar");
-      mv.appendChild(fxLayer);
-      fxBtn.classList.add("in-ar"); mv.appendChild(fxBtn); // the on/off button must live inside <model-viewer> to stay visible over the camera
-      origin.style.left = "50%"; origin.style.top = "52%"; // no hotspot tracking in AR: spawn near screen center
-      if (fxOn) startFx();
-    } else if (e.detail.status === "not-presenting") {
-      inAR = false;
-      fxLayer.classList.remove("in-ar");
-      wrap.insertBefore(fxLayer, mv);
-      fxBtn.classList.remove("in-ar"); wrap.appendChild(fxBtn);
-      schedulePlace();
-      if (fxOn) startFx();
-    }
+    if (e.detail.status === "session-started") { fxBtn.classList.add("in-ar"); mv.appendChild(fxBtn); }
+    else if (e.detail.status === "not-presenting") { fxBtn.classList.remove("in-ar"); wrap.appendChild(fxBtn); }
   });
   fxBtn.addEventListener("click", () => {
     fxOn = !fxOn;
     fxBtn.setAttribute("aria-pressed", String(fxOn));
     fxBtn.textContent = `Effects: ${fxOn ? "on" : "off"}`;
-    if (fxOn) startFx(); else stopFx();
+    showFx(fxOn);
   });
-  let relayout = () => {};
+  let relayout = () => {}, labelSched = null;
   // Arrow button: hides the text (leaving just the arrow), tap again to show it
   const toggle = mv.querySelector(".mv-toggle");
   toggle.addEventListener("click", () => {
@@ -434,6 +377,7 @@ document.addEventListener("click", (e) => {
     };
     setTimeout(fit, 250);
     // Safety net: whatever the camera does, slide the label down so it is never cut off by the top edge
+    if (!labelSched) {
     let raf = 0;
     const clamp = () => {
       raf = 0;
@@ -449,11 +393,12 @@ document.addEventListener("click", (e) => {
       if (nextX !== shiftX) lab.style.setProperty("--shiftx", nextX + "px");
     };
     const schedule = () => { if (!raf) raf = requestAnimationFrame(clamp); };
-    relayout = schedule;
+    labelSched = relayout = schedule;
     mv.addEventListener("camera-change", schedule);
     window.addEventListener("resize", schedule);
-    setTimeout(schedule, 300);
-    setTimeout(schedule, 900);
+    }
+    setTimeout(labelSched, 300);
+    setTimeout(labelSched, 900);
   });
   viewer.hidden = false;
 });
