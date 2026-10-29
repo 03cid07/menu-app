@@ -550,3 +550,8 @@ body.has-list main { padding-bottom: 0; }
 /* The cards are moved by script (springs + finger drag). When pulled up past their resting place they stretch like a
    rubber band; this fills the gap that would open under them on phones. */
 @media (max-width: 599px) { .sheet-box, .mylist-box { box-shadow: 0 400px 0 var(--surface); } }
+
+/* ---- Floating QR + My list: once the top row scrolls out of view, the two buttons pin to the top-right ---- */
+body.fs-float .fs-top .fs-qr, body.fs-float .fs-top .fs-list { position: fixed; top: calc(env(safe-area-inset-top, 0px) + .75rem); z-index: 7; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+body.fs-float .fs-top .fs-list { right: 1rem; }
+body.fs-float .fs-top .fs-qr { right: calc(1rem + 44px + .75rem); }

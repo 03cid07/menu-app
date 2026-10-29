@@ -495,3 +495,16 @@ document.addEventListener("click", (e) => {
 $("#viewer-close").addEventListener("click", closeViewer);
 viewer.addEventListener("click", (e) => { if (e.target === viewer) closeViewer(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !viewer.hidden) closeViewer(); });
+
+// Float the QR + My list buttons: when the top row scrolls out of view they stay pinned top-right,
+// so the list can be opened from anywhere on the menu. The row keeps its height, so nothing jumps.
+(() => {
+  const update = () => {
+    const row = document.querySelector("#fs .fs-top");
+    const r = row && row.getClientRects().length ? row.getBoundingClientRect() : null;
+    document.body.classList.toggle("fs-float", !!r && r.top < 8);
+  };
+  window.addEventListener("scroll", update, { passive: true });
+  window.addEventListener("resize", update);
+  update();
+})();
