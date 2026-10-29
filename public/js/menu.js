@@ -108,14 +108,18 @@ function visibleItems() {
   return list;
 }
 
+const LIST_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h11M4 12h8M4 18h6M17 14v8M13 18h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 function renderBar() {
   const n = filterCount(), f = view.open === "filter", s = view.open === "sort";
+  const lc = typeof listCount === "function" ? listCount() : 0;
   const focused = document.activeElement && document.activeElement.closest("#fs") ? document.activeElement : null;
   const key = focused && (focused.dataset.open ? `[data-open="${focused.dataset.open}"]` : focused.dataset.f ? `[data-f="${focused.dataset.f}"]` : focused.dataset.c ? `[data-c="${focused.dataset.c.replace(/"/g, "\\\"")}"]` : focused.name === "sort" ? `input[value="${focused.value}"]` : "");
   $("#fs").innerHTML = `<div class="fs-bar">
       <button type="button" class="fs-icon${view.q ? " has-q" : ""}" data-open="search" aria-expanded="${view.open === "search"}" aria-controls="fs-search" aria-label="Search">${SEARCH}</button>
       <button type="button" class="fs-tab" data-open="filter" aria-expanded="${f}" aria-controls="fs-filter">Filter${n ? ` (${n})` : ""}${CHEV}</button>
       <button type="button" class="fs-tab" data-open="sort" aria-expanded="${s}" aria-controls="fs-sort">Sort by${CHEV}</button>
+      <button type="button" class="fs-icon fs-list" data-open-list aria-label="My list${lc ? ` (${lc} item${lc === 1 ? "" : "s"})` : ""}">${LIST_ICON}<span class="fs-badge"${lc ? "" : " hidden"}>${lc}</span></button>
     </div>
     <div class="fs-panel" id="fs-search" ${view.open === "search" ? "" : "hidden"}>
       <input type="search" id="fs-q" class="fs-q" placeholder="Search dishes…" aria-label="Search dishes" autocomplete="off" value="${esc(view.q)}">

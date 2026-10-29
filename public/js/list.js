@@ -91,6 +91,11 @@ function listSync() {
   const n = listCount();
   bar.hidden = !n;
   document.body.classList.toggle("has-list", n > 0);
+  document.querySelectorAll(".fs-list, .nav-list").forEach((b) => {
+    const badge = b.querySelector(".fs-badge");
+    badge.textContent = n; badge.hidden = !n;
+    b.setAttribute("aria-label", n ? `My list (${n} item${n === 1 ? "" : "s"})` : "My list");
+  });
   bar.innerHTML = `${ICON_LIST}<span class="lb-text">My list</span><span class="lb-count">${n} item${n === 1 ? "" : "s"}</span><span class="lb-total">${typeof data !== "undefined" && data ? money(listTotal()) : ""}</span>`;
   if (!drawer.hidden) drawerBox.innerHTML = drawerHtml();
 }
@@ -117,6 +122,7 @@ function closeList() {
 }
 
 bar.addEventListener("click", openList);
+document.addEventListener("click", (e) => { if (e.target.closest("[data-open-list]")) openList(); });
 drawer.addEventListener("click", (e) => {
   if (e.target === drawer || e.target.closest(".mylist-close")) return closeList();
   if (e.target.closest("[data-clear-list], [data-new-list]")) { myList = {}; listSave(); listSync(); return closeList(); }

@@ -170,13 +170,6 @@ body.no-scroll { overflow: hidden; }
 .home-actions .btn { margin-top: 0; }
 .home-actions .btn.ghost { margin-left: 0; padding: .6rem 1.1rem; }
 
-/* ---- Nav bar ---- */
-.topnav { position: sticky; top: 0; z-index: 3; background: var(--bg); border-bottom: 1px solid var(--line); margin-top: .5rem; }
-.topnav-in { max-width: 760px; margin: 0 auto; padding: 0 1.25rem; display: flex; gap: 1.25rem; overflow-x: auto; }
-.navlink { background: none; border: 0; border-bottom: 3px solid transparent; padding: .8rem 0 .65rem; font: inherit; font-weight: 600; color: var(--muted); white-space: nowrap; cursor: pointer; }
-.navlink:hover { color: var(--ink); }
-.navlink[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
-.topnav + .home-box { padding-top: 1.5rem; }
 
 /* ---- Photo gallery in the detail card ---- */
 .gallery { position: relative; }
@@ -296,24 +289,6 @@ section.cat h2 { margin: 1.75rem 0 .75rem; }
 /* Small helper text sits directly on the photo, so give it a bit more contrast than the default muted grey */
 .home-sub, header.top p { color: color-mix(in srgb, var(--ink) 78%, var(--muted)); }
 .home-actions .btn.ghost { background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent); -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); }
-
-/* ---- Top nav: compact frosted pill aligned with the content, instead of a full-width solid strip ---- */
-.topnav { top: .5rem; margin: .5rem auto 0; max-width: 760px; padding: 0 1.25rem; background: transparent; border: 0; pointer-events: none; }
-.topnav-in {
-  pointer-events: auto; width: fit-content; max-width: 100%; margin: 0; padding: .3rem; gap: .2rem; overflow-x: auto;
-  background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent);
-  -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 999px; box-shadow: none;
-}
-.navlink { padding: .45rem .95rem; border: 0; border-radius: 999px; transition: background-color .15s ease, color .15s ease; }
-.navlink[aria-current="page"] { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--ink); }
-.home .topnav { max-width: 560px; }
-.topnav + .home-box { padding-top: 1rem; }
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .topnav-in { background: color-mix(in srgb, var(--surface) 88%, transparent); }
-}
-/* The nav floats over scrolling content, so it needs to be more solid than the cards (otherwise dish names show through the tabs) */
-.topnav-in { background: color-mix(in srgb, var(--surface) 92%, transparent); }
 
 /* ---- My list: + button on rows, "Add to list" in the detail card, floating bar, list drawer ---- */
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -482,3 +457,45 @@ body.has-list .home-box { padding-bottom: 7rem; }
 .gf-msg { flex: 1 1 12rem; min-height: 1.4em; font-weight: 600; font-size: .9rem; color: var(--accent); }
 .gf-msg.err { color: var(--alert); }
 @media (max-width: 760px) { .gf-foot { padding: .6rem 1rem; } .gf-msg { flex-basis: 100%; min-height: 0; order: -1; } .gf-foot .btn { flex: 1 1 auto; padding: .55rem .5rem; } }
+
+
+/* ---- Nav link (used by the admin tabs) ---- */
+.navlink { background: none; border: 0; border-bottom: 3px solid transparent; padding: .8rem 0 .65rem; font: inherit; font-weight: 600; color: var(--muted); white-space: nowrap; cursor: pointer; }
+.navlink:hover { color: var(--ink); }
+.navlink[aria-current="page"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+/* ---- Bottom nav: icon-only, fixed to the bottom of the screen ---- */
+:root { --nav-h: 64px; }
+.bottomnav { position: fixed; z-index: 8; left: 0; right: 0; bottom: 0; padding: 0 1rem calc(.6rem + env(safe-area-inset-bottom, 0px)); pointer-events: none; }
+.bottomnav-in {
+  pointer-events: auto; display: flex; justify-content: space-around; align-items: center; gap: .25rem;
+  max-width: 420px; height: var(--nav-h); margin: 0 auto; padding: .3rem;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.35);
+}
+.bottomnav .navlink { flex: 1; display: flex; align-items: center; justify-content: center; height: 100%; padding: 0; border: 0; border-radius: 999px; background: none; color: var(--muted); cursor: pointer; transition: background-color .15s ease, color .15s ease; }
+.bottomnav .navlink:hover { color: var(--ink); }
+.bottomnav .navlink:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.bottomnav .navlink[aria-current="page"] { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--accent); }
+/* Room for the bar so the last dish is never hidden behind it */
+body { padding-bottom: calc(var(--nav-h) + 1.5rem + env(safe-area-inset-bottom, 0px)); }
+.home-box { padding-bottom: calc(var(--nav-h) + 2rem + env(safe-area-inset-bottom, 0px)); }
+/* "My list" bar floats just above the nav */
+.list-bar { bottom: calc(var(--nav-h) + 1.2rem + env(safe-area-inset-bottom, 0px)); }
+body.has-list main { padding-bottom: 5rem; }
+body.has-list .home-box { padding-bottom: calc(var(--nav-h) + 6rem + env(safe-area-inset-bottom, 0px)); }
+
+/* ---- My list: icon-only button at the end of the filter / sort bar ---- */
+.fs-bar { grid-template-columns: auto 1fr 1fr auto; }
+.fs-list { border-left: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
+.fs-badge { position: absolute; top: .45rem; right: .4rem; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: .72rem; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.fs-badge[hidden] { display: none; }
+/* The old floating "My list" bar is replaced by icons: one in the filter bar, one in the bottom nav on Home / Quick menu */
+.list-bar { display: none !important; }
+.bottomnav .navlink { position: relative; }
+.bottomnav .nav-list { display: none; }
+.home:not([hidden]) ~ .bottomnav .nav-list { display: flex; }
+.bottomnav .fs-badge { top: .5rem; right: 50%; margin-right: -22px; }
+body.has-list .home-box { padding-bottom: calc(var(--nav-h) + 2rem + env(safe-area-inset-bottom, 0px)); }
+body.has-list main { padding-bottom: 0; }

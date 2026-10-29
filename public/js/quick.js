@@ -7,8 +7,20 @@
   document.body.appendChild(home);
 
   let hist = [], cur = null;
-  const NAV = [["home", "Home"], ["full", "Full menu"], ["quick", "Quick menu"]];
-  const navHtml = (on) => `<nav class="topnav" aria-label="Main"><div class="topnav-in">${NAV.map(([k, t]) => `<button type="button" class="navlink" data-nav="${k}"${k === on ? ' aria-current="page"' : ""}>${t}</button>`).join("")}</div></nav>`;
+  // Icon-only bottom nav. Labels stay available to screen readers and as tooltips.
+  const SVG = (d) => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+  const NAV = [
+    ["home", "Home", SVG('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>')],
+    ["full", "Full menu", SVG('<path d="M4 4h11a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4V4z"/><path d="M8 9h7"/><path d="M8 13h5"/>')],
+    ["quick", "Quick menu", SVG('<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/>')],
+  ];
+  const nav = document.createElement("nav");
+  nav.className = "bottomnav";
+  nav.setAttribute("aria-label", "Main");
+  nav.innerHTML = `<div class="bottomnav-in">${NAV.map(([k, t, icon]) => `<button type="button" class="navlink" data-nav="${k}" aria-label="${t}" title="${t}">${icon}</button>`).join("")}<button type="button" class="navlink nav-list" data-open-list aria-label="My list" title="My list">${SVG('<path d="M4 6h11M4 12h8M4 18h6M17 14v8M13 18h8"/>')}<span class="fs-badge" hidden>0</span></button></div>`;
+  document.body.appendChild(nav);
+  const setNav = (on) => nav.querySelectorAll(".navlink").forEach((b) => (b.dataset.nav === on ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current")));
+  setNav("home");
   const kindOf = (i) => (fxKind(i) === "food" ? "food" : "drink");
   const avail = () => data.items.filter((i) => i.available);
   const cats = (items) => { const m = new Map(); items.forEach((i) => { const k = i.category.trim().toLowerCase(); if (!m.has(k)) m.set(k, i.category.trim()); }); return [...m]; };
@@ -72,7 +84,7 @@
     home.innerHTML = `<div class="home-box"><h1>${esc(data.restaurant)}</h1><p class="home-sub">How would you like to order?</p>
       <button type="button" class="home-card" data-go="full"><strong>Full menu</strong><span>Browse every dish</span></button>
       <button type="button" class="home-card" data-go="quick"><strong>Quick menu</strong><span>Answer a few questions and we'll find what suits you</span></button></div>`;
-    home.hidden = false; home.scrollTop = 0;
+    home.hidden = false; home.scrollTop = 0; setNav("home");
   };
 
   function show(a) {
@@ -80,8 +92,8 @@
     while ((q = nextQuestion(a)) && "auto" in q) a = { ...a, [q.key]: q.auto };
     if (!q) return results(a);
     cur = { a, q, sel: new Set() };
-    home.hidden = false;
-    home.innerHTML = navHtml("quick") + `<div class="home-box"><button type="button" class="home-back" data-back>\u2039 Back</button>
+    home.hidden = false; setNav("quick");
+    home.innerHTML = `<div class="home-box"><button type="button" class="home-back" data-back>\u2039 Back</button>
       <h2 class="home-q">${esc(q.text)}</h2>
       ${q.multi
         ? `<p class="home-sub">Pick all that apply, or just continue.</p>${q.opts.map(([, label], n) => `<button type="button" class="home-card pick" data-multi="${n}" aria-pressed="false"><strong>${esc(label)}</strong></button>`).join("")}<div class="home-actions"><button type="button" class="btn" data-continue>Continue</button></div>`
@@ -91,8 +103,8 @@
 
   function results(a) {
     const items = match(avail(), a).sort((x, y) => (y.label === "popular") - (x.label === "popular") || (y.rating?.avg || 0) - (x.rating?.avg || 0) || x.price - y.price);
-    home.hidden = false;
-    home.innerHTML = navHtml("quick") + `<div class="home-box"><button type="button" class="home-back" data-back>\u2039 Back</button>
+    home.hidden = false; setNav("quick");
+    home.innerHTML = `<div class="home-box"><button type="button" class="home-back" data-back>\u2039 Back</button>
       <h2 class="home-q">${items.length ? "Here's what we picked for you" : "Nothing matched that"}</h2>
       <p class="home-sub">${items.length ? "Tap a dish for details." : "Try different answers or browse the full menu."}</p>
       ${items.length && a.avoid && a.avoid.length ? '<p class="home-note">Based on the ingredients and descriptions listed. Please tell our staff about any allergies.</p>' : ""}
@@ -108,7 +120,7 @@
     if (card) return openSheet(card.dataset.id, card.querySelector(".item-open"));
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.dataset.go === "full") { home.hidden = true; window.scrollTo(0, 0); }
+    if (b.dataset.go === "full") { home.hidden = true; setNav("full"); window.scrollTo(0, 0); }
     else if (b.dataset.go === "quick" || b.hasAttribute("data-restart")) { hist = []; show({}); }
     else if (b.dataset.multi !== undefined) { const k = cur.q.opts[b.dataset.multi][0]; if (cur.sel.has(k)) cur.sel.delete(k); else cur.sel.add(k); b.setAttribute("aria-pressed", String(cur.sel.has(k))); }
     else if (b.hasAttribute("data-continue")) { hist.push(cur.a); show({ ...cur.a, [cur.q.key]: [...cur.sel] }); }
@@ -116,13 +128,12 @@
     else if (b.hasAttribute("data-back")) { hist.length ? show(hist.pop()) : landing(); }
   });
 
-  // Nav bar under the title (the same bar also sits at the top of the Quick menu screens)
-  document.querySelector("header.top").insertAdjacentHTML("afterend", navHtml("full"));
+  // The bottom nav is created once above and stays visible on every screen
   document.addEventListener("click", (e) => {
     const n = e.target.closest("[data-nav]");
     if (!n) return;
     if (n.dataset.nav === "home") landing();
-    else if (n.dataset.nav === "full") { home.hidden = true; window.scrollTo(0, 0); }
+    else if (n.dataset.nav === "full") { home.hidden = true; setNav("full"); window.scrollTo(0, 0); }
     else { hist = []; show({}); }
   });
 
