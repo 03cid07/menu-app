@@ -16,6 +16,8 @@ const SEARCH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="tru
 const QR_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M17 20h4v-3"/></svg>';
 const BURGER = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const CHEV = '<svg class="chev" viewBox="0 0 12 8" width="14" height="10" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// Marks dishes that have a 3D model (shown on the photo in the list)
+const CUBE_ICON = '<svg viewBox="24 19 72 82" width="15" height="17" aria-hidden="true" stroke="#10181d" stroke-width="3" stroke-linejoin="round"><path d="M60 24L91 42L60 60L29 42z" fill="#5fd0c4"/><path d="M29 42L60 60V96L29 78z" fill="#1b8a85"/><path d="M60 60L91 42V78L60 96z" fill="#0f5c5c"/></svg>';
 
 
 // ---- Ratings + product detail card (opens when a dish is tapped) ----
@@ -93,7 +95,10 @@ const labelHtml = (i) => (LABELS[i.label] ? `<span class="hl hl-${i.label}">${LA
 // List row: photo, name and price. Everything else lives in the detail card (openSheet).
 const itemHtml = (i) => `
       <article class="item ${i.available ? "" : "sold-out"}" data-id="${esc(i.id)}">
-        ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="" loading="lazy">` : `<div class="thumb ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`}
+        <span class="thumb-wrap">
+          ${i.image ? `<img class="thumb" src="${esc(i.image)}" alt="" loading="lazy">` : `<div class="thumb ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`}
+          ${i.model ? `<span class="has-3d" role="img" aria-label="Has a 3D model" title="3D model">${CUBE_ICON}</span>` : ""}
+        </span>
         <div class="info">
           <h3><button type="button" class="item-open" aria-haspopup="dialog">${esc(i.name)}</button>${labelHtml(i)}${i.available ? "" : '<span class="badge">Sold out</span>'}</h3>
         </div>
