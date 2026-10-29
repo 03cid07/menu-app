@@ -120,15 +120,21 @@ function listSet(id, q) {
   listSync();
 }
 
+// Slides in and out with springs and follows a finger (see spring.js)
+const drawerCard = Springs.bottomCard({ root: drawer, box: drawerBox, finish: finishList });
 function openList() {
   drawerView = "list";
   drawerBox.innerHTML = drawerHtml();
   drawer.hidden = false;
+  drawerCard.open();
   document.body.classList.add("no-scroll");
-  drawerBox.querySelector(".mylist-close").focus();
+  drawerBox.querySelector(".mylist-close").focus({ preventScroll: true });
 }
 function closeList() {
-  if (drawer.hidden) return;
+  if (drawer.hidden || drawerCard.isClosing()) return;
+  drawerCard.dismiss();
+}
+function finishList() {
   drawer.hidden = true;
   // Keep the page locked if the detail card is still open underneath
   if (typeof sheet === "undefined" || sheet.hidden) document.body.classList.remove("no-scroll");

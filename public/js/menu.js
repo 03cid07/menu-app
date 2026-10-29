@@ -192,6 +192,8 @@ sheet.innerHTML = '<div class="sheet-box" role="dialog" aria-modal="true" aria-l
 document.body.appendChild(sheet);
 const sheetBox = sheet.querySelector(".sheet-box");
 let sheetItem = null, sheetOpener = null;
+// The card slides in and out with springs and follows a finger (see spring.js)
+const sheetCard = Springs.bottomCard({ root: sheet, box: sheetBox, finish: finishSheet });
 function openSheet(id, opener) {
   sheetItem = data.items.find((x) => x.id === id);
   if (!sheetItem) return;
@@ -199,11 +201,15 @@ function openSheet(id, opener) {
   sheetBox.innerHTML = sheetHtml(sheetItem);
   sheetBox.scrollTop = 0;
   sheet.hidden = false;
+  sheetCard.open();
   document.body.classList.add("no-scroll");
-  sheetBox.querySelector(".sheet-close").focus();
+  sheetBox.querySelector(".sheet-close").focus({ preventScroll: true });
 }
 function closeSheet() {
-  if (sheet.hidden) return;
+  if (sheet.hidden || sheetCard.isClosing()) return;
+  sheetCard.dismiss();
+}
+function finishSheet() {
   sheet.hidden = true;
   document.body.classList.remove("no-scroll");
   const back = sheetItem && document.querySelector(`.item[data-id="${CSS.escape(sheetItem.id)}"] .item-open`);

@@ -124,10 +124,8 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 body.no-scroll { overflow: hidden; }
 .sheet { position: fixed; inset: 0; z-index: 9; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
 .sheet[hidden] { display: none; }
-.sheet-box { position: relative; background: var(--surface); color: var(--ink); width: min(560px, 100%); max-height: 92vh; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; border-radius: 18px 18px 0 0; animation: sheet-up .25s ease-out; }
-@keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet-box { position: relative; background: var(--surface); color: var(--ink); width: min(560px, 100%); max-height: 92vh; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; border-radius: 18px 18px 0 0; will-change: transform; }
 @media (min-width: 600px) { .sheet { align-items: center; padding: 1rem; } .sheet-box { border-radius: 16px; } }
-@media (prefers-reduced-motion: reduce) { .sheet-box { animation: none; } }
 .sheet-close { position: absolute; top: 10px; right: 10px; z-index: 1; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: 1.5rem; line-height: 1; cursor: pointer; }
 .sheet-hero { display: block; width: 100%; aspect-ratio: 4 / 3; max-height: 280px; object-fit: cover; }
 .sheet-ph { display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: 800; color: var(--accent); background: var(--bg); }
@@ -317,9 +315,8 @@ body.has-list .home-box { padding-bottom: 7rem; }
 
 .mylist { position: fixed; inset: 0; z-index: 11; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
 .mylist[hidden] { display: none; }
-.mylist-box { position: relative; background: var(--surface); color: var(--ink); width: min(560px, 100%); max-height: 88vh; max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain; border-radius: 18px 18px 0 0; padding: 1.1rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px)); animation: sheet-up .25s ease-out; }
+.mylist-box { position: relative; background: var(--surface); color: var(--ink); width: min(560px, 100%); max-height: 88vh; max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain; border-radius: 18px 18px 0 0; padding: 1.1rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px)); will-change: transform; }
 @media (min-width: 600px) { .mylist { align-items: center; padding: 1rem; } .mylist-box { border-radius: 16px; } }
-@media (prefers-reduced-motion: reduce) { .mylist-box { animation: none; } }
 .mylist-top { display: flex; justify-content: space-between; align-items: center; }
 .mylist-top h2 { margin: 0; font-size: 1.5rem; }
 .mylist-close { position: static; }
@@ -552,3 +549,7 @@ body.has-list main { padding-bottom: 0; }
 .sheet-more .sheet-ar, .sheet-more .sheet-qr { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; width: auto; height: 46px; margin: 0; padding: 0 .9rem; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
 .sheet-more .sheet-ar:hover, .sheet-more .sheet-qr:hover, .sheet-more .sheet-qr:focus-visible { background: color-mix(in srgb, var(--accent) 14%, transparent); }
 .sheet-more svg { color: var(--accent); }
+
+/* The cards are moved by script (springs + finger drag). When pulled up past their resting place they stretch like a
+   rubber band; this fills the gap that would open under them on phones. */
+@media (max-width: 599px) { .sheet-box, .mylist-box { box-shadow: 0 400px 0 var(--surface); } }
