@@ -39,16 +39,17 @@ If you skip `ADMIN_PIN`, the default PIN is `1234`. Change it before going live.
 | --- | --- | --- |
 | `ADMIN_PIN` | PIN for the admin page | `1234` |
 | `PORT` | Port the server listens on | `3000` |
-| `PUBLIC_URL` | Link the QR code points to | Tunnel link, otherwise the address the page was opened on |
+| `PUBLIC_URL` | Link the QR code points to | `https://03cid07.github.io/menu-app/` (GitHub Pages) |
+| `USE_TUNNEL_QR` | Set to `1` to make the QR use the temporary tunnel link (AR testing only) | off |
 
 ## Sharing it with phones (Windows)
 
 AR needs an https link, so phones cannot use `localhost`.
 
 - `start-menu.bat` starts the app and opens the admin page.
-- `start-all.bat` also starts a Cloudflare quick tunnel through `start-tunnel.ps1`, copies the public link to your clipboard, and the QR code page uses that link automatically. Install the tunnel tool once with `winget install --id Cloudflare.cloudflared`.
+- `start-all.bat` also starts a Cloudflare quick tunnel through `start-tunnel.ps1` and copies the public link to your clipboard. The QR code page ignores the tunnel unless `USE_TUNNEL_QR=1` is set, because the tunnel dies when the laptop closes. Install the tunnel tool once with `winget install --id Cloudflare.cloudflared`.
 
-The tunnel link changes every time it starts, so a printed QR code will stop working. For a permanent QR code, set a fixed `PUBLIC_URL` or use the GitHub Pages link below.
+The tunnel link changes every time it starts, so a printed QR code will stop working. The QR code uses the permanent GitHub Pages link below by default, so printed QR codes keep working with the laptop off.
 
 ## Publishing the customer menu (GitHub Pages)
 

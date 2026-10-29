@@ -224,7 +224,7 @@ $("#list").addEventListener("click", (e) => {
 });
 (() => {
   const input = $("#qr-url"), img = $("#qr-img"), note = $("#qr-note"), target = $("#qr-target");
-  const SOURCE = { PUBLIC_URL: "Using the PUBLIC_URL setting.", tunnel: "Using your tunnel link (filled in automatically).", request: "Using the address this page was opened on." };
+  const SOURCE = { PUBLIC_URL: "Using the PUBLIC_URL setting.", pages: "Using your permanent GitHub Pages link. It works even when your laptop is off.", tunnel: "Using your tunnel link (filled in automatically).", request: "Using the address this page was opened on." };
   let timer = 0, source = "request", base = "", items = [];
   const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "dish";
   const itemOf = (id) => items.find((i) => i.id === id);
@@ -262,7 +262,7 @@ $("#list").addEventListener("click", (e) => {
     $("#qr-print").href = `/qr-print.html?url=${q}` + (it ? `&title=${encodeURIComponent(it.name)}&sub=${encodeURIComponent("Scan to see this dish")}` : "");
     $("#qr-test").href = u.href;
     const local = /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(u.hostname);
-    if (local) { note.className = "qr-note error"; note.textContent = "This is a localhost link. It will not open on customers' phones. Start the tunnel (start-all.bat) and use the link it gives you."; }
+    if (local) { note.className = "qr-note error"; note.textContent = "This is a localhost link. It will not open on customers' phones. Use your public link instead (the GitHub Pages one)."; }
     else if (u.protocol !== "https:") { note.className = "qr-note error"; note.textContent = "This link is not https. The menu will open, but AR needs https to work on phones."; }
     else { note.className = "qr-note ok"; note.textContent = (SOURCE[source] || "") + " Scan it with your phone, or press Test link."; }
   }

@@ -176,16 +176,19 @@ app.delete("/api/categories", requirePin, (req, res) => {
 
 // ---- QR code for the menu link ----
 // The QR must hold a link a customer's phone can open (not localhost), and AR needs https.
-// Link order: PUBLIC_URL setting > the tunnel link written by start-tunnel.ps1 > the address this page was opened on.
+// Link order: PUBLIC_URL setting > the permanent GitHub Pages link (works with the laptop off) >
+// the temporary tunnel link (only if USE_TUNNEL_QR=1) > the address this page was opened on.
+const PAGES_URL = "https://03cid07.github.io/menu-app/";
 const TUNNEL_FILE = path.join(os.tmpdir(), "cupview-public-url.txt");
 const cleanUrl = (u) => { try { const x = new URL(String(u || "").trim()); return /^https?:$/.test(x.protocol) ? x.href : null; } catch { return null; } };
 function publicUrl(req) {
   const env = cleanUrl(process.env.PUBLIC_URL);
   if (env) return { url: env, source: "PUBLIC_URL" };
-  try { const t = cleanUrl(fs.readFileSync(TUNNEL_FILE, "utf8")); if (t) return { url: t, source: "tunnel" }; } catch { /* no tunnel running */ }
-  const proto = String(req.get("x-forwarded-proto") || req.protocol).split(",")[0].trim();
-  const host = String(req.get("x-forwarded-host") || req.get("host")).split(",")[0].trim();
-  return { url: `${proto}://${host}/`, source: "request" };
+  // The tunnel link changes every run and dies when the laptop closes, so it is opt-in only (for AR testing).
+  if (process.env.USE_TUNNEL_QR === "1") {
+    try { const t = cleanUrl(fs.readFileSync(TUNNEL_FILE, "utf8")); if (t) return { url: t, source: "tunnel" }; } catch { /* no tunnel running */ }
+  }
+  return { url: PAGES_URL, source: "pages" };
 }
 app.get("/api/qr-url", (req, res) => res.json(publicUrl(req)));
 

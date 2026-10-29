@@ -280,7 +280,7 @@ async function openQr(title, sub, id, opener) {
   img.alt = `QR code: ${title}`;
   img.onerror = () => { img.removeAttribute("src"); note.textContent = "The QR image needs the menu server to be running."; };
   img.src = `qr.svg?url=${encodeURIComponent(u.href)}`;
-  if (LOCAL_RE.test(u.hostname)) note.textContent = "This link only works on the computer running the menu. Start the tunnel so phones can open it.";
+  if (LOCAL_RE.test(u.hostname)) note.textContent = "This link only works on the computer running the menu. Use the public GitHub Pages link instead.";
   qrOpener = opener || null;
   qrBox.hidden = false;
   qrBox.querySelector(".qrm-x").focus();
