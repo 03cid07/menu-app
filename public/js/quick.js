@@ -138,5 +138,5 @@
   });
 
   // Wait for menu.js to finish loading the menu, then show the start screen
-  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); landing(); } }, 50);
+  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); if (linkedItemId()) { home.hidden = true; setNav("full"); } else landing(); } }, 50);
 })();

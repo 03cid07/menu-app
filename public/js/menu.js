@@ -13,6 +13,8 @@ const SORTS = { featured: "Featured", low: "Price, low to high", high: "Price, h
 const FILTERS = [["Availability", [["avail", "Available now"]]], ["Extras", [["ar", "3D / AR"], ["photo", "With photo"]]]];
 const filterCount = () => ["avail", "ar", "photo"].filter((k) => view[k]).length + (active !== "All" ? 1 : 0);
 const SEARCH = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L21 21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const QR_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M17 20h4v-3"/></svg>';
+const BURGER = '<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const CHEV = '<svg class="chev" viewBox="0 0 12 8" width="14" height="10" aria-hidden="true"><path d="M1 1.5l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 
@@ -75,6 +77,7 @@ function sheetHtml(i) {
       ${i.description ? `<h3 class="sheet-sub">Description</h3><p class="sheet-text">${esc(i.description)}</p>` : ""}
       ${i.ingredients ? `<h3 class="sheet-sub">Ingredients</h3><p class="sheet-text">${esc(i.ingredients)}</p>` : ""}
       <div class="sheet-actions">
+        <button type="button" class="sheet-qr" data-qr-item="${esc(i.id)}" aria-label="Show a QR code for ${esc(i.name)}" title="QR code">${QR_ICON}</button>
         ${addSheetHtml(i)}
         ${i.model ? `<button type="button" class="ar-open sheet-ar" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
       </div>
@@ -111,26 +114,28 @@ function visibleItems() {
 const LIST_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h11M4 12h8M4 18h6M17 14v8M13 18h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 function renderBar() {
-  const n = filterCount(), f = view.open === "filter", s = view.open === "sort";
+  const n = filterCount();
   const lc = typeof listCount === "function" ? listCount() : 0;
   const focused = document.activeElement && document.activeElement.closest("#fs") ? document.activeElement : null;
-  const key = focused && (focused.dataset.open ? `[data-open="${focused.dataset.open}"]` : focused.dataset.f ? `[data-f="${focused.dataset.f}"]` : focused.dataset.c ? `[data-c="${focused.dataset.c.replace(/"/g, "\\\"")}"]` : focused.name === "sort" ? `input[value="${focused.value}"]` : "");
-  $("#fs").innerHTML = `<div class="fs-bar">
-      <button type="button" class="fs-icon${view.q ? " has-q" : ""}" data-open="search" aria-expanded="${view.open === "search"}" aria-controls="fs-search" aria-label="Search">${SEARCH}</button>
-      <button type="button" class="fs-tab" data-open="filter" aria-expanded="${f}" aria-controls="fs-filter">Filter${n ? ` (${n})` : ""}${CHEV}</button>
-      <button type="button" class="fs-tab" data-open="sort" aria-expanded="${s}" aria-controls="fs-sort">Sort by${CHEV}</button>
+  const key = focused && (focused.id === "fs-q" ? "#fs-q" : focused.dataset.open ? `[data-open="${focused.dataset.open}"]` : focused.dataset.f ? `[data-f="${focused.dataset.f}"]` : focused.dataset.c ? `[data-c="${focused.dataset.c.replace(/"/g, "\\\"")}"]` : focused.name === "sort" ? `input[value="${focused.value}"]` : "");
+  const m = view.open === "menu", dot = n > 0 || view.sort !== "featured";
+  $("#fs").innerHTML = `<div class="fs-top">
+      <div class="fs-top-slot" id="fs-slot"><!-- reserved: new feature goes here --></div>
+      <button type="button" class="fs-icon fs-qr" data-open-qr aria-label="Show a QR code to open this menu on a phone" title="QR code">${QR_ICON}</button>
       <button type="button" class="fs-icon fs-list" data-open-list aria-label="My list${lc ? ` (${lc} item${lc === 1 ? "" : "s"})` : ""}">${LIST_ICON}<span class="fs-badge"${lc ? "" : " hidden"}>${lc}</span></button>
     </div>
-    <div class="fs-panel" id="fs-search" ${view.open === "search" ? "" : "hidden"}>
+    <div class="fs-bar">
+      <button type="button" class="fs-icon fs-burger${dot ? " has-active" : ""}" data-open="menu" aria-expanded="${m}" aria-controls="fs-menu" aria-label="Filter and sort${n ? ` (${n} filter${n === 1 ? "" : "s"} on)` : ""}">${BURGER}</button>
       <input type="search" id="fs-q" class="fs-q" placeholder="Search dishes…" aria-label="Search dishes" autocomplete="off" value="${esc(view.q)}">
+      <span class="fs-search-ic">${SEARCH}</span>
     </div>
-    <div class="fs-panel" id="fs-filter" ${f ? "" : "hidden"}>
+    <div class="fs-panel" id="fs-menu" ${m ? "" : "hidden"}>
       <div class="fs-row"><span class="fs-label">Category</span>${["All", ...data.categories].map((c) => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c === active}">${esc(c)}</button>`).join("")}</div>
       ${FILTERS.map(([label, chips]) => `<div class="fs-row"><span class="fs-label">${label}</span>${chips.map(([k, t]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="${view[k]}">${t}</button>`).join("")}</div>`).join("")}
       ${n ? '<button type="button" class="linkbtn" data-clear>Clear all</button>' : ""}
-    </div>
-    <div class="fs-panel" id="fs-sort" ${s ? "" : "hidden"} role="radiogroup" aria-label="Sort by">
-      ${Object.entries(SORTS).map(([k, t]) => `<label class="radio"><input type="radio" name="sort" value="${k}" ${view.sort === k ? "checked" : ""}><span>${t}</span></label>`).join("")}
+      <div class="fs-sort" role="radiogroup" aria-label="Sort by"><span class="fs-label">Sort by</span>
+        ${Object.entries(SORTS).map(([k, t]) => `<label class="radio"><input type="radio" name="sort" value="${k}" ${view.sort === k ? "checked" : ""}><span>${t}</span></label>`).join("")}
+      </div>
     </div>`;
   if (key) { const el = $("#fs").querySelector(key); if (el) el.focus(); }
 }
@@ -163,13 +168,11 @@ $("#fs").addEventListener("click", (e) => {
   else if (t.dataset.open) view.open = view.open === t.dataset.open ? "" : t.dataset.open;
   else view[t.dataset.f] = !view[t.dataset.f];
   render();
-  if (t.dataset.open === "search" && view.open === "search") $("#fs-q").focus();
 });
 // Typing only refreshes the dish list, so the search box keeps focus
 $("#fs").addEventListener("input", (e) => {
   if (e.target.id !== "fs-q") return;
   view.q = e.target.value;
-  $("#fs .fs-icon").classList.toggle("has-q", !!view.q.trim());
   renderList();
 });
 $("#fs").addEventListener("change", (e) => { if (e.target.name === "sort") { view.sort = e.target.value; render(); } });
@@ -246,13 +249,62 @@ sheetBox.addEventListener("scroll", (e) => {
 }, true);
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  if (!viewer.hidden) closeViewer(); else closeSheet();
+  if (!qrBox.hidden) closeQr(); else if (!viewer.hidden) closeViewer(); else closeSheet();
 });
+
+// ---- QR codes: scan with a phone to open this menu, or one dish (the link is ?item=ID) ----
+const LOCAL_RE = /^(localhost|127\.|0\.0\.0\.0|\[::1\])/;
+let qrBasePromise = null;
+const qrBase = () => qrBasePromise || (qrBasePromise = fetch("api/qr-url")
+  .then((r) => { if (!r.ok) throw new Error("no api"); return r.json(); }).then((j) => j.url)
+  .catch(() => location.origin + location.pathname.replace(/[^/]*$/, "")));
+const qrBox = document.createElement("div");
+qrBox.className = "qrm";
+qrBox.hidden = true;
+qrBox.innerHTML = `<div class="qrm-box" role="dialog" aria-modal="true" aria-labelledby="qrm-title">
+  <button type="button" class="sheet-close qrm-x" aria-label="Close">\u00d7</button>
+  <h2 id="qrm-title"></h2><p class="qrm-sub"></p>
+  <img class="qrm-img" width="240" height="240" alt="">
+  <p class="qrm-note" role="status"></p><p class="qrm-url"></p></div>`;
+document.body.appendChild(qrBox);
+let qrOpener = null;
+async function openQr(title, sub, id, opener) {
+  const u = new URL(await qrBase());
+  u.searchParams.delete("item");
+  if (id) u.searchParams.set("item", id);
+  const img = qrBox.querySelector(".qrm-img"), note = qrBox.querySelector(".qrm-note");
+  qrBox.querySelector("#qrm-title").textContent = title;
+  qrBox.querySelector(".qrm-sub").textContent = sub;
+  qrBox.querySelector(".qrm-url").textContent = u.href.replace(/^https?:\/\//, "");
+  note.textContent = "";
+  img.alt = `QR code: ${title}`;
+  img.onerror = () => { img.removeAttribute("src"); note.textContent = "The QR image needs the menu server to be running."; };
+  img.src = `qr.svg?url=${encodeURIComponent(u.href)}`;
+  if (LOCAL_RE.test(u.hostname)) note.textContent = "This link only works on the computer running the menu. Start the tunnel so phones can open it.";
+  qrOpener = opener || null;
+  qrBox.hidden = false;
+  qrBox.querySelector(".qrm-x").focus();
+}
+function closeQr() { if (qrBox.hidden) return; qrBox.hidden = true; qrOpener?.focus?.(); qrOpener = null; }
+qrBox.addEventListener("click", (e) => { if (e.target === qrBox || e.target.closest(".qrm-x")) closeQr(); });
+document.addEventListener("click", (e) => {
+  const top = e.target.closest("[data-open-qr]");
+  if (top) return openQr(data.restaurant, "Scan with your phone to open this menu", null, top);
+  const b = e.target.closest(".sheet-qr[data-qr-item]");
+  const it = b && data.items.find((x) => x.id === b.dataset.qrItem);
+  if (it) openQr(it.name, "Scan with your phone to open this dish", it.id, b);
+});
+// A QR on a table or a sign can point straight at one dish
+function linkedItemId() {
+  const id = new URLSearchParams(location.search).get("item");
+  return id && typeof data !== "undefined" && data && data.items.some((x) => x.id === id) ? id : null;
+}
+function openLinkedItem() { const id = linkedItemId(); if (id) openSheet(id); }
 
 fetch("api/menu")
   .then((r) => { if (!r.ok) throw new Error("no api"); return r.json(); })
   .catch(() => { staticMode = true; return fetch("menu.json").then((r) => r.json()); })
-  .then((d) => { data = d; render(); })
+  .then((d) => { data = d; render(); openLinkedItem(); })
   .catch(() => ($("#menu").innerHTML = '<p class="empty">Could not load the menu. Please refresh the page.</p>'));
 
 // ---- Food / hot drink / cold drink sorting (the Quick menu uses this) ----
@@ -274,6 +326,14 @@ viewer.innerHTML = `<div class="viewer-box" role="dialog" aria-modal="true" aria
   <div class="viewer-top"><strong id="viewer-title"></strong><button type="button" class="btn ghost" id="viewer-close">Close</button></div>
   <div id="viewer-stage"></div>
   <p class="viewer-hint">Drag to rotate. Tap "View on your table" to see it at real size through your camera. If that button is missing, this phone or browser does not support AR.</p>
+  <details class="ar-guide"><summary>Tips for placing it on your table</summary>
+    <ol>
+      <li>Tap <strong>View on your table (AR)</strong> and allow camera access.</li>
+      <li>Hold the phone about an arm's length from the table and move it slowly side to side for a few seconds.</li>
+      <li>When the dish appears, drag it to move it and turn it with two fingers.</li>
+    </ol>
+    <p>Works best in good light. Plain, shiny or dark tables are hard to detect, so try placing a napkin, menu or coaster with a pattern on the table and aim at it.</p>
+  </details>
 </div>`;
 document.body.appendChild(viewer);
 

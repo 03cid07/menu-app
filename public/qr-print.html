@@ -41,10 +41,12 @@
       document.getElementById("qr").src = "/qr.svg?url=" + encodeURIComponent(url);
       document.getElementById("url").textContent = url.replace(/^https?:\/\//, "").replace(/\/$/, "");
     }
+    const title = params.get("title"), sub = params.get("sub");
+    if (sub) document.querySelector(".scan").textContent = sub;
     const given = params.get("url");
     if (given) show(given);
     else fetch("/api/qr-url").then((r) => r.json()).then((j) => show(j.url));
-    fetch("/api/menu").then((r) => r.json()).then((d) => { document.getElementById("name").textContent = d.restaurant; document.title = d.restaurant + " menu QR sign"; }).catch(() => {});
+    fetch("/api/menu").then((r) => r.json()).then((d) => { document.getElementById("name").textContent = title || d.restaurant; document.title = (title || d.restaurant) + " menu QR sign"; }).catch(() => {});
     document.getElementById("print").addEventListener("click", () => window.print());
   </script>
 </body>

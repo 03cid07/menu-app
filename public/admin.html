@@ -71,8 +71,10 @@
       <div id="cat-manage"></div><div class="msg" id="cat-msg" role="status"></div></div>
     <div class="panel" data-panel="qr" hidden>
       <h2>QR code</h2>
-      <p class="hint">Customers scan this to open the menu on their phone. No app to install. Print it and put it on the tables.</p>
-      <label for="qr-url">Menu link</label>
+      <p class="hint">Customers scan this to open the menu on their phone. No app to install. Print it and put it on the tables. You can also make a QR for a single dish: it opens that dish's detail card.</p>
+      <label for="qr-target">What should it open?</label>
+      <select id="qr-target"><option value="">Whole menu</option></select>
+      <label for="qr-url">Link</label>
       <input id="qr-url" type="url" inputmode="url" autocomplete="off" placeholder="https://...">
       <p class="qr-note" id="qr-note" role="status"></p>
       <div class="qr-row">
@@ -81,8 +83,9 @@
           <div class="qr-actions">
             <a class="btn" id="qr-download" download="menu-qr.png">Download PNG</a>
             <a class="btn ghost" id="qr-print" target="_blank" rel="noopener">Print table sign</a>
+            <a class="btn ghost" id="qr-test" target="_blank" rel="noopener">Test link</a>
           </div>
-          <p class="hint qr-tip">Print it at least 4 cm wide, dark on a light background, and scan it with both an iPhone and an Android phone before you use it.</p>
+          <p class="hint qr-tip">Print it at least 4 cm wide, dark on a light background, and scan it with both an iPhone and an Android phone before you use it. "Test link" opens exactly what the code contains.</p>
         </div>
       </div>
     </div>
