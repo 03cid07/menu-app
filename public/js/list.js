@@ -21,8 +21,18 @@ const addBtnHtml = (i) => {
   const q = listQty(i.id);
   return `<button type="button" class="add-btn${q ? " has" : ""}" data-add="${esc(i.id)}"${i.available ? "" : " disabled"} aria-label="${esc(addLabel(i, q))}">${ICON_PLUS}<span class="add-qty" aria-hidden="true">${q || ""}</span></button>`;
 };
-const sheetLabel = (i, q) => (!i.available ? "Sold out" : q ? `Add another (${q} in list)` : "Add to list");
-const addSheetHtml = (i) => `<button type="button" class="btn sheet-add" data-add="${esc(i.id)}"${i.available ? "" : " disabled"}>${ICON_LIST}<span class="lbl">${esc(sheetLabel(i, listQty(i.id)))}</span></button>`;
+// Detail card: "Add to list" first; once the dish is in the list it becomes a stepper (- 2 +) so a customer
+// can also take one off right there, plus a "View list" button.
+const sheetCtlHtml = (i) => {
+  const q = listQty(i.id), id = esc(i.id);
+  if (!i.available) return `<button type="button" class="btn sheet-add" disabled>${ICON_LIST}<span class="lbl">Sold out</span></button>`;
+  if (!q) return `<button type="button" class="btn sheet-add" data-add="${id}">${ICON_LIST}<span class="lbl">Add to list</span></button>`;
+  return `<div class="sheet-step" role="group" aria-label="${esc(i.name)} in your list">
+      <button type="button" data-sheet-dec aria-label="Remove one ${esc(i.name)}">${ICON_MINUS}</button><span aria-live="polite">${q}</span><button type="button" data-add="${id}" aria-label="Add one ${esc(i.name)}">${ICON_PLUS}</button>
+    </div>
+    <button type="button" class="btn ghost sheet-viewlist" data-open-list>${ICON_LIST}<span>View list</span></button>`;
+};
+const addSheetHtml = (i) => `<div class="sheet-listctl" data-ctl="${esc(i.id)}">${sheetCtlHtml(i)}</div>`;
 function addLabel(i, q) { return i.available ? `Add ${i.name} to list${q ? ` (${q} in list)` : ""}` : `${i.name} is sold out`; }
 
 // ---- Floating bar + list drawer ----
@@ -84,9 +94,13 @@ function listSync() {
     b.querySelector(".add-qty").textContent = q || "";
     if (it) b.setAttribute("aria-label", addLabel(it, q));
   });
-  document.querySelectorAll(".sheet-add[data-add]").forEach((b) => {
-    const it = listItem(b.dataset.add);
-    if (it) b.querySelector(".lbl").textContent = sheetLabel(it, listQty(b.dataset.add));
+  document.querySelectorAll(".sheet-listctl[data-ctl]").forEach((c) => {
+    const it = listItem(c.dataset.ctl);
+    if (!it) return;
+    // Keep keyboard focus on the same kind of button after the controls are redrawn
+    const keep = c.contains(document.activeElement) ? (document.activeElement.hasAttribute("data-sheet-dec") ? "[data-sheet-dec]" : "[data-add]") : null;
+    c.innerHTML = sheetCtlHtml(it);
+    if (keep) (c.querySelector(keep) || c.querySelector("button"))?.focus();
   });
   const n = listCount();
   bar.hidden = !n;
@@ -135,6 +149,16 @@ drawer.addEventListener("click", (e) => {
   else if (e.target.closest("[data-dec]")) listSet(id, listQty(id) - 1);
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeList(); });
+
+// - in the detail card stepper
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-sheet-dec]");
+  const c = b && b.closest(".sheet-listctl[data-ctl]");
+  const it = c && listItem(c.dataset.ctl);
+  if (!it) return;
+  listSet(it.id, listQty(it.id) - 1);
+  listStatus.textContent = `${it.name} removed. ${listQty(it.id)} in your list.`;
+});
 
 // + on a row, or "Add to list" in the detail card
 document.addEventListener("click", (e) => {

@@ -77,9 +77,11 @@ function sheetHtml(i) {
       ${i.description ? `<h3 class="sheet-sub">Description</h3><p class="sheet-text">${esc(i.description)}</p>` : ""}
       ${i.ingredients ? `<h3 class="sheet-sub">Ingredients</h3><p class="sheet-text">${esc(i.ingredients)}</p>` : ""}
       <div class="sheet-actions">
-        <button type="button" class="sheet-qr" data-qr-item="${esc(i.id)}" aria-label="Show a QR code for ${esc(i.name)}" title="QR code">${QR_ICON}</button>
         ${addSheetHtml(i)}
-        ${i.model ? `<button type="button" class="ar-open sheet-ar" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
+        <div class="sheet-more">
+          ${i.model ? `<button type="button" class="ar-open sheet-ar" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-name="${esc(i.name)}">View in 3D / AR</button>` : ""}
+          <button type="button" class="sheet-qr" data-qr-item="${esc(i.id)}" aria-label="Show a QR code for ${esc(i.name)}">${QR_ICON}<span>QR code</span></button>
+        </div>
       </div>
       <div class="sheet-rate">${rateHtml(i)}</div>
     </div>`;

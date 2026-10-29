@@ -537,3 +537,18 @@ body.has-list main { padding-bottom: 0; }
 .qrm-note { min-height: 0; margin: .4rem 0 0; color: #ffb3a7; font-size: .85rem; }
 .qrm-note:empty { display: none; }
 .qrm-url { margin: .5rem 0 0; color: var(--muted); font-size: .75rem; word-break: break-all; }
+
+/* ---- Dish card actions: row 1 = list controls, row 2 = 3D / AR + QR side by side ---- */
+.sheet-actions { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: .65rem; }
+.sheet-listctl { display: flex; align-items: stretch; gap: .6rem; }
+.sheet-listctl .sheet-add { flex: 1; justify-content: center; padding: .8rem 1.1rem; border-radius: 12px; font-size: 1rem; }
+.sheet-step { flex: none; display: flex; align-items: center; gap: .25rem; padding: .25rem; border-radius: 12px; background: color-mix(in srgb, var(--accent) 16%, transparent); }
+.sheet-step button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); cursor: pointer; }
+.sheet-step button:active { transform: scale(.92); }
+.sheet-step span { min-width: 2.2rem; text-align: center; font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sheet-listctl .sheet-viewlist { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; margin: 0; padding: .6rem 1rem; border-radius: 12px; border: 1px solid var(--accent); color: var(--accent); font-weight: 600; }
+.sheet-more { display: flex; gap: .6rem; }
+.sheet-more > * { flex: 1; }
+.sheet-more .sheet-ar, .sheet-more .sheet-qr { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; width: auto; height: 46px; margin: 0; padding: 0 .9rem; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.sheet-more .sheet-ar:hover, .sheet-more .sheet-qr:hover, .sheet-more .sheet-qr:focus-visible { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.sheet-more svg { color: var(--accent); }
