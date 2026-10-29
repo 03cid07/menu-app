@@ -577,3 +577,8 @@ body.fs-float .fs-top .fs-qr, body.fs-float .fs-top .fs-list { box-shadow: 0 4px
 .admin-title strong { min-width: 0; flex: 0 1 auto; }
 .admin-title .price { flex: none; }
 @media (max-width: 520px) { .admin-item > :first-child { width: 100%; } }
+
+/* Admin item list: the name scrolls, the buttons keep their size and wrap neatly (never squeezed) */
+#list .admin-item > :last-child { flex: none; display: flex; flex-wrap: wrap; gap: .4rem; justify-content: flex-end; max-width: 250px; }
+#list .admin-item .btn.ghost { margin: 0; white-space: nowrap; }
+@media (max-width: 520px) { #list .admin-item > :last-child { max-width: none; justify-content: flex-start; } }
