@@ -17,7 +17,7 @@
   const nav = document.createElement("nav");
   nav.className = "bottomnav";
   nav.setAttribute("aria-label", "Main");
-  nav.innerHTML = `<div class="bottomnav-in">${NAV.map(([k, t, icon]) => `<button type="button" class="navlink" data-nav="${k}" aria-label="${t}" title="${t}">${icon}</button>`).join("")}<button type="button" class="navlink nav-list" data-open-list aria-label="My list" title="My list">${SVG('<path d="M4 6h11M4 12h8M4 18h6M17 14v8M13 18h8"/>')}<span class="fs-badge" hidden>0</span></button></div>`;
+  nav.innerHTML = `<div class="bottomnav-in">${NAV.map(([k, t, icon]) => `<button type="button" class="navlink" data-nav="${k}" aria-label="${t}" title="${t}">${icon}</button>`).join("")}</div>`;
   document.body.appendChild(nav);
   // The start screen has no bottom bar; it appears once the customer picks Full menu or Quick menu
   const setNav = (on) => { nav.hidden = on === "home"; nav.querySelectorAll(".navlink").forEach((b) => (b.dataset.nav === on ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"))); };

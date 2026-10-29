@@ -491,9 +491,6 @@ body.has-list .home-box { padding-bottom: calc(var(--nav-h) + 6rem + env(safe-ar
 /* The old floating "My list" bar is replaced by icons: one in the filter bar, one in the bottom nav on Home / Quick menu */
 .list-bar { display: none !important; }
 .bottomnav .navlink { position: relative; }
-.bottomnav .nav-list { display: none; }
-.home:not([hidden]) ~ .bottomnav .nav-list { display: flex; }
-.bottomnav .fs-badge { top: .5rem; right: 50%; margin-right: -22px; }
 body.has-list .home-box { padding-bottom: calc(var(--nav-h) + 2rem + env(safe-area-inset-bottom, 0px)); }
 body.has-list main { padding-bottom: 0; }
 
