@@ -1,10 +1,14 @@
 let data;
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-// Drink-like categories get a hot/cold choice (same test as the customer menu)
-const DRINK_RE = /drink|beverage|juice|coffee|tea\b|shake|smoothie|soda|cocktail|beer|wine/i;
-const syncTemp = () => { $("#temp-box").hidden = !DRINK_RE.test($("#category").value); };
-const say = (t, err) => { $("#msg").textContent = t; $("#msg").className = "msg" + (err ? " error" : ""); };
+// Messages show right above the Save button while the add/edit form is open, so they can't be missed.
+const say = (t, err) => {
+  const formOpen = !$("#form").hidden;
+  const target = $(formOpen ? "#form-msg" : "#msg"), other = $(formOpen ? "#msg" : "#form-msg");
+  other.textContent = ""; other.className = "msg";
+  target.textContent = t; target.className = "msg" + (err ? " error" : "");
+  if (formOpen && t) target.scrollIntoView({ block: "nearest", behavior: "smooth" });
+};
 
 // Tabs: only one section is shown at a time, which keeps the page short
 function showTab(name) {
@@ -108,7 +112,7 @@ async function refresh() {
 }
 
 function resetForm() {
-  $("#form").reset(); $("#id").value = ""; $("#available").checked = true; showModel(""); photos = []; renderPhotos(); $("#imageFile").value = ""; syncTemp();
+  $("#form").reset(); $("#id").value = ""; $("#available").checked = true; showModel(""); photos = []; renderPhotos(); $("#imageFile").value = "";
   $("#form-title").textContent = "Add item"; $("#save").textContent = "Add item"; $("#cancel").hidden = true;
   $("#tab-add").textContent = "Add item";
 }
@@ -125,16 +129,14 @@ $("#form").addEventListener("submit", async (e) => {
     const body = { name: $("#name").value, price: $("#price").value, category: $("#category").value,
                    description: $("#description").value, ingredients: $("#ingredients").value, images: photos.map((p) => p.path),
                    model: $("#model").value, label: $("#label").value,
-                   temp: DRINK_RE.test($("#category").value) ? $("#temp").value : "",
                    available: $("#available").checked };
     const id = $("#id").value;
     await (id ? api("PUT", `/api/items/${id}`, body) : api("POST", "/api/items", body));
-    say(id ? "Changes saved" : "Item added"); resetForm(); refresh(); if (id) showTab("items");
+    resetForm(); refresh(); if (id) showTab("items"); say(id ? "Changes saved" : "Item added");
   } catch (err) { say(err.message, true); }
 });
 
 $("#cancel").addEventListener("click", () => { resetForm(); showTab("items"); });
-$("#category").addEventListener("input", syncTemp);
 $("#imageFile").addEventListener("change", () => {
   const room = 8 - photos.length, picked = [...$("#imageFile").files];
   photos.push(...picked.slice(0, room).map((file) => ({ file, url: URL.createObjectURL(file) })));
@@ -178,7 +180,7 @@ $("#list").addEventListener("click", async (e) => {
       const i = data.items.find((x) => x.id === t.dataset.edit);
       $("#id").value = i.id; $("#name").value = i.name; $("#price").value = i.price;
       $("#category").value = i.category; $("#description").value = i.description; $("#available").checked = i.available;
-      $("#ingredients").value = i.ingredients || ""; $("#temp").value = i.temp || ""; $("#label").value = i.label || ""; syncTemp(); showModel(i.model || ""); $("#modelFile").value = ""; photos = gallery(i).map((path) => ({ path })); renderPhotos(); $("#imageFile").value = "";
+      $("#ingredients").value = i.ingredients || ""; $("#label").value = i.label || ""; showModel(i.model || ""); $("#modelFile").value = ""; photos = gallery(i).map((path) => ({ path })); renderPhotos(); $("#imageFile").value = "";
       $("#form-title").textContent = "Edit item"; $("#save").textContent = "Save changes"; $("#cancel").hidden = false;
       $("#tab-add").textContent = "Edit item"; showTab("add"); $("#name").focus();
     } else if (t.dataset.toggle) {

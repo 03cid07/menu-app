@@ -333,7 +333,7 @@ const DRINK_RE = /drink|beverage|juice|coffee|tea\b|shake|smoothie|soda|cocktail
 const COLD_RE = /iced|ice\b|cold|juice|shake|smoothie|soda|lemonade|frappe|cooler|beer/i;
 function fxKind(it) {
   if (!DRINK_RE.test(it.category || "")) return "food";
-  return it.temp === "cold" || (!it.temp && COLD_RE.test(it.name)) ? "cold" : "hot";
+  return COLD_RE.test(it.name) ? "cold" : "hot";
 }
 // ---- Effects (the heaven effect is baked into the 3D model; the customer can switch it off) ----
 // Effects start on, unless the phone asks for reduced motion

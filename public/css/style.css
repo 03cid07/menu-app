@@ -203,7 +203,7 @@ body.no-scroll { overflow: hidden; }
 .adminnav-side { display: flex; align-items: center; gap: .75rem; padding: .35rem 0; }
 .adminnav-side input { width: 7.5rem; margin: 0; padding: .35rem .6rem; }
 .viewlink { font-size: .9rem; white-space: nowrap; }
-main > .msg:empty { display: none; }
+main > .msg:empty, #form-msg:empty { display: none; }
 [data-panel][hidden] { display: none; }
 
 /* ---- Coffee-bean background + matte cards ---- */

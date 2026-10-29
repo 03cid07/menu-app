@@ -35,14 +35,6 @@
       </div>
       <label for="description">Description</label><textarea id="description" rows="2"></textarea>
       <label for="ingredients">Ingredients</label><input id="ingredients" placeholder="e.g. Espresso, milk, caramel syrup">
-      <div id="temp-box" hidden>
-        <label for="temp">Serving (hot or cold, used by the Quick menu)</label>
-        <select id="temp">
-          <option value="">Auto (guess from the name)</option>
-          <option value="hot">Hot</option>
-          <option value="cold">Cold</option>
-        </select>
-      </div>
       <label for="label">Highlight tag</label>
       <select id="label">
         <option value="">None</option>
@@ -63,6 +55,7 @@
         <button class="btn ghost" type="button" id="model-remove" hidden>Remove 3D model</button>
       </div>
       <label><input id="available" type="checkbox" checked style="width:auto"> Available today</label>
+      <div class="msg" id="form-msg" role="status"></div>
       <button class="btn" type="submit" id="save">Add item</button>
       <button class="btn ghost" type="button" id="cancel" hidden>Cancel edit</button>
     </form>

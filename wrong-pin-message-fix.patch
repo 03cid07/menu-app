@@ -1,0 +1,54 @@
+diff --git a/public/admin.html b/public/admin.html
+index bf683ba..855c760 100644
+--- a/public/admin.html
++++ b/public/admin.html
+@@ -63,6 +63,7 @@
+         <button class="btn ghost" type="button" id="model-remove" hidden>Remove 3D model</button>
+       </div>
+       <label><input id="available" type="checkbox" checked style="width:auto"> Available today</label>
++      <div class="msg" id="form-msg" role="status"></div>
+       <button class="btn" type="submit" id="save">Add item</button>
+       <button class="btn ghost" type="button" id="cancel" hidden>Cancel edit</button>
+     </form>
+diff --git a/public/css/style.css b/public/css/style.css
+index 4fc6c25..0752c4e 100644
+--- a/public/css/style.css
++++ b/public/css/style.css
+@@ -203,7 +203,7 @@ body.no-scroll { overflow: hidden; }
+ .adminnav-side { display: flex; align-items: center; gap: .75rem; padding: .35rem 0; }
+ .adminnav-side input { width: 7.5rem; margin: 0; padding: .35rem .6rem; }
+ .viewlink { font-size: .9rem; white-space: nowrap; }
+-main > .msg:empty { display: none; }
++main > .msg:empty, #form-msg:empty { display: none; }
+ [data-panel][hidden] { display: none; }
+ 
+ /* ---- Coffee-bean background + matte cards ---- */
+diff --git a/public/js/admin.js b/public/js/admin.js
+index 0f1c644..89d0d3d 100644
+--- a/public/js/admin.js
++++ b/public/js/admin.js
+@@ -4,7 +4,14 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
+ // Drink-like categories get a hot/cold choice (same test as the customer menu)
+ const DRINK_RE = /drink|beverage|juice|coffee|tea\b|shake|smoothie|soda|cocktail|beer|wine/i;
+ const syncTemp = () => { $("#temp-box").hidden = !DRINK_RE.test($("#category").value); };
+-const say = (t, err) => { $("#msg").textContent = t; $("#msg").className = "msg" + (err ? " error" : ""); };
++// Messages show right above the Save button while the add/edit form is open, so they can't be missed.
++const say = (t, err) => {
++  const formOpen = !$("#form").hidden;
++  const target = $(formOpen ? "#form-msg" : "#msg"), other = $(formOpen ? "#msg" : "#form-msg");
++  other.textContent = ""; other.className = "msg";
++  target.textContent = t; target.className = "msg" + (err ? " error" : "");
++  if (formOpen && t) target.scrollIntoView({ block: "nearest", behavior: "smooth" });
++};
+ 
+ // Tabs: only one section is shown at a time, which keeps the page short
+ function showTab(name) {
+@@ -129,7 +136,7 @@ $("#form").addEventListener("submit", async (e) => {
+                    available: $("#available").checked };
+     const id = $("#id").value;
+     await (id ? api("PUT", `/api/items/${id}`, body) : api("POST", "/api/items", body));
+-    say(id ? "Changes saved" : "Item added"); resetForm(); refresh(); if (id) showTab("items");
++    resetForm(); refresh(); if (id) showTab("items"); say(id ? "Changes saved" : "Item added");
+   } catch (err) { say(err.message, true); }
+ });
+ 

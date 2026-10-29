@@ -39,11 +39,8 @@ const validImages = (a) => a === undefined || (Array.isArray(a) && a.length <= 8
 // Highlight label must be empty, "popular", "new" or "hot"
 const validLabel = (l) => l === undefined || ["", "popular", "new", "hot"].includes(l);
 
-// Drink serving temperature must be empty (auto), "hot" or "cold"
 // Reuse the spelling of an existing category when only the capitals differ ("drinks" -> "Drinks")
 const canonCat = (data, c) => { const t = String(c).trim(); return data.categories.find((x) => x.toLowerCase() === t.toLowerCase()) || t; };
-
-const validTemp = (t) => t === undefined || t === "" || t === "hot" || t === "cold";
 
 // ---- Ratings: { itemId: { deviceId: stars } }, kept apart from menu.json ----
 const loadRatings = () => { try { return JSON.parse(fs.readFileSync(RATINGS_FILE, "utf8")); } catch { return {}; } };
@@ -80,16 +77,15 @@ app.post("/api/items/:id/rate", (req, res) => {
 // Admin: add, edit, delete items
 app.post("/api/items", requirePin, (req, res) => {
   const data = load();
-  const { name, price, category: rawCategory, description = "", ingredients = "", image = "", images, model = "", temp = "", label = "", available = true } = req.body;
+  const { name, price, category: rawCategory, description = "", ingredients = "", image = "", images, model = "", label = "", available = true } = req.body;
   if (!name || price === undefined || !rawCategory || !String(rawCategory).trim())
     return res.status(400).json({ error: "Name, price and category are required" });
   if (!validModel(model)) return res.status(400).json({ error: "Invalid 3D model file" });
   if (!validImage(image) || !validImages(images)) return res.status(400).json({ error: "Invalid photos (up to 8 JPG, PNG or WebP)" });
   const category = canonCat(data, rawCategory);
   const gallery = Array.isArray(images) ? images : image ? [image] : [];
-  if (!validTemp(temp)) return res.status(400).json({ error: "Serving must be hot or cold" });
   if (!validLabel(label)) return res.status(400).json({ error: "Label must be popular, new or hot" });
-  const item = { id: Date.now().toString(36), name, price: Number(price), category, description, ingredients, image: gallery[0] || "", images: gallery, model, temp, label, available };
+  const item = { id: Date.now().toString(36), name, price: Number(price), category, description, ingredients, image: gallery[0] || "", images: gallery, model, label, available };
   data.items.push(item);
   if (!data.categories.includes(category)) data.categories.push(category);
   save(data);
@@ -103,7 +99,6 @@ app.put("/api/items/:id", requirePin, (req, res) => {
   if (i < 0) return res.status(404).json({ error: "Item not found" });
   if (!validModel(req.body.model)) return res.status(400).json({ error: "Invalid 3D model file" });
   if (!validImage(req.body.image) || !validImages(req.body.images)) return res.status(400).json({ error: "Invalid photos (up to 8 JPG, PNG or WebP)" });
-  if (!validTemp(req.body.temp)) return res.status(400).json({ error: "Serving must be hot or cold" });
   if (!validLabel(req.body.label)) return res.status(400).json({ error: "Label must be popular, new or hot" });
   data.items[i] = { ...data.items[i], ...req.body, id: req.params.id, price: Number(req.body.price ?? data.items[i].price) };
   if (req.body.images !== undefined || req.body.image !== undefined) {
