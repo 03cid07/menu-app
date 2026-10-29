@@ -278,8 +278,14 @@ async function openQr(title, sub, id, opener) {
   qrBox.querySelector(".qrm-url").textContent = u.href.replace(/^https?:\/\//, "");
   note.textContent = "";
   img.alt = `QR code: ${title}`;
-  img.onerror = () => { img.removeAttribute("src"); note.textContent = "The QR image needs the menu server to be running."; };
-  img.src = `qr.svg?url=${encodeURIComponent(u.href)}`;
+  img.onerror = () => { img.removeAttribute("src"); note.textContent = "Could not make the QR code. Reload the page and try again."; };
+  // Draw the QR in the browser so it also works on GitHub Pages (no server there); fall back to the server image.
+  if (window.QRCode) {
+    window.QRCode.toString(u.href, { type: "svg", margin: 2, errorCorrectionLevel: "M", color: { dark: "#111111", light: "#ffffff" } }, (err, svg) => {
+      if (err) return img.onerror();
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+    });
+  } else img.src = `qr.svg?url=${encodeURIComponent(u.href)}`;
   if (LOCAL_RE.test(u.hostname)) note.textContent = "This link only works on the computer running the menu. Use the public GitHub Pages link instead.";
   qrOpener = opener || null;
   qrBox.hidden = false;
