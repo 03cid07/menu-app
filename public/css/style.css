@@ -561,3 +561,19 @@ body.fs-float .fs-top .fs-qr, body.fs-float .fs-top .fs-list { box-shadow: 0 4px
 .thumb-wrap { position: relative; flex: none; display: block; line-height: 0; }
 .has-3d { position: absolute; right: 5px; bottom: 5px; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #10181d; border: 1px solid rgba(255, 255, 255, .22); pointer-events: none; }
 @media (max-width: 520px) { .has-3d { width: 24px; height: 24px; right: 4px; bottom: 4px; } }
+
+/* ---- Long names scroll like a train (js/marquee.js) ---- */
+.mq { display: block; min-width: 0; max-width: 100%; overflow: hidden; white-space: nowrap; }
+.mq-in { display: inline-flex; will-change: transform; }
+.mq-copy { margin-left: 48px; }
+.mq.mq-run { -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 22px), transparent); }
+.item h3 { display: flex; align-items: center; flex: 1 1 auto; min-width: 0; }
+.item .item-open { display: block; flex: 0 1 auto; min-width: 0; max-width: 100%; overflow: hidden; }
+.item h3 .hl, .item h3 .badge { flex: none; }
+.ml-name .mq { font-weight: 700; }
+.admin-item > :first-child { flex: 1 1 auto; min-width: 0; }
+.admin-row > div { min-width: 0; flex: 1 1 auto; }
+.admin-title { display: flex; align-items: baseline; gap: .5rem; min-width: 0; }
+.admin-title strong { min-width: 0; flex: 0 1 auto; }
+.admin-title .price { flex: none; }
+@media (max-width: 520px) { .admin-item > :first-child { width: 100%; } }

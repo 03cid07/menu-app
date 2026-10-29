@@ -100,7 +100,7 @@ const itemHtml = (i) => `
           ${i.model ? `<span class="has-3d" role="img" aria-label="Has a 3D model" title="3D model">${CUBE_ICON}</span>` : ""}
         </span>
         <div class="info">
-          <h3><button type="button" class="item-open" aria-haspopup="dialog">${esc(i.name)}</button>${labelHtml(i)}${i.available ? "" : '<span class="badge">Sold out</span>'}</h3>
+          <h3><button type="button" class="item-open" aria-haspopup="dialog">${mqHtml(i.name)}</button>${labelHtml(i)}${i.available ? "" : '<span class="badge">Sold out</span>'}</h3>
         </div>
         <span class="row-price">${money(i.price)}</span>
         ${addBtnHtml(i)}

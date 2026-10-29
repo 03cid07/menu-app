@@ -77,7 +77,7 @@ function drawerHtml() {
   return `<div class="mylist-top"><h2 id="mylist-title">My list</h2>${CLOSE_BTN}</div>
     <p class="mylist-hint">Show this list to your server when you're ready to order.</p>
     <ul class="mylist-rows">${rows.map(([it, q]) => `<li class="ml-row" data-id="${esc(it.id)}">
-      <div class="ml-name">${esc(it.name)}<small>${money(it.price)} each${it.available ? "" : " \u00b7 sold out"}</small></div>
+      <div class="ml-name">${mqHtml(it.name)}<small>${money(it.price)} each${it.available ? "" : " \u00b7 sold out"}</small></div>
       <div class="ml-step" role="group" aria-label="Quantity of ${esc(it.name)}">
         <button type="button" data-dec aria-label="Remove one ${esc(it.name)}">${ICON_MINUS}</button><span aria-live="polite">${q}</span><button type="button" data-inc aria-label="Add one ${esc(it.name)}"${it.available ? "" : " disabled"}>${ICON_PLUS}</button>
       </div>

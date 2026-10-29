@@ -102,7 +102,7 @@ async function refresh() {
     : "<p>No categories yet.</p>";
   $("#list").innerHTML = data.items.length
     ? data.items.map((i) => `<div class="admin-item">
-        <div class="admin-row">${i.image ? `<img class="admin-thumb" src="/${esc(i.image)}" alt="">` : ""}<div><strong>${esc(i.name)}</strong> <span class="price">${data.currency}${i.price}</span><br>
+        <div class="admin-row">${i.image ? `<img class="admin-thumb" src="/${esc(i.image)}" alt="">` : ""}<div><div class="admin-title"><strong>${mqHtml(i.name)}</strong><span class="price">${data.currency}${i.price}</span></div>
         <small>${esc(i.category)}${i.model ? " · 3D model" : ""}${i.available ? "" : " (sold out)"}</small></div></div>
         <div><button class="btn ghost" data-edit="${i.id}">Edit</button>
         <button class="btn ghost" data-qr="${i.id}">QR</button>
