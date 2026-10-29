@@ -551,7 +551,8 @@ body.has-list main { padding-bottom: 0; }
    rubber band; this fills the gap that would open under them on phones. */
 @media (max-width: 599px) { .sheet-box, .mylist-box { box-shadow: 0 400px 0 var(--surface); } }
 
-/* ---- Floating QR + My list: once the top row scrolls out of view, the two buttons pin to the top-right ---- */
-body.fs-float .fs-top .fs-qr, body.fs-float .fs-top .fs-list { position: fixed; top: calc(env(safe-area-inset-top, 0px) + .75rem); z-index: 7; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
-body.fs-float .fs-top .fs-list { right: 1rem; }
-body.fs-float .fs-top .fs-qr { right: calc(1rem + 44px + .75rem); }
+/* ---- QR + My list: the list button is a pill (icon + label); both float top-right once the row scrolls out of view ---- */
+.fs-top .fs-actions { flex: none; display: flex; align-items: center; gap: .75rem; }
+.fs-top .fs-list { width: auto; min-width: 44px; gap: .5rem; padding: 0 1.1rem 0 .9rem; font: inherit; font-size: .95rem; font-weight: 600; white-space: nowrap; }
+body.fs-float .fs-top .fs-actions { position: fixed; top: calc(env(safe-area-inset-top, 0px) + .75rem); right: 1rem; z-index: 7; }
+body.fs-float .fs-top .fs-qr, body.fs-float .fs-top .fs-list { box-shadow: 0 4px 14px rgba(0,0,0,.35); }

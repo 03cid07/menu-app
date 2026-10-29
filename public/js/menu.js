@@ -123,8 +123,10 @@ function renderBar() {
   const m = view.open === "menu", dot = n > 0 || view.sort !== "featured";
   $("#fs").innerHTML = `<div class="fs-top">
       <div class="fs-top-slot" id="fs-slot"><!-- reserved: new feature goes here --></div>
-      <button type="button" class="fs-icon fs-qr" data-open-qr aria-label="Show a QR code to open this menu on a phone" title="QR code">${QR_ICON}</button>
-      <button type="button" class="fs-icon fs-list" data-open-list aria-label="My list${lc ? ` (${lc} item${lc === 1 ? "" : "s"})` : ""}">${LIST_ICON}<span class="fs-badge"${lc ? "" : " hidden"}>${lc}</span></button>
+      <div class="fs-actions">
+        <button type="button" class="fs-icon fs-qr" data-open-qr aria-label="Show a QR code to open this menu on a phone" title="QR code">${QR_ICON}</button>
+        <button type="button" class="fs-icon fs-list" data-open-list aria-label="My list${lc ? ` (${lc} item${lc === 1 ? "" : "s"})` : ""}">${LIST_ICON}<span class="fs-list-t">My list</span><span class="fs-badge"${lc ? "" : " hidden"}>${lc}</span></button>
+      </div>
     </div>
     <div class="fs-bar">
       <button type="button" class="fs-icon fs-burger${dot ? " has-active" : ""}" data-open="menu" aria-expanded="${m}" aria-controls="fs-menu" aria-label="Filter and sort${n ? ` (${n} filter${n === 1 ? "" : "s"} on)` : ""}">${BURGER}</button>
