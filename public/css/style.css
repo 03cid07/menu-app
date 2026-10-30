@@ -685,3 +685,8 @@ body.pop-gear-back .fs-top .fs-gear, body.pop-list-back .fs-row-search .fs-list 
 .fs-set-sep { height: 1px; margin: .6rem .2rem .35rem; background: color-mix(in srgb, var(--ink) 15%, transparent); }
 /* Soft colour fade when the theme changes (only while switching) */
 html.theme-anim body, html.theme-anim body * { transition: background-color .35s ease, color .35s ease, border-color .35s ease, fill .35s ease, stroke .35s ease; }
+
+/* Settings menu opens with a soft fade/slide */
+@keyframes fs-menu-in { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
+.fs-settings:not([hidden]) { animation: fs-menu-in .18s ease-out both; transform-origin: top right; }
+@media (prefers-reduced-motion: reduce) { .fs-settings:not([hidden]) { animation: none; } }

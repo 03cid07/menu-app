@@ -126,6 +126,19 @@ const THEMES = [["auto", "Auto", AUTO_ICON], ["light", "Light", SUN_ICON], ["dar
 const LIST_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h11M4 12h8M4 18h6M17 14v8M13 18h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 let settingsOpen = false;
+function themeHint(pref, now) { return pref === "auto" ? `Auto: light from 6 AM to 6 PM, dark at night. Now using ${now}.` : `Using ${now} mode.`; }
+// Open/close the settings menu and refresh the theme buttons without rebuilding the whole bar (a rebuild made it flash)
+function syncSettings(open) {
+  if (typeof open === "boolean") settingsOpen = open;
+  const root = $("#fs");
+  const gear = root.querySelector("[data-open-settings]"), menu = root.querySelector("#fs-settings");
+  if (gear) gear.setAttribute("aria-expanded", String(settingsOpen));
+  if (menu) menu.hidden = !settingsOpen;
+  const pref = (window.menuTheme && window.menuTheme.pref()) || "auto", now = (window.menuTheme && window.menuTheme.eff()) || "dark";
+  root.querySelectorAll("[data-theme-set]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeSet === pref)));
+  const hint = root.querySelector(".fs-set-hint");
+  if (hint) hint.textContent = themeHint(pref, now);
+}
 function renderBar() {
   const n = filterCount();
   const lc = typeof listCount === "function" ? listCount() : 0;
@@ -140,7 +153,7 @@ function renderBar() {
         <div class="fs-settings" id="fs-settings" role="menu" ${settingsOpen ? "" : "hidden"}>
           <div class="fs-set-label" id="fs-theme-l">Theme</div>
           <div class="fs-seg" role="group" aria-labelledby="fs-theme-l">${THEMES.map(([k, t, ic]) => `<button type="button" class="fs-seg-b" data-theme-set="${k}" aria-pressed="${themePref === k}">${ic}<span>${t}</span></button>`).join("")}</div>
-          <p class="fs-set-hint">${themePref === "auto" ? `Auto: light from 6 AM to 6 PM, dark at night. Now using ${themeNow}.` : `Using ${themeNow} mode.`}</p>
+          <p class="fs-set-hint">${themeHint(themePref, themeNow)}</p>
           <div class="fs-set-sep"></div>
           <button type="button" class="fs-set-item" role="menuitem" data-open-qr>${QR_ICON}<span>QR code</span></button>
         </div>
@@ -187,9 +200,9 @@ function renderList() {
 
 $("#fs").addEventListener("click", (e) => {
   const th = e.target.closest("[data-theme-set]");
-  if (th) { window.menuTheme && window.menuTheme.set(th.dataset.themeSet); return render(); }
-  if (e.target.closest("[data-open-settings]")) { settingsOpen = !settingsOpen; return render(); }
-  if (e.target.closest("[data-open-qr]")) { settingsOpen = false; render(); return; }
+  if (th) { window.menuTheme && window.menuTheme.set(th.dataset.themeSet); return syncSettings(); }
+  if (e.target.closest("[data-open-settings]")) return syncSettings(!settingsOpen);
+  if (e.target.closest("[data-open-qr]")) return syncSettings(false);
   const t = e.target.closest("[data-open],[data-f],[data-c]");
   if (!t) return;
   if (t.dataset.c !== undefined) active = t.dataset.c;
@@ -198,10 +211,10 @@ $("#fs").addEventListener("click", (e) => {
   render();
 });
 document.addEventListener("click", (e) => {
-  if (settingsOpen && !e.composedPath().some((n) => n.classList && n.classList.contains("fs-actions"))) { settingsOpen = false; render(); }
+  if (settingsOpen && !e.composedPath().some((n) => n.classList && n.classList.contains("fs-actions"))) syncSettings(false);
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && settingsOpen) { settingsOpen = false; render(); $("#fs").querySelector("[data-open-settings]")?.focus(); }
+  if (e.key === "Escape" && settingsOpen) { syncSettings(false); $("#fs").querySelector("[data-open-settings]")?.focus(); }
 });
 // Typing only refreshes the dish list, so the search box keeps focus
 $("#fs").addEventListener("input", (e) => {
@@ -585,4 +598,4 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !viewer.
 })();
 
 // When Auto flips the theme (6 AM / 6 PM), refresh the hint text in the settings menu
-window.menuThemeChanged = () => { if (settingsOpen) render(); };
+window.menuThemeChanged = () => syncSettings();
