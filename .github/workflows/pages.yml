@@ -32,7 +32,7 @@ jobs:
           cp data/menu.json _site/menu.json
           # admin tools need the Node server, so they are not published
           # (glb-tools.js stays: the customer page uses it for the Effects on/off button)
-          rm -f _site/admin.html _site/qr-print.html _site/js/admin.js _site/js/glb-fixer.js
+          rm -f _site/admin.html _site/qr-print.html _site/js/admin.js _site/js/admin-quick.js _site/js/glb-fixer.js
           touch _site/.nojekyll
 
       - uses: actions/setup-node@v4

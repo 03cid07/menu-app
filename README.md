@@ -7,7 +7,7 @@ A digital restaurant menu that customers open from a QR code, with no app to ins
 **Customers**
 - Full menu with categories, photos (up to 8 per item), descriptions and ingredients
 - 3D models (`.glb`) with an AR view on supported phones
-- Quick menu: a few questions narrow the dishes to the customer's mood and what they want to avoid
+- Quick menu: questions made from the menu itself (type of dish, ingredients, tags, price) narrow the dishes to the customer's mood and what they want to avoid
 - "My list": tap + on a dish to collect what you want, then show the list to staff (saved on the phone, no ordering happens in the app)
 - 1 to 5 star ratings, one per device per dish
 - Labels such as popular, new and hot, plus hot or cold serving for drinks
@@ -16,6 +16,7 @@ A digital restaurant menu that customers open from a QR code, with no app to ins
 - Add, edit and delete items; rename, merge and delete categories
 - Upload photos (JPG, PNG, WebP) and 3D models
 - 3D model fixer for textures, real size and effects
+- Quick menu tab: the app writes the questions from your menu; you review, reword, reorder, switch off or add your own, and save
 - QR code page for printing, plus an "available" switch per item
 
 ## Run it
@@ -66,7 +67,7 @@ On the static site the menu is read from `menu.json`, ratings are read-only, and
 - `public/admin.html`: where the owner manages the menu
 - `public/qr-print.html`: printable QR code page
 - `public/css/style.css`: all styling
-- `public/js/`: browser scripts (`menu.js` menu and ratings, `quick.js` quick menu, `list.js` My list, `admin.js` admin, `glb-fixer.js` and `glb-tools.js` 3D model fixer)
+- `public/js/`: browser scripts (`menu.js` menu and ratings, `quick.js` quick menu screens, `quick-gen.js` question maker shared by customer page, admin and server, `admin-quick.js` Quick menu tab, `list.js` My list, `admin.js` admin, `glb-fixer.js` and `glb-tools.js` 3D model fixer)
 - `public/images/` and `public/models/`: uploaded photos and 3D models
 - `start-all.bat`, `start-menu.bat`, `start-tunnel.ps1`: Windows launch helpers
 - `AGENTS.md` and `docs/`: project documentation templates (see below)
@@ -74,14 +75,22 @@ On the static site the menu is read from `menu.json`, ratings are read-only, and
 ## API
 
 Public:
-- `GET /api/menu`: the menu, each item with its rating summary
+- `GET /api/menu`: the menu, each item with its rating summary, plus the saved Quick menu questions (`quick`)
+- `GET /api/quick`: the saved Quick menu questions and a fingerprint of the current menu
 - `POST /api/items/:id/rate`: rate a dish (limited to 30 ratings per visitor per 10 minutes)
 - `GET /api/qr-url`, `GET /qr.png`, `GET /qr.svg`: QR code link and images
 
 Admin (send the PIN in the `x-admin-pin` header):
 - `POST /api/items`, `PUT /api/items/:id`, `DELETE /api/items/:id`
 - `PUT /api/categories`, `DELETE /api/categories?name=`
+- `PUT /api/quick` (save reviewed Quick menu questions), `DELETE /api/quick` (back to automatic questions)
 - `POST /api/upload-image`, `POST /api/upload-model?name=`
+
+## Quick menu questions
+
+Customers who tap Quick menu answer a short list of questions. The app writes that list itself from the menu: what kind of item (food or drink), hot or cold, categories, ingredients such as chicken or coffee, things to avoid, tags and price. Questions that cannot narrow the current dishes are skipped, and it stops early when only a few dishes are left.
+
+Open the **Quick menu** tab in the admin page to review them. You can reword, reorder, switch off, delete or add questions, edit what each answer matches, and see how many dishes each answer finds. Press **Save questions** to keep your version. With nothing saved, customers get automatic questions built from the menu. After saving, push to GitHub so the live site gets the new `menu.json`.
 
 ## Project documents
 

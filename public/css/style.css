@@ -582,3 +582,37 @@ body.fs-float .fs-top .fs-qr, body.fs-float .fs-top .fs-list { box-shadow: 0 4px
 #list .admin-item > :last-child { flex: none; display: flex; flex-wrap: wrap; gap: .4rem; justify-content: flex-end; max-width: 250px; }
 #list .admin-item .btn.ghost { margin: 0; white-space: nowrap; }
 @media (max-width: 520px) { #list .admin-item > :last-child { max-width: none; justify-content: flex-start; } }
+
+
+/* ---- Admin: Quick menu question editor ---- */
+.qm-status { margin: 0 0 .75rem; padding: .55rem .8rem; border-radius: 8px; border: 1px solid var(--line); font-weight: 600; }
+.qm-status.ok { color: var(--accent); } .qm-status.warn { color: var(--ink); border-color: var(--accent); }
+.qm-bar { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
+.qm-bar .btn, .qm-save .btn { margin: 0; }
+.qm-bar .btn.ghost, .qm-save .btn.ghost { padding: .6rem 1.1rem; }
+.qm-stop { width: 6rem; }
+.qm-card { border: 1px solid var(--line); border-radius: 12px; padding: .9rem; margin: 1rem 0; background: var(--bg); }
+.qm-card.off { opacity: .6; }
+.qm-head { display: flex; align-items: center; gap: .6rem; }
+.qm-on { display: flex; align-items: center; gap: .3rem; font-weight: 600; white-space: nowrap; margin: 0; }
+.qm-on input, .qm-note input, .qm-checks input { width: auto; }
+.qm-text { font-weight: 700; flex: 1; min-width: 0; }
+.qm-move { display: flex; gap: .25rem; } .qm-move .pb, .qm-optrow .pb { flex: none; width: 34px; }
+.qm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .6rem; margin: .7rem 0 0; }
+.qm-grid label, .qm-card > label, .qm-rules > label { display: block; font-size: .85rem; color: var(--muted); }
+.qm-note { margin-top: .6rem; }
+.qm-opts { margin-top: .8rem; border-top: 1px solid var(--line); padding-top: .4rem; }
+.qm-opt { padding: .5rem 0; border-bottom: 1px dashed var(--line); }
+.qm-optrow { display: flex; align-items: center; gap: .4rem; }
+.qm-optrow input { flex: 1; min-width: 0; }
+.qm-count { font-size: .8rem; color: var(--muted); white-space: nowrap; padding: 0 .3rem; }
+.qm-count.zero, .qm-warn { color: var(--alert); }
+.qm-warn { font-size: .85rem; margin: .3rem 0 0; }
+.qm-rules { margin-top: .4rem; font-size: .9rem; }
+.qm-rules summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.qm-checks { display: flex; flex-wrap: wrap; gap: .3rem .9rem; margin: .6rem 0; font-size: .9rem; }
+.qm-checks > span { color: var(--muted); width: 100%; font-size: .85rem; }
+.qm-checks label { display: flex; align-items: center; gap: .3rem; }
+.qm-addopt { margin: .6rem 0 0; padding: .3rem .8rem; }
+.qm-save { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+@media (max-width: 520px) { .qm-head { flex-wrap: wrap; } .qm-text { flex-basis: 100%; order: 3; } }

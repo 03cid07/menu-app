@@ -7,6 +7,9 @@ const os = require("os");
 let QRCode = null;
 try { QRCode = require("qrcode"); } catch { console.warn("QR codes are off: run  npm install  once, then start the app again."); }
 
+// Quick menu question maker, shared with the browser (checks edited questions before saving)
+const QuickGen = require("./public/js/quick-gen.js");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const ADMIN_PIN = process.env.ADMIN_PIN || "1111"; // change this!
@@ -153,6 +156,7 @@ app.put("/api/categories", requirePin, (req, res) => {
   const to = other || typed;
   data.items.forEach((i) => { if (i.category === from) i.category = to; });
   data.categories = other ? data.categories.filter((x) => x !== from) : data.categories.map((x) => (x === from ? to : x));
+  QuickGen.renameCategory(data.quick, from, to);
   save(data);
   res.json({ categories: data.categories, merged: !!other });
 });
@@ -164,7 +168,31 @@ app.delete("/api/categories", requirePin, (req, res) => {
   const n = data.items.filter((i) => i.category === name).length;
   if (n) return res.status(409).json({ error: `${n} dish${n === 1 ? "" : "es"} still use "${name}". Move them to another category first, or rename this one to merge it.` });
   data.categories = data.categories.filter((x) => x !== name);
+  QuickGen.renameCategory(data.quick, name, null);
   save(data);
+  res.status(204).end();
+});
+
+// ---- Quick menu questions ----
+// Customers get them inside /api/menu (and menu.json on GitHub Pages). With nothing saved here, the customer
+// page makes the questions itself from the menu. The admin's "Quick menu" tab reviews, edits and saves them.
+app.get("/api/quick", (_req, res) => {
+  const d = load();
+  res.json({ quick: d.quick || null, sig: QuickGen.signature(d) });
+});
+app.put("/api/quick", requirePin, (req, res) => {
+  let clean;
+  try { clean = QuickGen.sanitize(req.body); } catch (e) { return res.status(400).json({ error: e.message }); }
+  const d = load();
+  d.quick = { ...clean, sig: QuickGen.signature(d), savedAt: new Date().toISOString() };
+  save(d);
+  res.json({ quick: d.quick, sig: d.quick.sig });
+});
+// Back to automatic questions made from the menu
+app.delete("/api/quick", requirePin, (_req, res) => {
+  const d = load();
+  delete d.quick;
+  save(d);
   res.status(204).end();
 });
 
