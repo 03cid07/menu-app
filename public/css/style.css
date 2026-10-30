@@ -617,3 +617,19 @@ body.fs-float .fs-top .fs-qr, body.fs-float .fs-top .fs-list { box-shadow: 0 4px
 .qm-addopt { margin: .6rem 0 0; padding: .3rem .8rem; }
 .qm-save { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
 @media (max-width: 520px) { .qm-head { flex-wrap: wrap; } .qm-text { flex-basis: 100%; order: 3; } }
+
+/* ---- Loading skeletons ---- */
+@keyframes sk-shimmer { to { background-position: -200% 0; } }
+@keyframes sk-in { from { opacity: 0; } to { opacity: 1; } }
+:root { --sk-a: color-mix(in srgb, var(--ink) 7%, transparent); --sk-b: color-mix(in srgb, var(--ink) 16%, transparent); }
+.sk-cat { pointer-events: none; }
+.item.sk { display: flex; align-items: center; gap: .75rem; }
+.item.sk .thumb, .sk-line { background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
+.sk-line { display: block; height: .9rem; width: 70%; border-radius: 6px; margin: .3rem 0; }
+.sk-line.s { width: 40%; }
+/* a photo shimmers until it loads, then fades in */
+:is(#menu, .home) .item .thumb:not(.ph):not(.ld), .gal-slide:not(.ld), img.sheet-hero:not(.ld) {
+  background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; color: transparent;
+}
+img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: sk-in .3s ease; }
+@media (prefers-reduced-motion: reduce) { .item.sk .thumb, .sk-line, :is(#menu, .home) .item .thumb:not(.ph):not(.ld), .gal-slide:not(.ld), img.sheet-hero:not(.ld) { animation: none; } img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: none; } }

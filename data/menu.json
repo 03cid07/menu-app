@@ -196,7 +196,7 @@
   ],
   "quick": {
     "version": 1,
-    "stopAt": 3,
+    "stopAt": 4,
     "questions": [
       {
         "id": "kind",
@@ -652,6 +652,6 @@
       }
     ],
     "sig": "1fcukx3.13",
-    "savedAt": "2026-10-30T04:38:13.586Z"
+    "savedAt": "2026-10-30T05:05:17.964Z"
   }
 }

@@ -326,7 +326,14 @@ fetch("api/menu")
   .then((r) => { if (!r.ok) throw new Error("no api"); return r.json(); })
   .catch(() => { staticMode = true; return fetch("menu.json").then((r) => r.json()); })
   .then((d) => { data = d; render(); openLinkedItem(); })
-  .catch(() => ($("#menu").innerHTML = '<p class="empty">Could not load the menu. Please refresh the page.</p>'));
+  .catch(() => { $("#menu").innerHTML = '<p class="empty">Could not load the menu. Please refresh the page.</p>'; window.bootHide && window.bootHide(); });
+
+// Photo skeletons: each photo shimmers until it has loaded (or failed), then fades in
+const imgDone = (img) => img.classList.add("ld");
+document.addEventListener("load", (e) => { if (e.target.tagName === "IMG") imgDone(e.target); }, true);
+document.addEventListener("error", (e) => { if (e.target.tagName === "IMG") imgDone(e.target); }, true);
+const sweepImgs = (root) => root.querySelectorAll && root.querySelectorAll("img:not(.ld)").forEach((img) => { if (img.complete) imgDone(img); });
+new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) { if (n.tagName === "IMG" && n.complete) imgDone(n); else sweepImgs(n); } }))).observe(document.body, { childList: true, subtree: true });
 
 // ---- Food / hot drink / cold drink sorting (the Quick menu uses this) ----
 const DRINK_RE = /drink|beverage|juice|coffee|tea\b|shake|smoothie|soda|cocktail|beer|wine/i;
