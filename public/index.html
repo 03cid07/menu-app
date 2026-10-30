@@ -7,14 +7,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
   <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#10181d">
+  <meta name="theme-color" content="#15120e">
   <style>
     /* Loading screen: inline so it paints before anything else */
-    body{background:#10181d}
-    #boot{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;background:#10181d;color:#e9efe9;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;transition:opacity .35s ease,visibility .35s}
+    body{background:#15120e}html[data-theme="light"] body{background:#eee6d4}
+    #boot{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;background:#15120e;color:#ece4d6;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;transition:opacity .35s ease,visibility .35s}
     #boot.out{opacity:0;visibility:hidden;pointer-events:none}
-    #boot .ring{width:44px;height:44px;border-radius:50%;border:3px solid rgba(255,255,255,.14);border-top-color:#5fc4b8;animation:bootspin .8s linear infinite}
+    #boot .ring{width:44px;height:44px;border-radius:50%;border:3px solid rgba(255,255,255,.14);border-top-color:#bf9a5d;animation:bootspin .8s linear infinite}
     #boot p{margin:0;font-size:.95rem;letter-spacing:.04em;opacity:.75;animation:bootpulse 1.6s ease-in-out infinite}
+    html[data-theme="light"] #boot{background:#eee6d4;color:#2a231a}html[data-theme="light"] #boot .ring{border-color:rgba(42,35,26,.15);border-top-color:#8a5e22}
     @keyframes bootspin{to{transform:rotate(360deg)}}
     @keyframes bootpulse{50%{opacity:.35}}
     @media (prefers-reduced-motion:reduce){#boot .ring{animation-duration:2.5s}#boot p{animation:none}}
@@ -27,7 +28,22 @@
         f.then(function(){setTimeout(function(){var b=document.getElementById("boot");if(!b)return;b.classList.add("out");setTimeout(function(){b.remove()},450)},Math.max(0,350-(Date.now()-t0)))})};
       setTimeout(window.bootHide,8000)})();
   </script>
-  <link rel="stylesheet" href="css/style.css?v=14">
+  <script>
+    // Theme: "auto" (light 6 AM to 6 PM, dark at night), "light" or "dark". Runs first so the page never flashes the wrong colours.
+    (function(){var KEY="menuTheme",root=document.documentElement,tm=0;
+      function pref(){try{var v=localStorage.getItem(KEY);return v==="light"||v==="dark"?v:"auto"}catch(e){return "auto"}}
+      function eff(p){if(p!=="auto")return p;var h=new Date().getHours();return h>=6&&h<18?"light":"dark"}
+      function apply(anim){var p=pref(),t=eff(p);
+        if(anim){root.classList.add("theme-anim");clearTimeout(tm);tm=setTimeout(function(){root.classList.remove("theme-anim")},500)}
+        root.setAttribute("data-theme",t);root.setAttribute("data-theme-pref",p);
+        var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t==="light"?"#eee6d4":"#15120e");
+        var c=document.querySelector('meta[name="color-scheme"]');if(c)c.setAttribute("content",t)}
+      window.menuTheme={pref:pref,eff:function(){return eff(pref())},set:function(v){try{if(v==="auto")localStorage.removeItem(KEY);else localStorage.setItem(KEY,v)}catch(e){}apply(true)}};
+      apply(false);
+      function tick(){if(pref()==="auto"&&eff("auto")!==root.getAttribute("data-theme")){apply(true);if(window.menuThemeChanged)window.menuThemeChanged()}}
+      setInterval(tick,30000);document.addEventListener("visibilitychange",tick)})();
+  </script>
+  <link rel="stylesheet" href="css/style.css?v=15">
 </head>
 <body>
   <div id="boot" role="status" aria-live="polite"><div class="ring" aria-hidden="true"></div><p>Loading menu…</p></div>
@@ -43,7 +59,7 @@
   <script src="js/spring.js?v=2"></script>
   <script src="js/rubber.js?v=1"></script>
   <script src="js/marquee.js?v=1"></script>
-  <script src="js/menu.js?v=15"></script>
+  <script src="js/menu.js?v=16"></script>
   <script src="js/quick-gen.js?v=1"></script>
   <script src="js/quick.js?v=5"></script>
   <script src="js/list.js?v=4"></script>

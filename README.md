@@ -8,7 +8,8 @@ A digital restaurant menu that customers open from a QR code, with no app to ins
 - Full menu with categories, photos (up to 8 per item), descriptions and ingredients
 - 3D models (`.glb`) with an AR view on supported phones
 - Quick menu: questions made from the menu itself (type of dish, ingredients, tags, price) narrow the dishes to the customer's mood and what they want to avoid
-- "My list": tap + on a dish to collect what you want, then show the list to staff (saved on the phone, no ordering happens in the app)
+- "My list": tap + on a dish to collect what you want, then show the list to staff (saved on the phone, no ordering happens in the app). The button sits beside the search bar and floats at the top right while scrolling, next to a settings gear that holds the QR code for opening the menu on another phone
+- Settings gear (top right) with a theme switch: Auto, Light or Dark. Auto uses the phone's clock: light from 6 AM to 6 PM, dark at night. Light is a soft cream, dark is warm charcoal with a muted golden-brown accent. The choice is saved on the phone
 - 1 to 5 star ratings, one per device per dish
 - Labels such as popular, new and hot, plus hot or cold serving for drinks
 - iPhone-style rubber band scrolling on every scrolling area (see "Motion and feel" below)
@@ -68,7 +69,7 @@ On the static site the menu is read from `menu.json`, ratings are read-only, and
 - `public/admin.html`: where the owner manages the menu
 - `public/qr-print.html`: printable QR code page
 - `public/css/style.css`: all styling
-- `public/js/`: browser scripts (`spring.js` spring motion and the bottom cards, `rubber.js` rubber band scrolling, `marquee.js` moving names, `menu.js` menu and ratings, `quick.js` quick menu screens, `quick-gen.js` question maker shared by customer page, admin and server, `admin-quick.js` Quick menu tab, `list.js` My list, `admin.js` admin, `glb-fixer.js` and `glb-tools.js` 3D model fixer)
+- `public/js/`: browser scripts (`spring.js` spring motion and the bottom cards, `rubber.js` rubber band scrolling, `marquee.js` moving names, `menu.js` menu, settings menu, theme switch and ratings, `quick.js` quick menu screens, `quick-gen.js` question maker shared by customer page, admin and server, `admin-quick.js` Quick menu tab, `list.js` My list, `admin.js` admin, `glb-fixer.js` and `glb-tools.js` 3D model fixer)
 - `public/images/` and `public/models/`: uploaded photos and 3D models
 - `start-all.bat`, `start-menu.bat`, `start-tunnel.ps1`: Windows launch helpers
 - `AGENTS.md` and `docs/`: project documentation templates (see below)
@@ -123,3 +124,7 @@ No lint, format, type-check or automated test commands are configured yet.
 ## Next steps
 
 A permanent QR code link, a database (SQLite) instead of JSON, and real login for the admin page.
+
+## Theme colors
+
+The colors live at the top of `public/css/style.css`: dark under `:root`, light under `html[data-theme="light"]`. The theme is chosen by a small script at the top of `public/index.html`, which sets `data-theme` on the page before it paints so there is no flash. To change the Auto schedule, edit the hours in that script (`h>=6&&h<18` means light from 6 AM until 6 PM).

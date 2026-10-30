@@ -1,11 +1,16 @@
 :root {
+  /* Dark (default): warm charcoal with a muted golden-brown accent */
   color-scheme: dark;
-  --bg: #f6f7f4; --surface: #ffffff; --ink: #14212b; --muted: #5d6b75;
-  --line: #d9dfe0; --accent: #0f5c5c; --accent-ink: #ffffff; --alert: #b3261e;
+  --bg: #15120e; --surface: #1e1a14; --ink: #efe8db; --muted: #a79c8a;
+  --line: #342d23; --accent: #bf9a5d; --accent-ink: #1a140b; --alert: #ff8a80;
   --font: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-@media all {
-  :root { --bg: #10181d; --surface: #182229; --ink: #eef2f1; --muted: #9aa9b1; --line: #2a3841; --accent: #5fc4b8; --accent-ink: #10181d; --alert: #ff8a80; }
+/* Light: soft cream (not bright white) with a deep golden-brown accent */
+html[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eee6d4; --surface: #f5eedf; --ink: #2a231a; --muted: #6e6352;
+  --line: #d6c9b0; --accent: #8a5e22; --accent-ink: #fbf5e6; --alert: #a63a2b;
+  --wash-top: 88%; --wash-bot: 93%;
 }
 * { box-sizing: border-box; }
 html { overscroll-behavior-y: none; } /* rubber.js draws the stretch at the ends of the page */
@@ -108,7 +113,7 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 
 /* ---- Effects button in the 3D viewer ---- */
 .stage-wrap { position: relative; margin-top: .6rem; border-radius: 10px; background: var(--bg); overflow: hidden; }
-#viewer-stage model-viewer { position: relative; z-index: 1; margin-top: 0; background: transparent; --poster-color: transparent; --progress-bar-color: #4cd9a8; --progress-mask: rgba(255,255,255,.3); --progress-bar-height: 8px; }
+#viewer-stage model-viewer { position: relative; z-index: 1; margin-top: 0; background: transparent; --poster-color: transparent; --progress-bar-color: var(--accent); --progress-mask: rgba(255,255,255,.3); --progress-bar-height: 8px; }
 .fx-toggle { position: absolute; top: 8px; right: 8px; z-index: 3; font: inherit; font-size: .75rem; padding: .2rem .65rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
 
 .fx-toggle:disabled { opacity: .6; cursor: default; }
@@ -529,7 +534,7 @@ body.has-list main { padding-bottom: 0; }
 .qrm-box h2 { margin: 0 2rem .25rem; font-size: 1.25rem; line-height: 1.2; }
 .qrm-sub { margin: 0; color: var(--muted); font-size: .9rem; }
 .qrm-img { display: block; width: 240px; height: 240px; max-width: 100%; margin: 1rem auto .6rem; border-radius: 12px; background: #fff; }
-.qrm-note { min-height: 0; margin: .4rem 0 0; color: #ffb3a7; font-size: .85rem; }
+.qrm-note { min-height: 0; margin: .4rem 0 0; color: var(--alert); font-size: .85rem; }
 .qrm-note:empty { display: none; }
 .qrm-url { margin: .5rem 0 0; color: var(--muted); font-size: .75rem; word-break: break-all; }
 
@@ -667,3 +672,16 @@ body.pop-list.fs-float-list .fs-row-search .fs-list { animation: fs-pop-in .38s 
 body.pop-gear-back .fs-top .fs-gear, body.pop-list-back .fs-row-search .fs-list { animation: fs-pop-back .3s ease-out both; }
 .fs-top .fs-gear, .fs-row-search .fs-list { transition: box-shadow .25s ease, border-color .2s ease, color .2s ease; }
 @media (prefers-reduced-motion: reduce) { body[class*="pop-"] .fs-gear, body[class*="pop-"] .fs-list { animation: none !important; } }
+
+/* ---- Theme switch inside the settings menu ---- */
+.fs-settings { min-width: 250px; padding: .6rem; }
+.fs-set-label { margin: .1rem .35rem .4rem; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.fs-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: .25rem; padding: .25rem; border-radius: 12px; background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.fs-seg-b { display: flex; flex-direction: column; align-items: center; gap: .2rem; padding: .5rem .25rem; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; transition: background-color .2s, color .2s; }
+.fs-seg-b svg { flex: none; }
+.fs-seg-b[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.fs-seg-b:not([aria-pressed="true"]):hover { color: var(--ink); }
+.fs-set-hint { margin: .5rem .35rem 0; color: var(--muted); font-size: .8rem; line-height: 1.35; }
+.fs-set-sep { height: 1px; margin: .6rem .2rem .35rem; background: color-mix(in srgb, var(--ink) 15%, transparent); }
+/* Soft colour fade when the theme changes (only while switching) */
+html.theme-anim body, html.theme-anim body * { transition: background-color .35s ease, color .35s ease, border-color .35s ease, fill .35s ease, stroke .35s ease; }

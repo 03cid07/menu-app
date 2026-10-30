@@ -119,6 +119,10 @@ function visibleItems() {
 }
 
 const GEAR_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
+const SUN_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const MOON_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+const AUTO_ICON = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>';
+const THEMES = [["auto", "Auto", AUTO_ICON], ["light", "Light", SUN_ICON], ["dark", "Dark", MOON_ICON]];
 const LIST_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h11M4 12h8M4 18h6M17 14v8M13 18h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 let settingsOpen = false;
@@ -127,12 +131,17 @@ function renderBar() {
   const lc = typeof listCount === "function" ? listCount() : 0;
   const focused = document.activeElement && document.activeElement.closest("#fs") ? document.activeElement : null;
   const key = focused && (focused.id === "fs-q" ? "#fs-q" : focused.dataset.openSettings !== undefined ? "[data-open-settings]" : focused.dataset.open ? `[data-open="${focused.dataset.open}"]` : focused.dataset.f ? `[data-f="${focused.dataset.f}"]` : focused.dataset.c ? `[data-c="${focused.dataset.c.replace(/"/g, "\\\"")}"]` : focused.name === "sort" ? `input[value="${focused.value}"]` : "");
+  const themePref = (window.menuTheme && window.menuTheme.pref()) || "auto", themeNow = (window.menuTheme && window.menuTheme.eff()) || "dark";
   const m = view.open === "menu", dot = n > 0 || view.sort !== "featured";
   $("#fs").innerHTML = `<div class="fs-top">
       <div class="fs-top-slot" id="fs-slot"><!-- reserved: new feature goes here --></div>
       <div class="fs-actions">
         <button type="button" class="fs-icon fs-gear" data-open-settings aria-haspopup="true" aria-expanded="${settingsOpen}" aria-controls="fs-settings" aria-label="Settings" title="Settings">${GEAR_ICON}</button>
         <div class="fs-settings" id="fs-settings" role="menu" ${settingsOpen ? "" : "hidden"}>
+          <div class="fs-set-label" id="fs-theme-l">Theme</div>
+          <div class="fs-seg" role="group" aria-labelledby="fs-theme-l">${THEMES.map(([k, t, ic]) => `<button type="button" class="fs-seg-b" data-theme-set="${k}" aria-pressed="${themePref === k}">${ic}<span>${t}</span></button>`).join("")}</div>
+          <p class="fs-set-hint">${themePref === "auto" ? `Auto: light from 6 AM to 6 PM, dark at night. Now using ${themeNow}.` : `Using ${themeNow} mode.`}</p>
+          <div class="fs-set-sep"></div>
           <button type="button" class="fs-set-item" role="menuitem" data-open-qr>${QR_ICON}<span>QR code</span></button>
         </div>
       </div>
@@ -177,6 +186,8 @@ function renderList() {
 }
 
 $("#fs").addEventListener("click", (e) => {
+  const th = e.target.closest("[data-theme-set]");
+  if (th) { window.menuTheme && window.menuTheme.set(th.dataset.themeSet); return render(); }
   if (e.target.closest("[data-open-settings]")) { settingsOpen = !settingsOpen; return render(); }
   if (e.target.closest("[data-open-qr]")) { settingsOpen = false; render(); return; }
   const t = e.target.closest("[data-open],[data-f],[data-c]");
@@ -572,3 +583,6 @@ document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !viewer.
   window.addEventListener("resize", update);
   update();
 })();
+
+// When Auto flips the theme (6 AM / 6 PM), refresh the hint text in the settings menu
+window.menuThemeChanged = () => { if (settingsOpen) render(); };
