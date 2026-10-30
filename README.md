@@ -11,6 +11,7 @@ A digital restaurant menu that customers open from a QR code, with no app to ins
 - "My list": tap + on a dish to collect what you want, then show the list to staff (saved on the phone, no ordering happens in the app)
 - 1 to 5 star ratings, one per device per dish
 - Labels such as popular, new and hot, plus hot or cold serving for drinks
+- iPhone-style rubber band scrolling on every scrolling area (see "Motion and feel" below)
 
 **Owner (admin page)**
 - Add, edit and delete items; rename, merge and delete categories
@@ -67,7 +68,7 @@ On the static site the menu is read from `menu.json`, ratings are read-only, and
 - `public/admin.html`: where the owner manages the menu
 - `public/qr-print.html`: printable QR code page
 - `public/css/style.css`: all styling
-- `public/js/`: browser scripts (`menu.js` menu and ratings, `quick.js` quick menu screens, `quick-gen.js` question maker shared by customer page, admin and server, `admin-quick.js` Quick menu tab, `list.js` My list, `admin.js` admin, `glb-fixer.js` and `glb-tools.js` 3D model fixer)
+- `public/js/`: browser scripts (`spring.js` spring motion and the bottom cards, `rubber.js` rubber band scrolling, `marquee.js` moving names, `menu.js` menu and ratings, `quick.js` quick menu screens, `quick-gen.js` question maker shared by customer page, admin and server, `admin-quick.js` Quick menu tab, `list.js` My list, `admin.js` admin, `glb-fixer.js` and `glb-tools.js` 3D model fixer)
 - `public/images/` and `public/models/`: uploaded photos and 3D models
 - `start-all.bat`, `start-menu.bat`, `start-tunnel.ps1`: Windows launch helpers
 - `AGENTS.md` and `docs/`: project documentation templates (see below)
@@ -91,6 +92,25 @@ Admin (send the PIN in the `x-admin-pin` header):
 Customers who tap Quick menu answer a short list of questions. The app writes that list itself from the menu: what kind of item (food or drink), hot or cold, categories, ingredients such as chicken or coffee, things to avoid, tags and price. Questions that cannot narrow the current dishes are skipped, and it stops early when only a few dishes are left.
 
 Open the **Quick menu** tab in the admin page to review them. You can reword, reorder, switch off, delete or add questions, edit what each answer matches, and see how many dishes each answer finds. Press **Save questions** to keep your version. With nothing saved, customers get automatic questions built from the menu. After saving, push to GitHub so the live site gets the new `menu.json`.
+
+## Motion and feel (applies to every new feature)
+
+Scrolling should feel like an iPhone. Pull past the end of any list, card or page and the content follows your finger less and less, then springs back when you let go. A fast flick into an end gives a small bounce.
+
+- The formula is Apple's, read from the iOS UIKit binary (source: https://blog.justinbuilds.mov/ios/): `overscroll = (1 - 1 / (c * x / d + 1)) * d`, where `x` is how far the finger went past the end, `d` is the size of the scroll area and `c = 0.55` for touch.
+- `public/js/rubber.js` does this for **every** scrolling area by itself. It finds the area under the finger, so new screens, cards and lists need no extra code. The page, the Quick menu screen, the dish card, My list and the photo gallery all use it.
+- `public/js/spring.js` has the spring (`Springs.spring`), the formula (`Springs.rubber`) and the bottom cards (`Springs.bottomCard`). Bottom cards stretch only at the bottom, because pulling down at the top closes them.
+- It works on touch screens only. Mice and trackpads keep the browser's own behaviour. It is switched off for people who set "reduce motion" on their phone.
+
+**Rules for anything new that scrolls or moves** (add these to every new feature):
+
+1. Let the content scroll normally (`overflow-y: auto` or `overflow-x: auto`). `rubber.js` picks it up automatically.
+2. Do not add your own bounce, overscroll or ease animation. Use `Springs.spring(...)` for motion and `Springs.rubber(...)` for any drag that should resist past a limit.
+3. For a new bottom card, use `Springs.bottomCard(...)` as the dish card and My list do.
+4. To leave one area alone, add `data-rb="off"` to it. To stretch only one end, add `data-rb-edges="start"` or `data-rb-edges="end"`.
+5. Keep `<script src="js/spring.js">` and then `<script src="js/rubber.js">` on every page that scrolls, and raise the `?v=` number when either file changes.
+
+Not measured on a physical phone yet: the numbers match Apple's, but check the feel on your own phone after pushing.
 
 ## Project documents
 

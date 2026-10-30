@@ -8,6 +8,7 @@
   :root { --bg: #10181d; --surface: #182229; --ink: #eef2f1; --muted: #9aa9b1; --line: #2a3841; --accent: #5fc4b8; --accent-ink: #10181d; --alert: #ff8a80; }
 }
 * { box-sizing: border-box; }
+html { overscroll-behavior-y: none; } /* rubber.js draws the stretch at the ends of the page */
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); line-height: 1.5; }
 a { color: var(--accent); }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }

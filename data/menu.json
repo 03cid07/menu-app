@@ -201,10 +201,10 @@
       {
         "id": "kind",
         "text": "What are you in the mood for?",
-        "type": "multi",
-        "mode": "exclude",
+        "type": "single",
+        "mode": "include",
         "enabled": true,
-        "note": true,
+        "note": false,
         "when": null,
         "source": "auto",
         "opts": [
@@ -649,26 +649,9 @@
             "match": {}
           }
         ]
-      },
-      {
-        "id": "custom-mvugxfx8",
-        "text": "New question",
-        "type": "single",
-        "mode": "include",
-        "enabled": true,
-        "note": false,
-        "when": null,
-        "source": "custom",
-        "opts": [
-          {
-            "id": "answer-1",
-            "label": "Anything",
-            "match": {}
-          }
-        ]
       }
     ],
     "sig": "1fcukx3.13",
-    "savedAt": "2026-10-30T04:30:23.181Z"
+    "savedAt": "2026-10-30T04:38:13.586Z"
   }
 }

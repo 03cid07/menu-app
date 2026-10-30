@@ -41,6 +41,7 @@
   // `reveal()` is called before it slides in; `finish()` is called when it has slid out (hide it there).
   function bottomCard({ root, box, finish, dim = 0.55 }) {
     let y = 0, anim = null, closing = false, t0 = null;
+    box.dataset.rbEdges = "end"; // rubber.js: pulling down at the top closes the card, so only the bottom stretches
     const height = () => box.offsetHeight || 1;
     // distance that moves the card fully below the screen; measured once per gesture, not every frame
     let off = 1;
