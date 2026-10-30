@@ -118,26 +118,31 @@ function visibleItems() {
   return list;
 }
 
+const GEAR_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
 const LIST_ICON = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h11M4 12h8M4 18h6M17 14v8M13 18h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
+let settingsOpen = false;
 function renderBar() {
   const n = filterCount();
   const lc = typeof listCount === "function" ? listCount() : 0;
   const focused = document.activeElement && document.activeElement.closest("#fs") ? document.activeElement : null;
-  const key = focused && (focused.id === "fs-q" ? "#fs-q" : focused.dataset.open ? `[data-open="${focused.dataset.open}"]` : focused.dataset.f ? `[data-f="${focused.dataset.f}"]` : focused.dataset.c ? `[data-c="${focused.dataset.c.replace(/"/g, "\\\"")}"]` : focused.name === "sort" ? `input[value="${focused.value}"]` : "");
+  const key = focused && (focused.id === "fs-q" ? "#fs-q" : focused.dataset.openSettings !== undefined ? "[data-open-settings]" : focused.dataset.open ? `[data-open="${focused.dataset.open}"]` : focused.dataset.f ? `[data-f="${focused.dataset.f}"]` : focused.dataset.c ? `[data-c="${focused.dataset.c.replace(/"/g, "\\\"")}"]` : focused.name === "sort" ? `input[value="${focused.value}"]` : "");
   const m = view.open === "menu", dot = n > 0 || view.sort !== "featured";
   $("#fs").innerHTML = `<div class="fs-top">
       <div class="fs-top-slot" id="fs-slot"><!-- reserved: new feature goes here --></div>
       <div class="fs-actions">
-        <button type="button" class="fs-icon fs-qr" data-open-qr aria-label="Show a QR code to open this menu on a phone" title="QR code">${QR_ICON}</button>
-        <button type="button" class="fs-icon fs-list" data-open-list aria-label="My list${lc ? ` (${lc} item${lc === 1 ? "" : "s"})` : ""}">${LIST_ICON}<span class="fs-list-t">My list</span><span class="fs-badge"${lc ? "" : " hidden"}>${lc}</span></button>
+        <button type="button" class="fs-icon fs-gear" data-open-settings aria-haspopup="true" aria-expanded="${settingsOpen}" aria-controls="fs-settings" aria-label="Settings" title="Settings">${GEAR_ICON}</button>
+        <div class="fs-settings" id="fs-settings" role="menu" ${settingsOpen ? "" : "hidden"}>
+          <button type="button" class="fs-set-item" role="menuitem" data-open-qr>${QR_ICON}<span>QR code</span></button>
+        </div>
       </div>
     </div>
-    <div class="fs-bar">
+    <div class="fs-row-search"><div class="fs-bar">
       <button type="button" class="fs-icon fs-burger${dot ? " has-active" : ""}" data-open="menu" aria-expanded="${m}" aria-controls="fs-menu" aria-label="Filter and sort${n ? ` (${n} filter${n === 1 ? "" : "s"} on)` : ""}">${BURGER}</button>
       <input type="search" id="fs-q" class="fs-q" placeholder="Search dishes…" aria-label="Search dishes" autocomplete="off" value="${esc(view.q)}">
       <span class="fs-search-ic">${SEARCH}</span>
     </div>
+    <span class="fs-list-slot"><button type="button" class="fs-icon fs-list" data-open-list aria-label="My list${lc ? ` (${lc} item${lc === 1 ? "" : "s"})` : ""}">${LIST_ICON}<span class="fs-list-t">My list</span><span class="fs-badge"${lc ? "" : " hidden"}>${lc}</span></button></span></div>
     <div class="fs-panel" id="fs-menu" ${m ? "" : "hidden"}>
       <div class="fs-row"><span class="fs-label">Category</span>${["All", ...data.categories].map((c) => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c === active}">${esc(c)}</button>`).join("")}</div>
       ${FILTERS.map(([label, chips]) => `<div class="fs-row"><span class="fs-label">${label}</span>${chips.map(([k, t]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="${view[k]}">${t}</button>`).join("")}</div>`).join("")}
@@ -147,6 +152,7 @@ function renderBar() {
       </div>
     </div>`;
   if (key) { const el = $("#fs").querySelector(key); if (el) el.focus(); }
+  if (window.fsFloatUpdate) window.fsFloatUpdate();
 }
 
 function render() {
@@ -171,12 +177,20 @@ function renderList() {
 }
 
 $("#fs").addEventListener("click", (e) => {
+  if (e.target.closest("[data-open-settings]")) { settingsOpen = !settingsOpen; return render(); }
+  if (e.target.closest("[data-open-qr]")) { settingsOpen = false; render(); return; }
   const t = e.target.closest("[data-open],[data-f],[data-c]");
   if (!t) return;
   if (t.dataset.c !== undefined) active = t.dataset.c;
   else if (t.dataset.open) view.open = view.open === t.dataset.open ? "" : t.dataset.open;
   else view[t.dataset.f] = !view[t.dataset.f];
   render();
+});
+document.addEventListener("click", (e) => {
+  if (settingsOpen && !e.composedPath().some((n) => n.classList && n.classList.contains("fs-actions"))) { settingsOpen = false; render(); }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && settingsOpen) { settingsOpen = false; render(); $("#fs").querySelector("[data-open-settings]")?.focus(); }
 });
 // Typing only refreshes the dish list, so the search box keeps focus
 $("#fs").addEventListener("input", (e) => {
@@ -528,14 +542,32 @@ $("#viewer-close").addEventListener("click", closeViewer);
 viewer.addEventListener("click", (e) => { if (e.target === viewer) closeViewer(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !viewer.hidden) closeViewer(); });
 
-// Float the QR + My list buttons: when the top row scrolls out of view they stay pinned top-right,
-// so the list can be opened from anywhere on the menu. The row keeps its height, so nothing jumps.
+// Float the settings gear and My list: when their rows scroll out of view they stay pinned top-right,
+// so the list can be opened from anywhere on the menu. A slot keeps the search bar from jumping.
 (() => {
+  let wasGear = false, wasList = false, t1 = 0, t2 = 0;
+  // Plays a short pop animation (CSS) only at the moment a button floats or returns, not on every redraw
+  const pop = (cls, id) => {
+    document.body.classList.add(cls);
+    clearTimeout(id === 1 ? t1 : t2);
+    const t = setTimeout(() => document.body.classList.remove(cls), 450);
+    if (id === 1) t1 = t; else t2 = t;
+  };
   const update = () => {
     const row = document.querySelector("#fs .fs-top");
     const r = row && row.getClientRects().length ? row.getBoundingClientRect() : null;
-    document.body.classList.toggle("fs-float", !!r && r.top < 8);
+    const gear = !!r && r.top < 8;
+    document.body.classList.toggle("fs-float", gear);
+    if (gear !== wasGear) { pop(gear ? "pop-gear" : "pop-gear-back", 1); wasGear = gear; }
+    const sr = document.querySelector("#fs .fs-row-search");
+    const q = sr && sr.getClientRects().length ? sr.getBoundingClientRect() : null;
+    const btn = document.querySelector("#fs .fs-list");
+    if (btn && !document.body.classList.contains("fs-float-list") && btn.offsetWidth) document.body.style.setProperty("--fs-list-w", btn.offsetWidth + "px");
+    const list = !!q && q.top < 64;
+    document.body.classList.toggle("fs-float-list", list);
+    if (list !== wasList) { pop(list ? "pop-list" : "pop-list-back", 2); wasList = list; }
   };
+  window.fsFloatUpdate = update;
   window.addEventListener("scroll", update, { passive: true });
   window.addEventListener("resize", update);
   update();
