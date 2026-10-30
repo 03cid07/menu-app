@@ -322,11 +322,29 @@ function linkedItemId() {
 }
 function openLinkedItem() { const id = linkedItemId(); if (id) openSheet(id); }
 
-fetch("api/menu")
-  .then((r) => { if (!r.ok) throw new Error("no api"); return r.json(); })
-  .catch(() => { staticMode = true; return fetch("menu.json").then((r) => r.json()); })
+// Load the menu: the local server first, then the published menu.json (retried, so a weak connection doesn't fail it)
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function fetchMenu() {
+  try { const r = await fetch("api/menu"); if (r.ok) return await r.json(); } catch (e) { /* no local server: this is the published site */ }
+  staticMode = true;
+  let err;
+  for (let n = 0; n < 3; n++) {
+    try {
+      const r = await fetch("menu.json?t=" + Date.now(), { cache: "no-store" });
+      if (!r.ok) throw new Error("menu.json answered " + r.status);
+      return await r.json();
+    } catch (e) { err = e; await sleep(700 * (n + 1)); }
+  }
+  throw err;
+}
+fetchMenu()
   .then((d) => { data = d; render(); openLinkedItem(); })
-  .catch(() => { $("#menu").innerHTML = '<p class="empty">Could not load the menu. Please refresh the page.</p>'; window.bootHide && window.bootHide(); });
+  .catch((e) => {
+    console.error("Menu failed to load:", e);
+    $("#menu").innerHTML = `<p class="empty">Could not load the menu. <button type="button" class="linkbtn" data-retry>Try again</button><br><small>${esc(String((e && e.message) || e))}</small></p>`;
+    window.bootHide && window.bootHide();
+  });
+$("#menu").addEventListener("click", (e) => { if (e.target.closest("[data-retry]")) location.reload(); });
 
 // Photo skeletons: each photo shimmers until it has loaded (or failed), then fades in
 const imgDone = (img) => img.classList.add("ld");
