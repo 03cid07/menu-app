@@ -140,7 +140,7 @@
       "images": [
         "images/mvtlp9ng-978su.jpg"
       ],
-      "model": "",
+      "model": "models/static_co_matcha_textured_12cm.glb",
       "temp": "",
       "label": "new",
       "available": true
