@@ -737,6 +737,26 @@ html.theme-anim body, html.theme-anim body * { transition: background-color .35s
 .qf-scroll { overflow-x: auto; margin-top: .8rem; padding: 0 0 .5rem; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
 .qf { position: relative; width: max-content; min-width: 100%; padding: 1.5rem 2.2rem 1.5rem 2.2rem; }
 .qf-svg { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.qf-hsvg { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; z-index: 3; }
+/* Draggable arrow parts. They sit in their own layer above the boxes; only the handles take the pointer. */
+.qf-hit { fill: none; stroke: transparent; stroke-width: 14; pointer-events: stroke; cursor: pointer; }
+.qf-hs, .qf-he, .qf-port-hit { pointer-events: all; cursor: grab; touch-action: none; }
+.qf-hs { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
+.qf-he { fill: color-mix(in srgb, var(--accent) 16%, transparent); stroke: var(--accent); stroke-width: 1.5; }
+.qf-he:hover, .qf-hs:hover { stroke-width: 3; }
+.qf-port-hit { fill: transparent; cursor: crosshair; }
+.qf-port { fill: var(--surface); stroke: var(--muted); stroke-width: 1.5; pointer-events: none; opacity: .75; }
+.qf-port-hit:hover + .qf-port { fill: var(--accent); stroke: var(--accent); opacity: 1; }
+.qf-edge.qf-lift, .qf-edge.qf-lift * { display: none; }
+.qf-e.qf-lift { opacity: .2; }
+.qf-e.gate.sel { stroke-width: 3.4; }
+.qf-ghost { fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-dasharray: 6 4; }
+.qf-x { cursor: pointer; pointer-events: all; }
+.qf-x-bg { fill: var(--surface); stroke: var(--alert); stroke-width: 1.5; }
+.qf-x-t { stroke: var(--alert); stroke-width: 2; fill: none; stroke-linecap: round; }
+.qf-node.qf-drop, .qf-chip.qf-drop { outline: 2px solid var(--accent); outline-offset: 2px; }
+.qf-node.qf-nodrop, .qf-chip.qf-nodrop { outline: 2px dashed var(--alert); outline-offset: 2px; }
+.qf-dragging, .qf-dragging * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
 .qf-e { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linejoin: round; }
 .qf-e.gate { stroke: var(--accent); stroke-width: 2; }
 .qf-e.skip { stroke-dasharray: 5 4; }

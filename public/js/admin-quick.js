@@ -102,7 +102,49 @@
   const flowEl = $("#qm-flow");
   function refreshFlow() {
     if (flowEl.hidden) return;
-    QuickFlow.draw(flowEl, { draft, stopAt: parseInt(stopEl.value, 10) || 0, total: total(), count: withCount });
+    QuickFlow.draw(flowEl, { draft, stopAt: parseInt(stopEl.value, 10) || 0, total: total(), count: withCount, canLink, onLink });
+  }
+
+  // ---- Moving the green arrows ----
+  // An arrow is a question's "when" rule: [answer] -> [question]. "cid" is "questionId|answerId", as in the chart's data-cid.
+  const qLabel = (id) => { const q = qById(id); return q ? `\u201c${q.text}\u201d` : "that question"; };
+  const aLabel = (cid) => { const [qi, oi] = cid.split("|"), q = qById(qi), o = q && q.opts.find((p) => p.id === oi); return o ? `\u201c${o.label}\u201d` : "that answer"; };
+  // A question cannot hang from itself or from one of its own follow-ups (that would be a loop nobody can ever reach).
+  function canLink(parentId, targetId) {
+    for (let x = qById(parentId), n = 0; x && n < 50; x = x.when && qById(x.when.q), n++) if (x.id === targetId) return false;
+    return true;
+  }
+  // Make this answer lead to the question. Returns true if the question had to move down the list.
+  function linkTo(cid, targetId) {
+    const [pq, po] = cid.split("|"), t = qById(targetId), p = qById(pq);
+    if (!t || !p || !canLink(pq, targetId)) return false;
+    if (t.when && t.when.q === pq) { if (!t.when.opts.includes(po)) t.when.opts.push(po); }   // same parent: "answer A or B"
+    else t.when = { q: pq, opts: [po] };                                                      // a question has one parent, so this replaces the old one
+    t.when.opts.sort((a, b) => p.opts.findIndex((o) => o.id === a) - p.opts.findIndex((o) => o.id === b));
+    // Customers get questions in list order, so a follow-up must sit below its parent. Move it (with its own follow-ups) if not.
+    if (draft.indexOf(t) > draft.indexOf(p)) return false;
+    const set = new Set([t.id]);
+    for (let grew = true; grew;) { grew = false; draft.forEach((q) => { if (!set.has(q.id) && q.when && set.has(q.when.q)) { set.add(q.id); grew = true; } }); }
+    const moved = draft.filter((q) => set.has(q.id));
+    draft = draft.filter((q) => !set.has(q.id));
+    draft.splice(draft.indexOf(p) + 1, 0, ...moved);
+    return true;
+  }
+  function unlinkFrom(cid, targetId) {
+    const [pq, po] = cid.split("|"), t = qById(targetId);
+    if (!t || !t.when || t.when.q !== pq) return;
+    t.when.opts = t.when.opts.filter((o) => o !== po);
+    if (!t.when.opts.length) t.when = null;
+  }
+  function onLink(c) {
+    let moved = false, msg;
+    if (c.type === "connect") { moved = linkTo(c.cid, c.to); msg = `${aLabel(c.cid)} now leads to ${qLabel(c.to)}.`; }
+    else if (c.type === "end") { unlinkFrom(c.cid, c.from); moved = linkTo(c.cid, c.to); msg = `${aLabel(c.cid)} now leads to ${qLabel(c.to)} instead of ${qLabel(c.from)}.`; }
+    else if (c.type === "start") { unlinkFrom(c.cid, c.to); moved = linkTo(c.newCid, c.to); msg = `${qLabel(c.to)} now follows ${aLabel(c.newCid)} instead of ${aLabel(c.cid)}.`; }
+    else if (c.type === "unlink") { unlinkFrom(c.cid, c.to); msg = `${qLabel(c.to)} is no longer tied to an answer, so it is asked every time.`; }
+    else return;
+    mark(); render();
+    sayQ(msg + (moved ? " It was moved below its parent in the question order." : "") + " Remember to save.");
   }
   function setView(v) {
     if (v === "list") renderList(); // the flowchart edits the draft without redrawing the list
