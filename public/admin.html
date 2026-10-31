@@ -6,21 +6,22 @@
   <title>Manage menu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=12">
+  <link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body class="admin-page">
   <nav class="adminnav" aria-label="Admin sections">
     <div class="adminnav-in">
+      <div class="adminnav-brand">Menu admin</div>
       <div class="adminnav-tabs" role="tablist">
-        <button class="navlink" role="tab" data-tab="items" aria-selected="true">Items</button>
-        <button class="navlink" role="tab" data-tab="add" aria-selected="false" id="tab-add">Add item</button>
-        <button class="navlink" role="tab" data-tab="cats" aria-selected="false">Categories</button>
-        <button class="navlink" role="tab" data-tab="quick" aria-selected="false">Quick menu</button>
-        <button class="navlink" role="tab" data-tab="qr" aria-selected="false">QR code</button>
+        <button class="navlink" role="tab" data-tab="items" aria-selected="true"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg><span class="lbl">Items</span></button>
+        <button class="navlink" role="tab" data-tab="add" aria-selected="false" id="tab-add"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span class="lbl">Add item</span></button>
+        <button class="navlink" role="tab" data-tab="cats" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg><span class="lbl">Categories</span></button>
+        <button class="navlink" role="tab" data-tab="quick" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg><span class="lbl">Quick menu</span></button>
+        <button class="navlink" role="tab" data-tab="qr" aria-selected="false"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M20 17v3h-3"/></svg><span class="lbl">QR code</span></button>
       </div>
       <div class="adminnav-side">
         <input id="pin" type="password" autocomplete="off" placeholder="Admin PIN" aria-label="Admin PIN">
-        <a href="/" class="viewlink">View menu</a>
+        <a href="/" class="viewlink">View menu <span aria-hidden="true">↗</span></a>
       </div>
     </div>
   </nav>
@@ -74,7 +75,12 @@
       </div>
       <label for="qm-stop">Stop asking when this many dishes are left <small>(0 = always ask every question)</small></label>
       <input id="qm-stop" type="number" min="0" max="10" class="qm-stop">
+      <div class="qm-views" role="group" aria-label="How to show the questions">
+        <button type="button" class="qm-view" data-view="list" aria-pressed="true">List</button>
+        <button type="button" class="qm-view" data-view="flow" aria-pressed="false">Flowchart</button>
+      </div>
       <div id="qm-list"></div>
+      <div id="qm-flow" hidden></div>
       <div class="msg" id="qm-msg" role="status"></div>
       <div class="qm-save">
         <button class="btn" type="button" id="qm-save">Save questions</button>
@@ -201,6 +207,7 @@
   <script src="js/marquee.js"></script>
   <script src="js/quick-gen.js"></script>
   <script src="js/admin.js?v=2"></script>
-  <script src="js/admin-quick.js"></script>
+  <script src="js/admin-quick-flow.js"></script>
+  <script src="js/admin-quick.js?v=2"></script>
 </body>
 </html>

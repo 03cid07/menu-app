@@ -62,7 +62,8 @@
     </details>`;
   }
 
-  function render() {
+  function render() { renderList(); refreshFlow(); }
+  function renderList() {
     if (!draft.length) { list.innerHTML = '<p class="hint">No questions yet. Press "Generate from menu" or "Add question".</p>'; return; }
     list.innerHTML = draft.map((q, qi) => `<div class="qm-card${q.enabled ? "" : " off"}" data-qi="${qi}">
       <div class="qm-head">
@@ -96,6 +97,55 @@
       </div>
     </div>`).join("");
   }
+
+  // ---- Flowchart view (drawing is in admin-quick-flow.js) ----
+  const flowEl = $("#qm-flow");
+  function refreshFlow() {
+    if (flowEl.hidden) return;
+    QuickFlow.draw(flowEl, { draft, stopAt: parseInt(stopEl.value, 10) || 0, total: total(), count: withCount });
+  }
+  function setView(v) {
+    if (v === "list") renderList(); // the flowchart edits the draft without redrawing the list
+    list.hidden = v !== "list"; flowEl.hidden = v !== "flow";
+    document.querySelectorAll(".qm-view").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
+    refreshFlow();
+  }
+  document.querySelectorAll(".qm-view").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
+  const qById = (id) => draft.find((x) => x.id === id);
+  const newId = (p) => p + Date.now().toString(36) + Math.floor(Math.random() * 36).toString(36);
+  flowEl.addEventListener("input", (e) => {
+    const t = e.target, q = qById(t.dataset.qid);
+    if (!q) return;
+    if (t.classList.contains("qf-text")) q.text = t.value;
+    else if (t.classList.contains("qf-olabel")) { const o = q.opts.find((p) => p.id === t.dataset.oid); if (o) o.label = t.value; QuickFlow.repaint(); }
+    else return;
+    mark();
+  });
+  flowEl.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-act]"), q = b && qById(b.dataset.qid);
+    if (!q) return;
+    const act = b.dataset.act;
+    if (act === "follow") {
+      if (draft.length >= 15) return sayQ("Please keep it to 15 questions or fewer.", true);
+      const id = newId("custom-");
+      draft.push({ id, text: "New question", type: "single", mode: "include", enabled: true, note: false, when: { q: q.id, opts: [b.dataset.oid] }, source: "custom", opts: [{ id: "answer-1", label: "Anything", match: {} }] });
+      mark(); render(); sayQ("");
+      const inp = flowEl.querySelector(`[data-nid="${id}"] .qf-text`);
+      if (inp) { inp.scrollIntoView({ block: "center", inline: "center" }); inp.focus(); inp.select(); }
+    } else if (act === "ans") {
+      if (q.opts.length >= 12) return;
+      q.opts.push({ id: newId("answer-"), label: "New answer", match: {} });
+      mark(); render();
+      const ins = flowEl.querySelectorAll(`[data-nid="${q.id}"] .qf-olabel`), inp = ins[ins.length - 1];
+      if (inp) { inp.focus(); inp.select(); }
+    } else if (act === "off" || act === "on") { q.enabled = act === "on"; mark(); render(); }
+    else if (act === "edit") {
+      setView("list");
+      const card = list.children[draft.indexOf(q)];
+      if (card) { card.scrollIntoView({ behavior: "smooth", block: "start" }); card.classList.add("qm-hl"); setTimeout(() => card.classList.remove("qm-hl"), 1800); }
+    }
+  });
+  window.addEventListener("resize", () => QuickFlow.repaint());
 
   // ---- Editing ----
   const qOf = (el) => draft[Number(el.closest("[data-qi]").dataset.qi)];
@@ -187,7 +237,7 @@
     flash($("#qm-add"), "\u2713 Added");
     list.lastElementChild.querySelector(".qm-text").select();
   });
-  stopEl.addEventListener("input", () => mark());
+  stopEl.addEventListener("input", () => { mark(); refreshFlow(); });
 
   $("#qm-save").addEventListener("click", async () => {
     try {

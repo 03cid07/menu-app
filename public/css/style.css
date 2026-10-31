@@ -701,17 +701,22 @@ html.theme-anim body, html.theme-anim body * { transition: background-color .35s
 @media (prefers-reduced-motion: reduce) { .fs-settings:not([hidden]) { animation: none; } }
 
 /* Admin: nav bar moves to a left sidebar on wider screens (phones keep the top bar) */
+.adminnav-brand, .adminnav-tabs .ico, .viewlink span { display: none; }
 @media (min-width: 800px) {
-  body.admin-page { padding-left: 230px; }
-  body.admin-page .adminnav { position: fixed; top: 0; left: 0; bottom: 0; width: 230px; overflow-y: auto; border-bottom: 0; border-right: 1px solid var(--line); }
-  body.admin-page .adminnav-in { max-width: none; height: 100%; margin: 0; padding: 1.5rem 1rem; flex-direction: column; align-items: stretch; justify-content: flex-start; flex-wrap: nowrap; gap: 1rem; }
-  body.admin-page .adminnav-tabs { flex-direction: column; gap: .25rem; overflow: visible; }
-  body.admin-page .adminnav-tabs .navlink { text-align: left; padding: .65rem .9rem; border: 0; border-radius: 10px; }
-  body.admin-page .adminnav-tabs .navlink:hover { background: var(--ctl); }
-  body.admin-page .adminnav-tabs .navlink[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); }
-  body.admin-page .adminnav-side { margin-top: auto; flex-direction: column; align-items: stretch; gap: .6rem; padding: 0; }
+  body.admin-page { padding-left: 240px; }
+  body.admin-page .adminnav { position: fixed; top: 0; left: 0; bottom: 0; width: 240px; overflow-y: auto; border-bottom: 0; border-right: 1px solid var(--line); }
+  body.admin-page .adminnav-in { max-width: none; height: 100%; margin: 0; padding: 1.5rem 1rem 1.25rem; flex-direction: column; align-items: stretch; justify-content: flex-start; flex-wrap: nowrap; gap: 1.25rem; }
+  body.admin-page .adminnav-brand { display: block; padding: 0 .6rem; font-size: 1.15rem; font-weight: 800; letter-spacing: -.01em; }
+  body.admin-page .adminnav-tabs { flex-direction: column; gap: .3rem; overflow: visible; }
+  body.admin-page .adminnav-tabs .navlink { display: flex; align-items: center; gap: .8rem; text-align: left; padding: .7rem .8rem; border: 0; border-radius: 12px; }
+  body.admin-page .adminnav-tabs .ico { display: block; flex: none; }
+  body.admin-page .adminnav-tabs .navlink:hover { background: var(--ctl); color: var(--ink); }
+  body.admin-page .adminnav-tabs .navlink[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); }
+  body.admin-page .adminnav-side { margin-top: auto; flex-direction: column; align-items: stretch; gap: .6rem; padding: 1rem 0 0; border-top: 1px solid var(--line); }
   body.admin-page .adminnav-side input { width: 100%; }
-  body.admin-page .viewlink { text-align: left; }
+  body.admin-page .viewlink { display: flex; align-items: center; justify-content: center; gap: .4rem; padding: .6rem; border: 1px solid var(--outline); border-radius: 12px; color: var(--ink); text-decoration: none; font-weight: 600; }
+  body.admin-page .viewlink span { display: inline; }
+  body.admin-page .viewlink:hover { background: var(--ctl); }
 }
 
 /* Button press feedback: dip while pressed, then a short "done" state (set by admin-quick.js) */
@@ -721,3 +726,46 @@ html.theme-anim body, html.theme-anim body * { transition: background-color .35s
 .btn.done { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
 .btn.ghost.done { border-color: var(--accent); color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { .btn, .btn:active:not(:disabled) { transition: none; transform: none; } }
+
+/* Quick menu: List / Flowchart switch and the flowchart itself */
+.qm-views { display: flex; width: max-content; gap: 0; margin: 1rem 0 .2rem; border: 1px solid var(--outline); border-radius: 999px; padding: 3px; }
+.qm-view { border: 0; background: none; color: var(--ink); font: inherit; font-weight: 600; padding: .35rem 1rem; border-radius: 999px; cursor: pointer; }
+.qm-view[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.qm-hl { animation: qm-hl 1.8s ease-out; }
+@keyframes qm-hl { 0%, 40% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent); } 100% { box-shadow: 0 0 0 3px transparent; } }
+#qm-flow[hidden] { display: none; }
+.qf-scroll { overflow-x: auto; margin-top: .8rem; padding: 0 0 .5rem; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.qf { position: relative; width: max-content; min-width: 100%; padding: 1.5rem 2.2rem 1.5rem 2.2rem; }
+.qf-svg { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.qf-e { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-linejoin: round; }
+.qf-e.gate { stroke: var(--accent); stroke-width: 2; }
+.qf-e.skip { stroke-dasharray: 5 4; }
+.qf-ah { fill: var(--muted); } .qf-ah.gate { fill: var(--accent); }
+.qf-chain { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2.2rem; }
+.qf-q { display: flex; flex-direction: column; align-items: center; }
+.qf-lanes { display: flex; align-items: flex-start; justify-content: center; gap: 2.2rem; margin-top: 2.6rem; }
+.qf-lane { display: flex; flex-direction: column; align-items: center; gap: 2.2rem; }
+.qf-pill { padding: .55rem 1.1rem; border-radius: 999px; border: 1px solid var(--outline); background: var(--surface); font-weight: 600; text-align: center; }
+.qf-pill small { display: block; font-weight: 500; color: var(--muted); font-size: .8rem; }
+.qf-node { width: 290px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); padding: .7rem; box-shadow: 0 2px 10px rgba(0,0,0,.15); }
+.qf-if { font-size: .75rem; font-weight: 600; color: var(--accent); margin: -.1rem 0 .45rem; line-height: 1.3; }
+.qf-nh { display: flex; align-items: center; gap: .45rem; }
+.qf-n { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--ctl-hover); display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; }
+.qf-text { flex: 1; min-width: 0; margin: 0; padding: .3rem .5rem; font-weight: 700; }
+.qf-meta { font-size: .75rem; color: var(--muted); margin: .35rem 0 .45rem; }
+.qf-chips { display: flex; flex-direction: column; gap: .3rem; }
+.qf-chip { display: flex; align-items: center; gap: .3rem; background: var(--ctl); border-radius: 999px; padding: 2px 3px 2px .55rem; }
+.qf-olabel { flex: 1; min-width: 0; margin: 0; padding: .15rem .1rem; border: 0; background: none; font-size: .9rem; }
+.qf-olabel:focus { outline: 2px solid var(--accent); border-radius: 6px; }
+.qf-chip em { font-style: normal; font-size: .75rem; color: var(--muted); white-space: nowrap; }
+.qf-chip.zero em { color: var(--alert); }
+.qf-add { flex: none; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: var(--ctl-hover); color: var(--ink); font-size: 1.1rem; line-height: 1; cursor: pointer; }
+.qf-add:hover, .qf-add:focus-visible { background: var(--accent); color: var(--accent-ink); }
+.qf-foot { display: flex; gap: .4rem; margin-top: .55rem; }
+.qf-btn { border: 1px solid var(--outline); background: transparent; color: var(--ink); font: inherit; font-size: .8rem; font-weight: 600; padding: .25rem .65rem; border-radius: 999px; cursor: pointer; }
+.qf-btn:hover:not(:disabled) { background: var(--ctl); }
+.qf-btn:disabled { opacity: .4; cursor: not-allowed; }
+.qf-legend { margin-top: .7rem; }
+.qf-key { display: inline-block; width: 22px; height: 0; border-top: 2px solid var(--muted); vertical-align: middle; }
+.qf-key.gate { border-top-color: var(--accent); } .qf-key.skip { border-top-style: dashed; }
+.qf-off { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-top: .6rem; font-size: .85rem; color: var(--muted); }

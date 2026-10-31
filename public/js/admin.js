@@ -114,7 +114,7 @@ async function refresh() {
 function resetForm() {
   $("#form").reset(); $("#id").value = ""; $("#available").checked = true; showModel(""); photos = []; renderPhotos(); $("#imageFile").value = "";
   $("#form-title").textContent = "Add item"; $("#save").textContent = "Add item"; $("#cancel").hidden = true;
-  $("#tab-add").textContent = "Add item";
+  $("#tab-add .lbl").textContent = "Add item";
 }
 
 $("#form").addEventListener("submit", async (e) => {
@@ -182,7 +182,7 @@ $("#list").addEventListener("click", async (e) => {
       $("#category").value = i.category; $("#description").value = i.description; $("#available").checked = i.available;
       $("#ingredients").value = i.ingredients || ""; $("#label").value = i.label || ""; showModel(i.model || ""); $("#modelFile").value = ""; photos = gallery(i).map((path) => ({ path })); renderPhotos(); $("#imageFile").value = "";
       $("#form-title").textContent = "Edit item"; $("#save").textContent = "Save changes"; $("#cancel").hidden = false;
-      $("#tab-add").textContent = "Edit item"; showTab("add"); $("#name").focus();
+      $("#tab-add .lbl").textContent = "Edit item"; showTab("add"); $("#name").focus();
     } else if (t.dataset.toggle) {
       const i = data.items.find((x) => x.id === t.dataset.toggle);
       await api("PUT", `/api/items/${i.id}`, { available: !i.available }); refresh();
