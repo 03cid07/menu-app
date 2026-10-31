@@ -193,5 +193,465 @@
       "label": "popular",
       "available": true
     }
-  ]
+  ],
+  "quick": {
+    "version": 1,
+    "stopAt": 4,
+    "questions": [
+      {
+        "id": "kind",
+        "text": "What are you in the mood for?",
+        "type": "single",
+        "mode": "include",
+        "enabled": true,
+        "note": false,
+        "when": null,
+        "source": "auto",
+        "opts": [
+          {
+            "id": "something-to-eat",
+            "label": "Something to eat",
+            "match": {
+              "kind": "food"
+            }
+          },
+          {
+            "id": "something-to-drink",
+            "label": "Something to drink",
+            "match": {
+              "kind": "drink"
+            }
+          },
+          {
+            "id": "surprise-me",
+            "label": "Surprise me",
+            "match": {}
+          }
+        ]
+      },
+      {
+        "id": "drink-category",
+        "text": "Which kind of drink?",
+        "type": "single",
+        "mode": "include",
+        "enabled": true,
+        "note": false,
+        "when": {
+          "q": "kind",
+          "opts": [
+            "something-to-drink"
+          ]
+        },
+        "source": "auto",
+        "opts": [
+          {
+            "id": "espresso-drinks",
+            "label": "Espresso drinks",
+            "match": {
+              "cats": [
+                "espresso drinks"
+              ]
+            }
+          },
+          {
+            "id": "non-espresso-drinks",
+            "label": "Non-espresso drinks",
+            "match": {
+              "cats": [
+                "non-espresso drinks"
+              ]
+            }
+          },
+          {
+            "id": "anything",
+            "label": "Anything",
+            "match": {}
+          }
+        ]
+      },
+      {
+        "id": "craving",
+        "text": "What are you craving?",
+        "type": "multi",
+        "mode": "include",
+        "enabled": true,
+        "note": false,
+        "when": {
+          "q": "kind",
+          "opts": [
+            "something-to-eat"
+          ]
+        },
+        "source": "auto",
+        "opts": [
+          {
+            "id": "pork",
+            "label": "Pork",
+            "match": {
+              "any": [
+                "pork",
+                "bacon",
+                "ham",
+                "lechon",
+                "chorizo",
+                "longganisa",
+                "sausage",
+                "bagnet",
+                "sisig"
+              ]
+            }
+          },
+          {
+            "id": "something-spicy",
+            "label": "Something spicy",
+            "match": {
+              "any": [
+                "chili",
+                "chilli",
+                "spicy",
+                "siling",
+                "sili",
+                "jalapeno",
+                "sriracha",
+                "hot sauce"
+              ]
+            }
+          },
+          {
+            "id": "chicken",
+            "label": "Chicken",
+            "match": {
+              "any": [
+                "chicken",
+                "manok"
+              ]
+            }
+          },
+          {
+            "id": "rice",
+            "label": "Rice",
+            "match": {
+              "any": [
+                "rice",
+                "sinangag"
+              ]
+            }
+          },
+          {
+            "id": "veggies",
+            "label": "Veggies",
+            "match": {
+              "any": [
+                "vegetable",
+                "veggie",
+                "cabbage",
+                "carrot",
+                "eggplant",
+                "talong",
+                "kangkong",
+                "spinach",
+                "mushroom",
+                "lettuce",
+                "broccoli"
+              ]
+            }
+          },
+          {
+            "id": "dessert",
+            "label": "Dessert",
+            "match": {
+              "any": [
+                "dessert",
+                "cake",
+                "ice cream",
+                "brownie",
+                "pudding",
+                "flan",
+                "halo-halo",
+                "cookie",
+                "pie"
+              ]
+            }
+          },
+          {
+            "id": "no-meat",
+            "label": "No meat",
+            "match": {
+              "none": [
+                "chicken",
+                "manok",
+                "beef",
+                "baka",
+                "steak",
+                "tapa",
+                "pork",
+                "bacon",
+                "ham",
+                "lechon",
+                "chorizo",
+                "longganisa"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "flavor",
+        "text": "What flavor are you after?",
+        "type": "multi",
+        "mode": "include",
+        "enabled": true,
+        "note": false,
+        "when": {
+          "q": "kind",
+          "opts": [
+            "something-to-drink"
+          ]
+        },
+        "source": "auto",
+        "opts": [
+          {
+            "id": "coffee",
+            "label": "Coffee",
+            "match": {
+              "any": [
+                "coffee",
+                "espresso",
+                "latte",
+                "cappuccino",
+                "americano",
+                "mocha",
+                "macchiato"
+              ]
+            }
+          },
+          {
+            "id": "milky-creamy",
+            "label": "Milky & creamy",
+            "match": {
+              "any": [
+                "milk",
+                "cream",
+                "creamy",
+                "yogurt"
+              ]
+            }
+          },
+          {
+            "id": "sweet-syrupy",
+            "label": "Sweet & syrupy",
+            "match": {
+              "any": [
+                "caramel",
+                "vanilla",
+                "hazelnut",
+                "syrup",
+                "honey"
+              ]
+            }
+          },
+          {
+            "id": "chocolate",
+            "label": "Chocolate",
+            "match": {
+              "any": [
+                "chocolate",
+                "cocoa",
+                "mocha"
+              ]
+            }
+          },
+          {
+            "id": "fruity",
+            "label": "Fruity",
+            "match": {
+              "any": [
+                "mango",
+                "strawberry",
+                "lemon",
+                "orange",
+                "berry",
+                "apple",
+                "pineapple",
+                "fruit",
+                "calamansi",
+                "watermelon",
+                "peach",
+                "lychee"
+              ]
+            }
+          },
+          {
+            "id": "no-caffeine",
+            "label": "No caffeine",
+            "match": {
+              "none": [
+                "coffee",
+                "espresso",
+                "latte",
+                "cappuccino",
+                "americano",
+                "mocha",
+                "macchiato",
+                "tea",
+                "matcha",
+                "chai",
+                "cola"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "avoid",
+        "text": "Anything you'd rather avoid?",
+        "type": "multi",
+        "mode": "exclude",
+        "enabled": true,
+        "note": true,
+        "when": null,
+        "source": "auto",
+        "opts": [
+          {
+            "id": "pork",
+            "label": "Pork",
+            "match": {
+              "any": [
+                "pork",
+                "bacon",
+                "ham",
+                "lechon",
+                "chorizo",
+                "longganisa",
+                "sausage",
+                "bagnet",
+                "sisig"
+              ]
+            }
+          },
+          {
+            "id": "dairy-milk-cheese-cream",
+            "label": "Dairy (milk, cheese, cream)",
+            "match": {
+              "any": [
+                "milk",
+                "cheese",
+                "cream",
+                "butter",
+                "yogurt",
+                "yoghurt",
+                "whey",
+                "ice cream",
+                "custard"
+              ]
+            }
+          },
+          {
+            "id": "gluten-wheat-bread",
+            "label": "Gluten (wheat, bread)",
+            "match": {
+              "any": [
+                "wheat",
+                "flour",
+                "bread",
+                "noodle",
+                "pasta",
+                "cake",
+                "pancake",
+                "dough",
+                "breadcrumb",
+                "crust"
+              ]
+            }
+          },
+          {
+            "id": "spicy-food",
+            "label": "Spicy food",
+            "match": {
+              "any": [
+                "chili",
+                "chilli",
+                "chilies",
+                "chillies",
+                "spicy",
+                "siling",
+                "sili",
+                "jalapeno",
+                "sriracha",
+                "hot sauce"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "pick",
+        "text": "Popular or something new?",
+        "type": "single",
+        "mode": "include",
+        "enabled": true,
+        "note": false,
+        "when": null,
+        "source": "auto",
+        "opts": [
+          {
+            "id": "crowd-favorites",
+            "label": "Crowd favorites",
+            "match": {
+              "labels": [
+                "popular"
+              ]
+            }
+          },
+          {
+            "id": "something-new",
+            "label": "Something new",
+            "match": {
+              "labels": [
+                "new"
+              ]
+            }
+          },
+          {
+            "id": "anything",
+            "label": "Anything",
+            "match": {}
+          }
+        ]
+      },
+      {
+        "id": "budget",
+        "text": "What's your budget per dish?",
+        "type": "single",
+        "mode": "include",
+        "enabled": true,
+        "note": false,
+        "when": null,
+        "source": "auto",
+        "opts": [
+          {
+            "id": "up-to-150",
+            "label": "Up to ₱150",
+            "match": {
+              "maxPrice": 150
+            }
+          },
+          {
+            "id": "up-to-200",
+            "label": "Up to ₱200",
+            "match": {
+              "maxPrice": 200
+            }
+          },
+          {
+            "id": "any-price",
+            "label": "Any price",
+            "match": {}
+          }
+        ]
+      }
+    ],
+    "sig": "1fcukx3.13",
+    "savedAt": "2026-10-31T10:20:47.131Z"
+  }
 }
