@@ -285,9 +285,10 @@
 
   // ---- Buttons outside the cards ----
   function generate() {
-    if (draft.length && !confirm("Start over? Your changes will be replaced by new questions made from your menu.")) return;
+    if (draft.length && !confirm("Replace the questions below with new ones made from your menu? You can still press Undo before you save.")) return;
     draft = QuickGen.generate(data); openQ = null; openA.clear(); mark(); render();
     sayQ(`Made ${draft.length} question${draft.length === 1 ? "" : "s"} from your menu. Look them over, then press Save.`);
+    flash($("#qm-generate"), "\u2713 Done");
   }
   function addMissing() {
     const have = new Set(draft.map((q) => q.id)), add = QuickGen.generate(data).filter((q) => !have.has(q.id));

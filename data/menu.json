@@ -4,7 +4,9 @@
   "categories": [
     "Mains",
     "ESPRESSO DRINKS",
-    "NON-ESPRESSO DRINKS"
+    "NON-ESPRESSO DRINKS",
+    "pizza",
+    "water"
   ],
   "items": [
     {
@@ -196,7 +198,7 @@
   ],
   "quick": {
     "version": 1,
-    "stopAt": 4,
+    "stopAt": 3,
     "questions": [
       {
         "id": "kind",
@@ -652,6 +654,6 @@
       }
     ],
     "sig": "1fcukx3.13",
-    "savedAt": "2026-10-31T10:20:47.131Z"
+    "savedAt": "2026-10-31T16:26:56.749Z"
   }
 }

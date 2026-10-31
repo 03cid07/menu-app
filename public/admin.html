@@ -6,7 +6,7 @@
   <title>Manage menu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=17">
+  <link rel="stylesheet" href="css/style.css?v=18">
 </head>
 <body class="admin-page">
   <nav class="adminnav" aria-label="Admin sections">
@@ -68,13 +68,16 @@
       <h2>Quick menu</h2>
       <p class="hint">Customers answer a few questions and get the dishes that fit. Tap a question to change it. Use the switch to turn a question on or off.</p>
       <div class="qm-banner" id="qm-status" role="status"></div>
+      <div class="qm-gen">
+        <button class="btn" type="button" id="qm-generate">✨ Generate questions from my menu</button>
+        <p class="hint">Reads your dishes and writes the questions for you. You can still change anything before you save.</p>
+      </div>
       <div id="qm-list"></div>
       <button class="btn qm-addq" type="button" id="qm-add">+ Add a question</button>
       <p class="qm-stoprow">Stop asking when only <input id="qm-stop" type="number" min="0" max="10" aria-label="Stop asking when this many dishes are left"> dishes are left. <small>(0 = ask every question)</small></p>
       <details class="qm-more qm-bottom"><summary>More options</summary>
-        <p class="hint">These replace your questions, so use them with care.</p>
-        <button class="btn ghost" type="button" id="qm-generate">Start over from my menu</button>
-        <button class="btn ghost danger" type="button" id="qm-reset">Use automatic questions</button>
+        <p class="hint">This deletes your saved questions. Customers will get automatic ones again.</p>
+        <button class="btn ghost danger" type="button" id="qm-reset">Go back to automatic questions</button>
       </details>
       <div class="msg" id="qm-msg" role="status"></div>
       <div class="qm-savebar" id="qm-savebar" hidden>
@@ -199,8 +202,8 @@
   <script src="js/spring.js?v=2"></script>
   <script src="js/rubber.js?v=1"></script>
   <script src="js/marquee.js"></script>
-  <script src="js/quick-gen.js"></script>
+  <script src="js/quick-gen.js?v=3"></script>
   <script src="js/admin.js?v=2"></script>
-  <script src="js/admin-quick.js?v=3"></script>
+  <script src="js/admin-quick.js?v=4"></script>
 </body>
 </html>

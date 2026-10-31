@@ -392,12 +392,8 @@ const sweepImgs = (root) => root.querySelectorAll && root.querySelectorAll("img:
 new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) { if (n.tagName === "IMG" && n.complete) imgDone(n); else sweepImgs(n); } }))).observe(document.body, { childList: true, subtree: true });
 
 // ---- Food / hot drink / cold drink sorting (the Quick menu uses this) ----
-const DRINK_RE = /drink|beverage|juice|coffee|tea\b|shake|smoothie|soda|cocktail|beer|wine/i;
-const COLD_RE = /iced|ice\b|cold|juice|shake|smoothie|soda|lemonade|frappe|cooler|beer/i;
-function fxKind(it) {
-  if (!DRINK_RE.test(it.category || "")) return "food";
-  return COLD_RE.test(it.name) ? "cold" : "hot";
-}
+// The rules live in quick-gen.js so the Quick menu and this file always agree.
+function fxKind(it) { return typeof QuickGen !== "undefined" ? QuickGen.tempOf(it) : "food"; }
 // ---- Effects (the heaven effect is baked into the 3D model; the customer can switch it off) ----
 // Effects start on, unless the phone asks for reduced motion
 let fxOn = !matchMedia("(prefers-reduced-motion: reduce)").matches;

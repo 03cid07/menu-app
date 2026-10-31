@@ -11,10 +11,28 @@
   "use strict";
 
   // ---- Dish helpers (same rules as fxKind in menu.js) ----
-  const DRINK_RE = /drink|beverage|juice|coffee|tea\b|shake|smoothie|soda|cocktail|beer|wine/i;
-  const COLD_RE = /iced|ice\b|cold|juice|shake|smoothie|soda|lemonade|frappe|cooler|beer/i;
-  const kindOf = (i) => (DRINK_RE.test(i.category || "") ? "drink" : "food");
-  const tempOf = (i) => (kindOf(i) === "food" ? "food" : COLD_RE.test(i.name || "") ? "cold" : "hot");
+  const DRINK_RE = /drink|beverage|juice|coffee|tea\b|shake|smoothie|soda|cocktail|beer|wine|\bwaters?\b|\bmilk\b|latte|espresso|frappe|lemonade/i;
+  const COLD_RE = /iced|ice\b|cold|juice|shake|smoothie|soda|lemonade|frappe|cooler|beer|\bwater\b/i;
+  // A dish is a drink when its category sounds like a drink, OR its name/description says "drink" or "beverage".
+  // "Comes with a drink" does not count (that is a meal), so those words only count when the dish itself is the drink.
+  const SAYS_DRINK_RE = /\b(drinks?|beverages?)\b/i;
+  const WITH_DRINK_RE = /\b(with|plus|includes?|including|free|and|\+)\s+(a\s+|an\s+|your\s+|any\s+|one\s+|1\s+|choice of\s+)?(drinks?|beverages?)\b/i;
+  const HOT_RE = /\b(hot|warm|steaming)\b/i;
+  const COLD_WORDS_RE = /\b(cold|iced|ice cold|ice-cold|chilled|frozen)\b/i;
+  const kindOf = (i) => {
+    if (DRINK_RE.test(i.category || "")) return "drink";
+    const t = (i.name || "") + " " + (i.description || "");
+    return SAYS_DRINK_RE.test(t) && !WITH_DRINK_RE.test(t) ? "drink" : "food";
+  };
+  // Hot or cold: the name decides first, then the description ("cold water drink"), otherwise hot.
+  const tempOf = (i) => {
+    if (kindOf(i) === "food") return "food";
+    const n = i.name || "", d = i.description || "";
+    if (HOT_RE.test(n)) return "hot";
+    if (COLD_RE.test(n)) return "cold";
+    if (HOT_RE.test(d)) return "hot";
+    return COLD_WORDS_RE.test(d) ? "cold" : "hot";
+  };
   const norm = (s) => String(s == null ? "" : s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   // "coconut milk" or "soy milk" is not dairy, so those words are dropped before looking for keywords
   const textOf = (i) => norm([i.name, i.description, i.ingredients].join(" ")).replace(/\b(coconut|almond|soy|oat|rice)\s+(milk|cream)\b/g, " ");
