@@ -1,15 +1,24 @@
 :root {
-  /* Dark (default): warm charcoal with a muted golden-brown accent */
+  /* 60-30-10 colour rule
+     60%  --bg      espresso     the page itself (the biggest area)
+     30%  --surface mocha        cards, sheets, nav, panels (supporting area)
+     10%  --accent  matcha green the ONLY pop colour: buttons, active states, prices, badges
+     ink / muted / line are neutrals (text and borders), they don't count toward the 60-30-10.
+     Dark (default): warm espresso + mocha, with a matcha-green accent */
   color-scheme: dark;
   --bg: #15120e; --surface: #1e1a14; --ink: #efe8db; --muted: #a79c8a;
-  --line: #342d23; --accent: #bf9a5d; --accent-ink: #1a140b; --alert: #ff8a80;
+  --line: #342d23; --accent: #a3c45f; --accent-ink: #142008; --alert: #ff8a80;
+  /* Neutral (non-accent) tints for secondary controls, so the accent stays rare */
+  --ctl: color-mix(in srgb, var(--ink) 10%, transparent);
+  --ctl-hover: color-mix(in srgb, var(--ink) 18%, transparent);
+  --outline: color-mix(in srgb, var(--ink) 30%, transparent);
   --font: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-/* Light: soft cream (not bright white) with a deep golden-brown accent */
+/* Light: soft cream + lighter cream, with a deep matcha-green accent */
 html[data-theme="light"] {
   color-scheme: light;
   --bg: #eee6d4; --surface: #f5eedf; --ink: #2a231a; --muted: #6e6352;
-  --line: #d6c9b0; --accent: #8a5e22; --accent-ink: #fbf5e6; --alert: #a63a2b;
+  --line: #d6c9b0; --accent: #4a6b1f; --accent-ink: #f7f3e6; --alert: #a63a2b;
   --wash-top: 88%; --wash-bot: 93%;
 }
 * { box-sizing: border-box; }
@@ -28,7 +37,7 @@ main { max-width: 760px; margin: 0 auto; padding: 1rem 1.25rem 4rem; }
 section.cat h2 { font-size: 1.5rem; margin: 2rem 0 .5rem; }
 .item { display: flex; align-items: flex-start; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--line); }
 .thumb { width: 96px; height: 96px; flex: none; border-radius: 12px; object-fit: cover; background: var(--surface); border: 1px solid var(--line); }
-.thumb.ph { display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; color: var(--accent); }
+.thumb.ph { display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; color: var(--muted); }
 .info { flex: 1; min-width: 0; }
 .head { display: flex; justify-content: space-between; align-items: baseline; gap: .75rem; }
 .admin-row { display: flex; align-items: center; gap: .75rem; }
@@ -52,7 +61,7 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 .msg { min-height: 1.4em; margin-top: .75rem; font-weight: 600; }
 .msg.error { color: var(--alert); }
 .item .ingredients { font-size: .9rem; }
-.ar-open { grid-column: 1; justify-self: start; margin-top: .4rem; border: 1px solid var(--accent); background: transparent; color: var(--accent); padding: .35rem .8rem; border-radius: 999px; font: inherit; font-weight: 600; cursor: pointer; }
+.ar-open { grid-column: 1; justify-self: start; margin-top: .4rem; border: 1px solid var(--outline); background: transparent; color: var(--ink); padding: .35rem .8rem; border-radius: 999px; font: inherit; font-weight: 600; cursor: pointer; }
 .viewer { position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .viewer[hidden] { display: none; }
 .viewer-box { background: var(--surface); color: var(--ink); border-radius: 12px; width: min(560px, 100%); padding: 1rem; }
@@ -74,7 +83,7 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 .fs-panel[hidden] { display: none; }
 .fs-row { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin: .45rem 0; }
 .fs-label { min-width: 7.5rem; font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .78rem; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
-.chip { border: 1.5px solid var(--accent); background: transparent; color: var(--ink); padding: .35rem .95rem; border-radius: 999px; font: inherit; font-weight: 500; cursor: pointer; }
+.chip { border: 1.5px solid var(--outline); background: transparent; color: var(--ink); padding: .35rem .95rem; border-radius: 999px; font: inherit; font-weight: 500; cursor: pointer; }
 .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
 .radio { display: flex; align-items: center; gap: .7rem; padding: .4rem 0; cursor: pointer; font-weight: 500; }
 .radio input { appearance: none; -webkit-appearance: none; width: 1.35rem; height: 1.35rem; margin: 0; border: 1.5px solid var(--ink); border-radius: 50%; background: transparent; flex: none; padding: 0; }
@@ -134,7 +143,7 @@ body.no-scroll { overflow: hidden; }
 @media (min-width: 600px) { .sheet { align-items: center; padding: 1rem; } .sheet-box { border-radius: 16px; } }
 .sheet-close { position: absolute; top: 10px; right: 10px; z-index: 1; width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: 1.5rem; line-height: 1; cursor: pointer; }
 .sheet-hero { display: block; width: 100%; aspect-ratio: 4 / 3; max-height: 280px; object-fit: cover; }
-.sheet-ph { display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: 800; color: var(--accent); background: var(--bg); }
+.sheet-ph { display: flex; align-items: center; justify-content: center; font-size: 4rem; font-weight: 800; color: var(--muted); background: var(--bg); }
 .sheet-body { padding: 1rem 1.25rem 1.75rem; }
 .sheet-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
 .sheet-head h2 { margin: 0; font-size: 1.5rem; line-height: 1.2; }
@@ -241,7 +250,7 @@ body::before {
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :is(#menu, .home) .item { background: color-mix(in srgb, var(--surface) 88%, transparent); }
 }
-:is(#menu, .home) .item:hover { border-color: var(--accent); }
+:is(#menu, .home) .item:hover { border-color: var(--outline); }
 :is(#menu, .home) .item:active { background: color-mix(in srgb, color-mix(in srgb, var(--surface) 85%, var(--ink)) var(--card-alpha), transparent); }
 :is(#menu, .home) .item .thumb { border: 0; background: color-mix(in srgb, var(--bg) 70%, transparent); box-shadow: none; }
 /* Sold out: dim only the content, so the card tint stays the same as the others */
@@ -334,8 +343,8 @@ body.has-list .home-box { padding-bottom: 7rem; }
 .ml-name small { display: block; color: var(--muted); font-weight: 500; font-size: .8rem; }
 .ml-step { display: flex; align-items: center; gap: .15rem; }
 .ml-step { gap: .35rem; }
-.ml-step button { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border-radius: 12px; border: 0; background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); cursor: pointer; transition: background .15s, transform .1s; }
-.ml-step button:hover { background: color-mix(in srgb, var(--accent) 32%, transparent); }
+.ml-step button { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border-radius: 12px; border: 0; background: var(--ctl); color: var(--ink); cursor: pointer; transition: background .15s, transform .1s; }
+.ml-step button:hover { background: var(--ctl-hover); }
 .ml-step button:active { transform: scale(.92); }
 .ml-step button svg { width: 18px; height: 18px; }
 .ml-step button:disabled { opacity: .35; cursor: not-allowed; }
@@ -376,8 +385,8 @@ body.has-list .home-box { padding-bottom: 7rem; }
 .qr-tip { margin: 1rem 0 0; }
 
 /* Highlight tags set by the admin (Popular / New / Hot) */
-.hl { display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: .1rem .5rem; border-radius: 999px; margin-left: .5rem; vertical-align: middle; background: var(--accent); color: #fff; }
-.hl-new { background: #2f7de1; } .hl-hot { background: var(--alert); }
+.hl { display: inline-block; font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: .1rem .5rem; border-radius: 999px; margin-left: .5rem; vertical-align: middle; background: var(--accent); color: var(--accent-ink); }
+.hl-new { background: #2f7de1; color: #fff; } .hl-hot { background: var(--alert); color: #fff; }
 
 /* Loading indicator shown while the 3D model downloads */
 .mv-loader { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .9rem; pointer-events: none; background: rgba(0,0,0,.35); color: #fff; text-align: center; padding: 1rem; }
@@ -526,8 +535,8 @@ body.has-list main { padding-bottom: 0; }
 /* ---- QR codes: button beside My list, button in the dish card, and the popup ---- */
 .fs-top .fs-list, .fs-top .fs-qr { flex: none; width: 44px; height: 44px; padding: 0; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
   background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent); -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); }
-.sheet-qr { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; margin: 0; border-radius: 999px; border: 1px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; }
-.sheet-qr:hover, .sheet-qr:focus-visible { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.sheet-qr { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; margin: 0; border-radius: 999px; border: 1px solid var(--outline); background: transparent; color: var(--ink); cursor: pointer; }
+.sheet-qr:hover, .sheet-qr:focus-visible { background: var(--ctl-hover); }
 .qrm { position: fixed; inset: 0; z-index: 12; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(0,0,0,.62); }
 .qrm[hidden] { display: none; }
 .qrm-box { position: relative; width: min(340px, 100%); padding: 1.6rem 1.25rem 1.25rem; border-radius: 16px; background: var(--surface); color: var(--ink); text-align: center; }
@@ -542,16 +551,16 @@ body.has-list main { padding-bottom: 0; }
 .sheet-actions { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: .65rem; }
 .sheet-listctl { display: flex; align-items: stretch; gap: .6rem; }
 .sheet-listctl .sheet-add { flex: 1; justify-content: center; padding: .8rem 1.1rem; border-radius: 12px; font-size: 1rem; }
-.sheet-step { flex: none; display: flex; align-items: center; gap: .25rem; padding: .25rem; border-radius: 12px; background: color-mix(in srgb, var(--accent) 16%, transparent); }
-.sheet-step button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px; background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); cursor: pointer; }
+.sheet-step { flex: none; display: flex; align-items: center; gap: .25rem; padding: .25rem; border-radius: 12px; background: var(--ctl); }
+.sheet-step button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 10px; background: var(--ctl-hover); color: var(--ink); cursor: pointer; }
 .sheet-step button:active { transform: scale(.92); }
 .sheet-step span { min-width: 2.2rem; text-align: center; font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.sheet-listctl .sheet-viewlist { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; margin: 0; padding: .6rem 1rem; border-radius: 12px; border: 1px solid var(--accent); color: var(--accent); font-weight: 600; }
+.sheet-listctl .sheet-viewlist { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; margin: 0; padding: .6rem 1rem; border-radius: 12px; border: 1px solid var(--outline); color: var(--ink); font-weight: 600; }
 .sheet-more { display: flex; gap: .6rem; }
 .sheet-more > * { flex: 1; }
 .sheet-more .sheet-ar, .sheet-more .sheet-qr { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; width: auto; height: 46px; margin: 0; padding: 0 .9rem; border-radius: 12px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
-.sheet-more .sheet-ar:hover, .sheet-more .sheet-qr:hover, .sheet-more .sheet-qr:focus-visible { background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.sheet-more svg { color: var(--accent); }
+.sheet-more .sheet-ar:hover, .sheet-more .sheet-qr:hover, .sheet-more .sheet-qr:focus-visible { background: var(--ctl); }
+.sheet-more svg { color: var(--ink); }
 
 /* The cards are moved by script (springs + finger drag). When pulled up past their resting place they stretch like a
    rubber band; this fills the gap that would open under them on phones. */
@@ -648,8 +657,8 @@ img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: sk-in .3s ease; }
 .fs-settings { position: absolute; top: calc(100% + .5rem); right: 0; z-index: 8; min-width: 190px; padding: .35rem; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); box-shadow: 0 10px 28px rgba(0,0,0,.4); }
 .fs-settings[hidden] { display: none; }
 .fs-set-item { display: flex; align-items: center; gap: .7rem; width: 100%; padding: .7rem .8rem; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
-.fs-set-item:hover, .fs-set-item:focus-visible { background: color-mix(in srgb, var(--accent) 16%, transparent); outline: none; }
-.fs-set-item svg { color: var(--accent); flex: none; }
+.fs-set-item:hover, .fs-set-item:focus-visible { background: var(--ctl); outline: none; }
+.fs-set-item svg { color: var(--muted); flex: none; }
 body.fs-float .fs-top .fs-actions { position: fixed; top: calc(env(safe-area-inset-top, 0px) + .75rem); right: 1rem; z-index: 7; }
 body.fs-float .fs-top .fs-gear { box-shadow: 0 4px 14px rgba(0,0,0,.35); }
 
