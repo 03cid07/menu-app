@@ -6,6 +6,13 @@
   const clone = (x) => JSON.parse(JSON.stringify(x));
   const sayQ = (t, err) => { $("#qm-msg").textContent = t; $("#qm-msg").className = "msg" + (err ? " error" : ""); };
   const mark = (d = true) => { dirty = d; status(); };
+  // Brief "pressed" confirmation on the button itself (the message below the list is easy to miss)
+  function flash(btn, text) {
+    if (btn._t) clearTimeout(btn._t);
+    else { btn._label = btn.textContent; btn.style.minWidth = btn.offsetWidth + "px"; }
+    btn.textContent = text; btn.classList.add("done");
+    btn._t = setTimeout(() => { btn.textContent = btn._label; btn.classList.remove("done"); btn.style.minWidth = ""; btn._t = null; }, 1500);
+  }
 
   const items = () => data.items.filter((i) => i.available);
   const total = () => items().length;
@@ -162,19 +169,22 @@
   $("#qm-generate").addEventListener("click", () => {
     if (draft.length && !confirm("Replace all questions with fresh ones made from the menu? Your edits will be lost.")) return;
     draft = QuickGen.generate(data); openRules.clear(); mark(); render();
+    flash($("#qm-generate"), "\u2713 Generated");
     sayQ(`Made ${draft.length} question${draft.length === 1 ? "" : "s"} from your menu. Review them, then save.`);
   });
   $("#qm-missing").addEventListener("click", () => {
     const have = new Set(draft.map((q) => q.id));
     const add = QuickGen.generate(data).filter((q) => !have.has(q.id));
-    if (!add.length) return sayQ("Nothing new to add. Every suggestion is already in the list.");
+    if (!add.length) { flash($("#qm-missing"), "Nothing new"); return sayQ("Nothing new to add. Every suggestion is already in the list."); }
     draft.push(...add); mark(); render();
+    flash($("#qm-missing"), `\u2713 Added ${add.length}`);
     sayQ(`Added ${add.length} new question${add.length === 1 ? "" : "s"} at the end. Move them where you like.`);
   });
   $("#qm-add").addEventListener("click", () => {
     if (draft.length >= 15) return sayQ("Please keep it to 15 questions or fewer.", true);
     draft.push({ id: "custom-" + Date.now().toString(36), text: "New question", type: "single", mode: "include", enabled: true, note: false, when: null, source: "custom", opts: [{ id: "answer-1", label: "Anything", match: {} }] });
     mark(); render(); sayQ("");
+    flash($("#qm-add"), "\u2713 Added");
     list.lastElementChild.querySelector(".qm-text").select();
   });
   stopEl.addEventListener("input", () => mark());
@@ -185,11 +195,12 @@
       const r = await api("PUT", "/api/quick", { questions: draft, stopAt: stopEl.value });
       saved = r.quick; savedSig = r.sig; draft = clone(saved.questions); dirty = false; render(); status();
       sayQ("Saved. Customers see these questions now. Push to GitHub to update the live site.");
+      flash($("#qm-save"), "\u2713 Saved");
     } catch (err) { sayQ(err.message, true); }
   });
   $("#qm-discard").addEventListener("click", () => {
     if (dirty && !confirm("Throw away your unsaved changes?")) return;
-    openRules.clear(); load().then(() => sayQ("")).catch((e) => sayQ(e.message, true));
+    openRules.clear(); flash($("#qm-discard"), "\u2713 Discarded"); load().then(() => sayQ("")).catch((e) => sayQ(e.message, true));
   });
   $("#qm-reset").addEventListener("click", async () => {
     if (!confirm("Delete your saved questions? Customers will get automatic questions made from the menu.")) return;

@@ -19,7 +19,7 @@ html[data-theme="light"] {
   color-scheme: light;
   --bg: #eee6d4; --surface: #f5eedf; --ink: #2a231a; --muted: #6e6352;
   --line: #d6c9b0; --accent: #4a6b1f; --accent-ink: #f7f3e6; --alert: #a63a2b;
-  --wash-top: 88%; --wash-bot: 93%;
+  --wash-top: 58%; --wash-bot: 70%;
 }
 * { box-sizing: border-box; }
 html { overscroll-behavior-y: none; } /* rubber.js draws the stretch at the ends of the page */
@@ -699,3 +699,25 @@ html.theme-anim body, html.theme-anim body * { transition: background-color .35s
 @keyframes fs-menu-in { from { opacity: 0; transform: translateY(-6px) scale(.97); } to { opacity: 1; transform: none; } }
 .fs-settings:not([hidden]) { animation: fs-menu-in .18s ease-out both; transform-origin: top right; }
 @media (prefers-reduced-motion: reduce) { .fs-settings:not([hidden]) { animation: none; } }
+
+/* Admin: nav bar moves to a left sidebar on wider screens (phones keep the top bar) */
+@media (min-width: 800px) {
+  body.admin-page { padding-left: 230px; }
+  body.admin-page .adminnav { position: fixed; top: 0; left: 0; bottom: 0; width: 230px; overflow-y: auto; border-bottom: 0; border-right: 1px solid var(--line); }
+  body.admin-page .adminnav-in { max-width: none; height: 100%; margin: 0; padding: 1.5rem 1rem; flex-direction: column; align-items: stretch; justify-content: flex-start; flex-wrap: nowrap; gap: 1rem; }
+  body.admin-page .adminnav-tabs { flex-direction: column; gap: .25rem; overflow: visible; }
+  body.admin-page .adminnav-tabs .navlink { text-align: left; padding: .65rem .9rem; border: 0; border-radius: 10px; }
+  body.admin-page .adminnav-tabs .navlink:hover { background: var(--ctl); }
+  body.admin-page .adminnav-tabs .navlink[aria-selected="true"] { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--ink); box-shadow: inset 3px 0 0 var(--accent); }
+  body.admin-page .adminnav-side { margin-top: auto; flex-direction: column; align-items: stretch; gap: .6rem; padding: 0; }
+  body.admin-page .adminnav-side input { width: 100%; }
+  body.admin-page .viewlink { text-align: left; }
+}
+
+/* Button press feedback: dip while pressed, then a short "done" state (set by admin-quick.js) */
+.btn { transition: transform .08s ease, filter .12s ease, box-shadow .2s ease, border-color .2s ease, color .2s ease; }
+.btn:active:not(:disabled) { transform: scale(.96); filter: brightness(.9); }
+.btn.ghost:active:not(:disabled) { background: var(--ctl-hover); filter: none; }
+.btn.done { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
+.btn.ghost.done { border-color: var(--accent); color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .btn, .btn:active:not(:disabled) { transition: none; transform: none; } }
