@@ -92,7 +92,15 @@ Admin (send the PIN in the `x-admin-pin` header):
 
 Customers who tap Quick menu answer a short list of questions. The app writes that list itself from the menu: what kind of item (food or drink), hot or cold, categories, ingredients such as chicken or coffee, things to avoid, tags and price. Questions that cannot narrow the current dishes are skipped, and it stops early when only a few dishes are left.
 
-Open the **Quick menu** tab in the admin page to review them. You can reword, reorder, switch off, delete or add questions, edit what each answer matches, and see how many dishes each answer finds. Press **Save questions** to keep your version. With nothing saved, customers get automatic questions built from the menu. After saving, push to GitHub so the live site gets the new `menu.json`.
+Open the **Quick menu** tab in the admin page. Each question is one card: tap it to open it, tap again to close it.
+
+- The switch turns a question on or off. The arrows move it up or down.
+- Inside a card you can reword the question, choose how customers answer (**Pick one**, **Pick many** or **Things to skip**), and edit the answers.
+- Every answer says in plain words what it shows, with a live dish count (for example "Shows: Food only, with chicken · 5 dishes"). Press **Change** to pick categories or words, and see the matching dishes right away.
+- **Save** appears at the bottom only when you have changed something. **Undo** throws the changes away.
+- If you add dishes later, a banner offers **Add questions for new dishes**. **More options** has "Start over from my menu" and "Use automatic questions".
+
+With nothing saved, customers get automatic questions built from the menu. After saving, push to GitHub so the live site gets the new `menu.json`.
 
 ## Motion and feel (applies to every new feature)
 

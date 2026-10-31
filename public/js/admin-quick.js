@@ -1,30 +1,78 @@
-// Admin "Quick menu" tab. Uses $, esc, api and data from admin.js and QuickGen from quick-gen.js.
+// Admin "Quick menu" tab: the simple editor.
+// Uses $, esc, api, refresh and data from admin.js, and QuickGen from quick-gen.js.
+// The saved format is unchanged (see quick-gen.js), so the customer side and server.js need no changes.
+//
+// Design rules for this screen ("don't make me think"):
+//  - Every question is one tidy card. Tap it to open it, tap again to close. Only one is open at a time.
+//  - Plain words only. No "rules", "match", "include/exclude", "when to ask".
+//  - Every answer says in a sentence what it shows, with a live dish count.
+//  - One Save button that appears only when something changed.
 (() => {
-  const list = $("#qm-list"), statusEl = $("#qm-status"), stopEl = $("#qm-stop");
+  const list = $("#qm-list"), statusEl = $("#qm-status"), stopEl = $("#qm-stop"), bar = $("#qm-savebar");
   let draft = [], saved = null, savedSig = "", dirty = false, loaded = false;
-  const openRules = new Set();   // option rule editors left open while re-rendering
+  let openQ = null;            // id of the question card that is open
+  let focusSel = null;         // what to focus after the next redraw
+  const openA = new Set();     // "questionId|answerId" whose "what does this show" panel is open
+
   const clone = (x) => JSON.parse(JSON.stringify(x));
-  const sayQ = (t, err) => { $("#qm-msg").textContent = t; $("#qm-msg").className = "msg" + (err ? " error" : ""); };
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  const newId = (p) => p + Date.now().toString(36) + Math.floor(Math.random() * 36).toString(36);
+  const sayQ = (t, err) => { const m = $("#qm-msg"); m.textContent = t; m.className = "msg" + (err ? " error" : ""); };
   const mark = (d = true) => { dirty = d; status(); };
-  // Brief "pressed" confirmation on the button itself (the message below the list is easy to miss)
+  const dishes = (n) => `${n} ${n === 1 ? "dish" : "dishes"}`;
   function flash(btn, text) {
-    if (btn._t) clearTimeout(btn._t);
-    else { btn._label = btn.textContent; btn.style.minWidth = btn.offsetWidth + "px"; }
+    if (btn._t) clearTimeout(btn._t); else { btn._label = btn.textContent; btn.style.minWidth = btn.offsetWidth + "px"; }
     btn.textContent = text; btn.classList.add("done");
     btn._t = setTimeout(() => { btn.textContent = btn._label; btn.classList.remove("done"); btn.style.minWidth = ""; btn._t = null; }, 1500);
   }
 
   const items = () => data.items.filter((i) => i.available);
   const total = () => items().length;
-  const withCount = (o) => QuickGen.count(items(), o.match);
+  const hitsOf = (o) => items().filter((i) => QuickGen.matchOpt(i, o.match));
+  const catName = (k) => data.categories.find((c) => c.toLowerCase() === k) || k;
 
+  // ---- Plain-language helpers ----
+  const MODES = [
+    ["one", "Pick one", "The customer taps one answer."],
+    ["many", "Pick many", "The customer can tap more than one answer."],
+    ["skip", "Things to skip", "The customer taps what they do NOT want. Dishes that match are hidden."],
+  ];
+  const modeOf = (q) => (q.type === "multi" ? (q.mode === "exclude" ? "skip" : "many") : "one");
+  function setMode(q, k) {
+    if (k === "one") { q.type = "single"; q.mode = "include"; q.note = false; }
+    else if (k === "many") { q.type = "multi"; q.mode = "include"; q.note = false; }
+    else { q.type = "multi"; q.mode = "exclude"; q.note = true; }
+  }
+  // "Food only, in Mains, with chicken or manok, without pork"
+  function describe(m) {
+    m = m || {};
+    const p = [], cur = data.currency || "";
+    if (m.kind === "food") p.push("food only"); else if (m.kind === "drink") p.push("drinks only");
+    if (m.temp) p.push(m.temp === "hot" ? "hot drinks" : "cold drinks");
+    if (m.cats && m.cats.length) p.push("in " + m.cats.map((c) => cap(String(catName(c)).toLowerCase())).join(" or "));
+    if (m.labels && m.labels.length) p.push("tagged " + m.labels.join(" or "));
+    if (m.maxPrice != null) p.push(`up to ${cur}${m.maxPrice}`);
+    if (m.any && m.any.length) p.push("with " + m.any.join(" or "));
+    if (m.none && m.none.length) p.push("without " + m.none.join(", "));
+    return p.length ? cap(p.join(", ")) : "Every dish";
+  }
+  const showsText = (q, o) => `${modeOf(q) === "skip" ? "Hides" : "Shows"}: ${describe(o.match)} \u00b7 ${dishes(hitsOf(o).length)}`;
+  function previewHtml(o) {
+    const hits = hitsOf(o);
+    if (!hits.length) return "No dishes match yet.";
+    const names = hits.slice(0, 8).map((i) => esc(i.name)).join(", ");
+    return `<b>${hits.length} of ${total()} dishes:</b> ${names}${hits.length > 8 ? `, and ${hits.length - 8} more` : ""}`;
+  }
+
+  // ---- Status banner and save bar ----
   function status() {
     const stale = saved && savedSig !== QuickGen.signature(data);
-    statusEl.className = "qm-status" + (dirty || stale || !saved ? " warn" : " ok");
-    statusEl.textContent = dirty ? "You have unsaved changes."
-      : !saved ? "Nothing saved yet. Customers currently get automatic questions made from the menu. Review the ones below and press Save to keep your version."
-      : stale ? "The menu changed since you last saved. Press \"Add new suggestions\" to pick up new dishes, or \"Generate from menu\" to start over."
-      : "Saved. These questions match your current menu.";
+    bar.hidden = !dirty;
+    statusEl.hidden = dirty;
+    if (dirty) return;
+    if (!saved) { statusEl.className = "qm-banner info"; statusEl.innerHTML = "<span>Right now customers get questions made automatically from your menu. To change them, tap a question below, then press Save.</span>"; }
+    else if (stale) { statusEl.className = "qm-banner warn"; statusEl.innerHTML = '<span>Your menu changed since you last saved.</span><button type="button" class="btn" id="qm-missing">Add questions for new dishes</button>'; }
+    else { statusEl.className = "qm-banner ok"; statusEl.innerHTML = "<span>\u2713 Saved. Customers see these questions.</span>"; }
   }
 
   // ---- Loading ----
@@ -33,257 +81,234 @@
     saved = r.quick; savedSig = saved ? saved.sig : "";
     draft = clone(saved ? saved.questions : QuickGen.generate(data));
     stopEl.value = saved ? saved.stopAt : 3;
-    dirty = false; loaded = true; render(); status();
+    dirty = false; loaded = true; openQ = null; openA.clear(); render(); status();
   }
 
-  // ---- Rendering ----
-  const sel = (name, value, opts, attrs = "") => `<select ${attrs} data-f="${name}">${opts.map(([v, l]) => `<option value="${esc(v)}"${v === value ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
-  const csv = (a) => (a && a.length ? a.join(", ") : "");
+  // ---- Drawing ----
+  const seg = (items, cur, attrs) => `<div class="qm-seg" role="group">${items.map(([v, l]) => `<button type="button" aria-pressed="${v === cur}" ${attrs} data-v="${esc(v)}">${esc(l)}</button>`).join("")}</div>`;
+  const chip = (label, on, attrs) => `<button type="button" class="chip" aria-pressed="${on}" ${attrs}>${esc(label)}</button>`;
+  const tags = (r, words, hint) => `<div class="qm-tags" data-tags="${r}">${words.map((w) => `<span class="qm-tag">${esc(w)}<button type="button" data-act="rmword" data-r="${r}" data-w="${esc(w)}" aria-label="Remove ${esc(w)}">\u00d7</button></span>`).join("")}<input data-f="word" data-r="${r}" placeholder="${esc(hint)}" aria-label="${esc(hint)}"><button type="button" class="qm-link" data-act="addword">Add</button></div>`;
 
-  function whenOptions(qi) {
-    const o = [["", "Always ask"]];
-    draft.slice(0, qi).forEach((q) => q.opts.forEach((p) => o.push([q.id + "|" + p.id, `Only if "${q.text}" is "${p.label}"`])));
-    return o;
-  }
-  function optRules(q, o, qi, oi) {
-    const m = o.match || {}, key = qi + ":" + oi;
-    const cats = data.categories.map((c) => c.toLowerCase());
-    return `<details class="qm-rules" data-key="${key}"${openRules.has(key) ? " open" : ""}><summary>Rules: what this answer matches</summary>
-      <div class="qm-grid">
-        <label>Type of item${sel("kind", m.kind || "", [["", "Food and drinks"], ["food", "Food only"], ["drink", "Drinks only"]], `data-r="kind"`)}</label>
-        <label>Serving${sel("temp", m.temp || "", [["", "Any"], ["hot", "Hot drinks"], ["cold", "Cold drinks"]], `data-r="temp"`)}</label>
-        <label>Highest price<input type="number" min="0" step="1" data-r="maxPrice" data-f="rule" value="${m.maxPrice == null ? "" : esc(m.maxPrice)}" placeholder="no limit"></label>
-      </div>
-      <div class="qm-checks"><span>Categories</span>${data.categories.map((c) => `<label><input type="checkbox" data-r="cats" value="${esc(c.toLowerCase())}"${(m.cats || []).includes(c.toLowerCase()) ? " checked" : ""}> ${esc(c)}</label>`).join("") || "<em>none yet</em>"}</div>
-      <div class="qm-checks"><span>Tags</span>${["popular", "new", "hot"].map((t) => `<label><input type="checkbox" data-r="labels" value="${t}"${(m.labels || []).includes(t) ? " checked" : ""}> ${t}</label>`).join("")}</div>
-      <label>Name, description or ingredients contain any of <small>(comma separated)</small><input data-r="any" data-f="rule" value="${esc(csv(m.any))}" placeholder="e.g. chicken, manok"></label>
-      <label>...but contain none of<input data-r="none" data-f="rule" value="${esc(csv(m.none))}" placeholder="e.g. pork, bacon"></label>
-      <p class="hint">Leave everything empty and the answer matches every dish (good for "Anything").</p>
-    </details>`;
+  function rulesHtml(q, o) {
+    const m = o.match || {}, skip = modeOf(q) === "skip";
+    const cats = data.categories.length ? `<p class="qm-h">Only these categories <small>(pick none for all)</small></p><div class="qm-chips">${data.categories.map((c) => chip(c, (m.cats || []).includes(c.toLowerCase()), `data-act="tog" data-r="cats" data-v="${esc(c.toLowerCase())}"`)).join("")}</div>` : "";
+    return `<div class="qm-rules">
+      <p class="qm-h">What should this answer ${skip ? "hide" : "show"}?</p>
+      ${seg([["", "Every dish"], ["food", "Food only"], ["drink", "Drinks only"]], m.kind || "", 'data-act="rule" data-r="kind"')}
+      ${cats}
+      <p class="qm-h">Only dishes with these words <small>(in the name, description or ingredients)</small></p>
+      ${tags("any", m.any || [], "Type a word, like chicken")}
+      <p class="qm-h">Leave out dishes with these words</p>
+      ${tags("none", m.none || [], "Type a word, like pork")}
+      <details class="qm-more"><summary>More ways to narrow it down</summary>
+        <p class="qm-h">Hot or cold drinks</p>
+        ${seg([["", "Any"], ["hot", "Hot"], ["cold", "Cold"]], m.temp || "", 'data-act="rule" data-r="temp"')}
+        <p class="qm-h">Dish tags</p>
+        <div class="qm-chips">${["popular", "new", "hot"].map((t) => chip(cap(t), (m.labels || []).includes(t), `data-act="tog" data-r="labels" data-v="${t}"`)).join("")}</div>
+        <p class="qm-h">Highest price</p>
+        <input class="qm-price" type="number" min="0" step="1" data-f="price" value="${m.maxPrice == null ? "" : esc(m.maxPrice)}" placeholder="No limit" aria-label="Highest price">
+      </details>
+      <p class="qm-preview">${previewHtml(o)}</p>
+    </div>`;
   }
 
-  function render() { renderList(); refreshFlow(); }
-  function renderList() {
-    if (!draft.length) { list.innerHTML = '<p class="hint">No questions yet. Press "Generate from menu" or "Add question".</p>'; return; }
-    list.innerHTML = draft.map((q, qi) => `<div class="qm-card${q.enabled ? "" : " off"}" data-qi="${qi}">
-      <div class="qm-head">
-        <label class="qm-on"><input type="checkbox" data-f="enabled"${q.enabled ? " checked" : ""}> On</label>
-        <input class="qm-text" data-f="text" value="${esc(q.text)}" maxlength="120" aria-label="Question ${qi + 1}">
-        <div class="qm-move">
-          <button type="button" class="pb" data-act="up" aria-label="Move up"${qi === 0 ? " disabled" : ""}>\u2191</button>
-          <button type="button" class="pb" data-act="down" aria-label="Move down"${qi === draft.length - 1 ? " disabled" : ""}>\u2193</button>
-          <button type="button" class="pb danger" data-act="del" aria-label="Delete question">\u00d7</button>
+  function answerHtml(q, o, oi) {
+    const n = hitsOf(o).length, open = openA.has(q.id + "|" + o.id);
+    return `<div class="qm-ans" data-oid="${esc(o.id)}">
+      <div class="qm-ansrow">
+        <input data-f="olabel" value="${esc(o.label)}" maxlength="60" aria-label="Answer ${oi + 1}">
+        <div class="qm-mv">
+          <button type="button" class="pb" data-act="oup" aria-label="Move answer up"${oi === 0 ? " disabled" : ""}>\u2191</button>
+          <button type="button" class="pb" data-act="odown" aria-label="Move answer down"${oi === q.opts.length - 1 ? " disabled" : ""}>\u2193</button>
+          <button type="button" class="pb danger" data-act="odel" aria-label="Delete answer"${q.opts.length <= 1 ? " disabled" : ""}>\u00d7</button>
         </div>
       </div>
-      <div class="qm-grid">
-        <label>Customer picks${sel("type", q.type, [["single", "One answer"], ["multi", "Several answers"]])}</label>
-        ${q.type === "multi" ? `<label>Chosen answers${sel("mode", q.mode, [["include", "Show only matching dishes"], ["exclude", "Hide matching dishes"]])}</label>` : "<span></span>"}
-        <label>When to ask${sel("when", q.when ? q.when.q + "|" + q.when.opts[0] : "", whenOptions(qi))}</label>
-      </div>
-      ${q.mode === "exclude" ? `<label class="qm-note"><input type="checkbox" data-f="note"${q.note ? " checked" : ""}> Remind customers to tell staff about allergies</label>` : ""}
-      <div class="qm-opts">${q.opts.map((o, oi) => {
-        const n = withCount(o), t = total();
-        return `<div class="qm-opt" data-oi="${oi}">
-          <div class="qm-optrow"><input data-f="olabel" value="${esc(o.label)}" maxlength="60" aria-label="Answer ${oi + 1}">
-            <span class="qm-count${n === 0 ? " zero" : ""}" title="Available dishes this answer matches">${n} of ${t}</span>
-            <button type="button" class="pb" data-act="oup" aria-label="Move answer up"${oi === 0 ? " disabled" : ""}>\u2191</button>
-            <button type="button" class="pb" data-act="odown" aria-label="Move answer down"${oi === q.opts.length - 1 ? " disabled" : ""}>\u2193</button>
-            <button type="button" class="pb danger" data-act="odel" aria-label="Delete answer"${q.opts.length <= 1 ? " disabled" : ""}>\u00d7</button></div>
-          ${n === 0 ? '<p class="qm-warn">No available dish matches this answer. Customers will not see it.</p>' : ""}
-          ${optRules(q, o, qi, oi)}
-        </div>`;
-      }).join("")}
-        <button type="button" class="btn ghost qm-addopt" data-act="oadd">Add answer</button>
-      </div>
-    </div>`).join("");
+      <div class="qm-shows${n === 0 ? " zero" : ""}"><span>${esc(showsText(q, o))}</span><button type="button" class="qm-link" data-act="rules" aria-expanded="${open}">${open ? "Done" : "Change"}</button></div>
+      <p class="qm-warn"${n ? " hidden" : ""}>No dish matches yet, so customers will not see this answer.</p>
+      ${open ? rulesHtml(q, o) : ""}
+    </div>`;
   }
 
-  // ---- Flowchart view (drawing is in admin-quick-flow.js) ----
-  const flowEl = $("#qm-flow");
-  function refreshFlow() {
-    if (flowEl.hidden) return;
-    QuickFlow.draw(flowEl, { draft, stopAt: parseInt(stopEl.value, 10) || 0, total: total(), count: withCount, canLink, onLink });
+  function whenHtml(q, qi) {
+    if (qi === 0) return "";
+    const opts = [["", "Everyone (always ask)"]];
+    draft.slice(0, qi).forEach((p) => p.opts.forEach((a) => opts.push([p.id + "|" + a.id, `Only after they pick \u201c${a.label}\u201d for \u201c${p.text}\u201d`])));
+    const cur = q.when ? q.when.q + "|" + q.when.opts[0] : "";
+    const bad = q.when && draft.findIndex((p) => p.id === q.when.q) > qi;
+    return `<p class="qm-h">Who sees this question?</p>
+      <select data-f="when" aria-label="Who sees this question">${opts.map(([v, l]) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(l)}</option>`).join("")}</select>
+      ${bad ? '<p class="qm-warn">This question depends on one that comes after it. Move it down.</p>' : ""}`;
   }
 
-  // ---- Moving the green arrows ----
-  // An arrow is a question's "when" rule: [answer] -> [question]. "cid" is "questionId|answerId", as in the chart's data-cid.
-  const qLabel = (id) => { const q = qById(id); return q ? `\u201c${q.text}\u201d` : "that question"; };
-  const aLabel = (cid) => { const [qi, oi] = cid.split("|"), q = qById(qi), o = q && q.opts.find((p) => p.id === oi); return o ? `\u201c${o.label}\u201d` : "that answer"; };
-  // A question cannot hang from itself or from one of its own follow-ups (that would be a loop nobody can ever reach).
-  function canLink(parentId, targetId) {
-    for (let x = qById(parentId), n = 0; x && n < 50; x = x.when && qById(x.when.q), n++) if (x.id === targetId) return false;
-    return true;
-  }
-  // Make this answer lead to the question. Returns true if the question had to move down the list.
-  function linkTo(cid, targetId) {
-    const [pq, po] = cid.split("|"), t = qById(targetId), p = qById(pq);
-    if (!t || !p || !canLink(pq, targetId)) return false;
-    if (t.when && t.when.q === pq) { if (!t.when.opts.includes(po)) t.when.opts.push(po); }   // same parent: "answer A or B"
-    else t.when = { q: pq, opts: [po] };                                                      // a question has one parent, so this replaces the old one
-    t.when.opts.sort((a, b) => p.opts.findIndex((o) => o.id === a) - p.opts.findIndex((o) => o.id === b));
-    // Customers get questions in list order, so a follow-up must sit below its parent. Move it (with its own follow-ups) if not.
-    if (draft.indexOf(t) > draft.indexOf(p)) return false;
-    const set = new Set([t.id]);
-    for (let grew = true; grew;) { grew = false; draft.forEach((q) => { if (!set.has(q.id) && q.when && set.has(q.when.q)) { set.add(q.id); grew = true; } }); }
-    const moved = draft.filter((q) => set.has(q.id));
-    draft = draft.filter((q) => !set.has(q.id));
-    draft.splice(draft.indexOf(p) + 1, 0, ...moved);
-    return true;
-  }
-  function unlinkFrom(cid, targetId) {
-    const [pq, po] = cid.split("|"), t = qById(targetId);
-    if (!t || !t.when || t.when.q !== pq) return;
-    t.when.opts = t.when.opts.filter((o) => o !== po);
-    if (!t.when.opts.length) t.when = null;
-  }
-  function onLink(c) {
-    let moved = false, msg;
-    if (c.type === "connect") { moved = linkTo(c.cid, c.to); msg = `${aLabel(c.cid)} now leads to ${qLabel(c.to)}.`; }
-    else if (c.type === "end") { unlinkFrom(c.cid, c.from); moved = linkTo(c.cid, c.to); msg = `${aLabel(c.cid)} now leads to ${qLabel(c.to)} instead of ${qLabel(c.from)}.`; }
-    else if (c.type === "start") { unlinkFrom(c.cid, c.to); moved = linkTo(c.newCid, c.to); msg = `${qLabel(c.to)} now follows ${aLabel(c.newCid)} instead of ${aLabel(c.cid)}.`; }
-    else if (c.type === "unlink") { unlinkFrom(c.cid, c.to); msg = `${qLabel(c.to)} is no longer tied to an answer, so it is asked every time.`; }
-    else return;
-    mark(); render();
-    sayQ(msg + (moved ? " It was moved below its parent in the question order." : "") + " Remember to save.");
-  }
-  function setView(v) {
-    if (v === "list") renderList(); // the flowchart edits the draft without redrawing the list
-    list.hidden = v !== "list"; flowEl.hidden = v !== "flow";
-    document.querySelectorAll(".qm-view").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.view === v)));
-    refreshFlow();
-  }
-  document.querySelectorAll(".qm-view").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
-  const qById = (id) => draft.find((x) => x.id === id);
-  const newId = (p) => p + Date.now().toString(36) + Math.floor(Math.random() * 36).toString(36);
-  flowEl.addEventListener("input", (e) => {
-    const t = e.target, q = qById(t.dataset.qid);
-    if (!q) return;
-    if (t.classList.contains("qf-text")) q.text = t.value;
-    else if (t.classList.contains("qf-olabel")) { const o = q.opts.find((p) => p.id === t.dataset.oid); if (o) o.label = t.value; QuickFlow.repaint(); }
-    else return;
-    mark();
-  });
-  flowEl.addEventListener("click", (e) => {
-    const b = e.target.closest("button[data-act]"), q = b && qById(b.dataset.qid);
-    if (!q) return;
-    const act = b.dataset.act;
-    if (act === "follow") {
-      if (draft.length >= 15) return sayQ("Please keep it to 15 questions or fewer.", true);
-      const id = newId("custom-");
-      draft.push({ id, text: "New question", type: "single", mode: "include", enabled: true, note: false, when: { q: q.id, opts: [b.dataset.oid] }, source: "custom", opts: [{ id: "answer-1", label: "Anything", match: {} }] });
-      mark(); render(); sayQ("");
-      const inp = flowEl.querySelector(`[data-nid="${id}"] .qf-text`);
-      if (inp) { inp.scrollIntoView({ block: "center", inline: "center" }); inp.focus(); inp.select(); }
-    } else if (act === "ans") {
-      if (q.opts.length >= 12) return;
-      q.opts.push({ id: newId("answer-"), label: "New answer", match: {} });
-      mark(); render();
-      const ins = flowEl.querySelectorAll(`[data-nid="${q.id}"] .qf-olabel`), inp = ins[ins.length - 1];
-      if (inp) { inp.focus(); inp.select(); }
-    } else if (act === "off" || act === "on") { q.enabled = act === "on"; mark(); render(); }
-    else if (act === "edit") {
-      setView("list");
-      const card = list.children[draft.indexOf(q)];
-      if (card) { card.scrollIntoView({ behavior: "smooth", block: "start" }); card.classList.add("qm-hl"); setTimeout(() => card.classList.remove("qm-hl"), 1800); }
+  function cardHtml(q, qi) {
+    const open = openQ === q.id, mk = modeOf(q), modeLabel = MODES.find((m) => m[0] === mk);
+    const anyZero = q.opts.some((o) => hitsOf(o).length === 0);
+    const head = `<div class="qm-top">
+      <label class="qm-switch" title="Customers only see this question when it is On"><input type="checkbox" data-f="enabled" aria-label="Show this question to customers"${q.enabled ? " checked" : ""}><span class="qm-slider"></span><span class="qm-swt">${q.enabled ? "On" : "Off"}</span></label>
+      <button type="button" class="qm-title" data-act="toggle" aria-expanded="${open}"><span class="qm-num">${qi + 1}</span><span class="qm-ttext">${esc(q.text) || "(write a question)"}</span><span class="qm-caret" aria-hidden="true">\u25be</span></button>
+      <div class="qm-mv">
+        <button type="button" class="pb" data-act="up" aria-label="Move question up"${qi === 0 ? " disabled" : ""}>\u2191</button>
+        <button type="button" class="pb" data-act="down" aria-label="Move question down"${qi === draft.length - 1 ? " disabled" : ""}>\u2193</button>
+      </div></div>`;
+    if (!open) {
+      return `<div class="qm-card${q.enabled ? "" : " off"}" data-id="${esc(q.id)}">${head}
+        <div class="qm-pills">${q.opts.map((o) => `<span class="qm-pill${hitsOf(o).length === 0 ? " zero" : ""}">${esc(o.label)}</span>`).join("")}<span class="qm-pill meta">${esc(modeLabel[1])}</span></div>
+        ${anyZero ? '<p class="qm-warn qm-cardwarn">An answer here shows no dishes. Tap the question to fix it.</p>' : ""}</div>`;
     }
-  });
-  window.addEventListener("resize", () => QuickFlow.repaint());
+    return `<div class="qm-card open${q.enabled ? "" : " off"}" data-id="${esc(q.id)}">${head}
+      <div class="qm-body">
+        <p class="qm-h">Question</p>
+        <input class="qm-text" data-f="text" value="${esc(q.text)}" maxlength="120" aria-label="Question ${qi + 1}">
+        <p class="qm-h">How do customers answer?</p>
+        ${seg(MODES.map((m) => [m[0], m[1]]), mk, 'data-act="mode"')}
+        <p class="qm-desc">${esc(modeLabel[2])}</p>
+        ${mk === "skip" ? `<label class="qm-note"><input type="checkbox" data-f="note"${q.note ? " checked" : ""}> Remind customers to tell staff about allergies</label>` : ""}
+        <p class="qm-h">Answers</p>
+        ${q.opts.map((o, oi) => answerHtml(q, o, oi)).join("")}
+        <button type="button" class="btn ghost qm-addans" data-act="oadd"${q.opts.length >= 12 ? " disabled" : ""}>+ Add an answer</button>
+        ${whenHtml(q, qi)}
+        <div class="qm-foot"><button type="button" class="btn ghost danger" data-act="del">Delete this question</button><button type="button" class="btn" data-act="toggle">Done</button></div>
+      </div></div>`;
+  }
+
+  function render() {
+    if (!draft.length) {
+      list.innerHTML = '<div class="qm-empty"><p>No questions yet.</p><button type="button" class="btn" data-act="gen">Make questions from my menu</button></div>';
+      return;
+    }
+    list.innerHTML = draft.map(cardHtml).join("");
+    if (focusSel) { const el = list.querySelector(focusSel); if (el) { el.focus(); if (el.select) el.select(); } focusSel = null; }
+  }
 
   // ---- Editing ----
-  const qOf = (el) => draft[Number(el.closest("[data-qi]").dataset.qi)];
-  const oOf = (el) => qOf(el).opts[Number(el.closest("[data-oi]").dataset.oi)];
+  function ctx(el) {
+    const c = el.closest("[data-id]"), a = el.closest("[data-oid]");
+    const qi = draft.findIndex((q) => q.id === (c && c.dataset.id)), q = draft[qi];
+    const oi = q && a ? q.opts.findIndex((o) => o.id === a.dataset.oid) : -1;
+    return { q, qi, o: oi >= 0 ? q.opts[oi] : null, oi };
+  }
   const move = (a, i, d) => { const j = i + d; if (j >= 0 && j < a.length) [a[i], a[j]] = [a[j], a[i]]; };
-  const splitWords = (s) => String(s).split(",").map((x) => x.trim()).filter(Boolean);
+  const M = (o) => (o.match = o.match || {});
+  function setRule(o, k, v) { const m = M(o); if (v === "" || v == null || (Array.isArray(v) && !v.length)) delete m[k]; else m[k] = v; }
+  function addWords(o, k, text) {
+    const w = String(text).split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+    if (!w.length) return false;
+    setRule(o, k, [...new Set([...(M(o)[k] || []), ...w])].slice(0, 12));
+    return true;
+  }
+  const focusWord = (q, o, r) => `[data-id="${CSS.escape(q.id)}"] [data-oid="${CSS.escape(o.id)}"] [data-tags="${r}"] input`;
+  // Typing a price changes the sentence and dish count in place (no redraw, so the cursor stays)
+  function paintCounts(el, q, o) {
+    const ans = el.closest(".qm-ans"), n = hitsOf(o).length;
+    ans.querySelector(".qm-shows span").textContent = showsText(q, o);
+    ans.querySelector(".qm-shows").classList.toggle("zero", n === 0);
+    ans.querySelector(".qm-warn").hidden = n > 0;
+    const pv = ans.querySelector(".qm-preview"); if (pv) pv.innerHTML = previewHtml(o);
+  }
 
-  // Typing updates the draft without redrawing, so the cursor stays where it is
   list.addEventListener("input", (e) => {
-    const t = e.target, f = t.dataset.f;
-    if (!f) return;
-    if (f === "text") qOf(t).text = t.value;
-    else if (f === "olabel") oOf(t).label = t.value;
-    else if (f === "rule") applyRule(t);
+    const t = e.target, f = t.dataset.f, { q, o } = ctx(t);
+    if (!q) return;
+    if (f === "text") { q.text = t.value; const tt = t.closest(".qm-card").querySelector(".qm-ttext"); tt.textContent = t.value || "(write a question)"; }
+    else if (f === "olabel" && o) o.label = t.value;
+    else if (f === "price" && o) { setRule(o, "maxPrice", t.value === "" ? "" : Math.max(0, Number(t.value))); paintCounts(t, q, o); }
     else return;
     mark();
   });
-  function applyRule(t) {
-    const o = oOf(t), r = t.dataset.r, m = (o.match = o.match || {});
-    if (r === "maxPrice") { if (t.value === "") delete m.maxPrice; else m.maxPrice = Number(t.value); }
-    else if (r === "any" || r === "none") { const w = splitWords(t.value); if (w.length) m[r] = w; else delete m[r]; }
-  }
-  // Choosing from a menu or a checkbox redraws (counts and warnings change)
+
   list.addEventListener("change", (e) => {
-    const t = e.target, f = t.dataset.f, r = t.dataset.r;
-    if (r === "cats" || r === "labels") {
-      const o = oOf(t), m = (o.match = o.match || {});
-      m[r] = [...t.closest(".qm-checks").querySelectorAll("input:checked")].map((x) => x.value);
-      if (!m[r].length) delete m[r];
-    } else if (r === "kind" || r === "temp") {
-      const o = oOf(t), m = (o.match = o.match || {});
-      if (t.value) m[r] = t.value; else delete m[r];
-    } else if (r) {
-      // Text rules: update the draft and this answer's count only, so a click on another button is not lost to a redraw
-      applyRule(t);
-      const row = t.closest(".qm-opt"), n = withCount(oOf(t)), c = row.querySelector(".qm-count");
-      c.textContent = `${n} of ${total()}`; c.classList.toggle("zero", n === 0);
-      mark(); return;
-    }
-    else if (f === "enabled") qOf(t).enabled = t.checked;
-    else if (f === "note") qOf(t).note = t.checked;
-    else if (f === "type") { const q = qOf(t); q.type = t.value; if (q.type === "single") { q.mode = "include"; q.note = false; } }
-    else if (f === "mode") { const q = qOf(t); q.mode = t.value; if (q.mode === "include") q.note = false; }
-    else if (f === "when") { const q = qOf(t), [id, opt] = t.value.split("|"); q.when = t.value ? { q: id, opts: [opt] } : null; }
+    const t = e.target, f = t.dataset.f, { q, o } = ctx(t);
+    if (!q) return;
+    if (f === "enabled") q.enabled = t.checked;
+    else if (f === "note") q.note = t.checked;
+    else if (f === "when") { const [id, opt] = t.value.split("|"); q.when = t.value ? { q: id, opts: [opt] } : null; }
+    else if (f === "word" && o) { if (!addWords(o, t.dataset.r, t.value)) return; }
     else return;
     mark(); render();
   });
-  list.addEventListener("toggle", (e) => {
-    const d = e.target;
-    if (d.classList && d.classList.contains("qm-rules")) { if (d.open) openRules.add(d.dataset.key); else openRules.delete(d.dataset.key); }
-  }, true);
+
+  list.addEventListener("keydown", (e) => {
+    const t = e.target;
+    if (t.dataset.f !== "word") return;
+    const { q, o } = ctx(t), r = t.dataset.r;
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      if (addWords(o, r, t.value)) { focusSel = focusWord(q, o, r); mark(); render(); }
+    } else if (e.key === "Backspace" && !t.value && (M(o)[r] || []).length) {
+      setRule(o, r, M(o)[r].slice(0, -1)); focusSel = focusWord(q, o, r); mark(); render();
+    }
+  });
 
   list.addEventListener("click", (e) => {
     const b = e.target.closest("[data-act]");
     if (!b) return;
-    const act = b.dataset.act, qi = Number(b.closest("[data-qi]").dataset.qi), q = draft[qi];
-    const oi = b.closest("[data-oi]") ? Number(b.closest("[data-oi]").dataset.oi) : -1;
-    openRules.clear();
+    const act = b.dataset.act;
+    if (act === "gen") return generate();
+    const { q, qi, o, oi } = ctx(b);
+    if (!q) return;
+    if (act === "toggle") { openQ = openQ === q.id ? null : q.id; return render(); }
+    if (act === "rules") { const k = q.id + "|" + o.id; if (openA.has(k)) openA.delete(k); else openA.add(k); return render(); }
+    sayQ("");
     if (act === "up") move(draft, qi, -1);
     else if (act === "down") move(draft, qi, 1);
-    else if (act === "del") { if (!confirm("Delete this question?")) return; draft.splice(qi, 1); }
+    else if (act === "del") {
+      if (!confirm("Delete this question?")) return;
+      draft.splice(qi, 1); openQ = null;
+      draft.forEach((x) => { if (x.when && x.when.q === q.id) x.when = null; });
+    }
+    else if (act === "mode") setMode(q, b.dataset.v);
     else if (act === "oup") move(q.opts, oi, -1);
     else if (act === "odown") move(q.opts, oi, 1);
-    else if (act === "odel") q.opts.splice(oi, 1);
-    else if (act === "oadd") q.opts.push({ id: "answer-" + Date.now().toString(36), label: "New answer", match: {} });
+    else if (act === "odel") {
+      q.opts.splice(oi, 1);
+      draft.forEach((x) => { if (x.when && x.when.q === q.id) { x.when.opts = x.when.opts.filter((id) => id !== o.id); if (!x.when.opts.length) x.when = null; } });
+    }
+    else if (act === "oadd") {
+      const id = newId("answer-");
+      q.opts.push({ id, label: "New answer", match: {} });
+      focusSel = `[data-id="${CSS.escape(q.id)}"] [data-oid="${CSS.escape(id)}"] [data-f="olabel"]`;
+    }
+    else if (act === "rule") setRule(o, b.dataset.r, b.dataset.v);
+    else if (act === "tog") {
+      const arr = (M(o)[b.dataset.r] || []).slice(), i = arr.indexOf(b.dataset.v);
+      if (i >= 0) arr.splice(i, 1); else arr.push(b.dataset.v);
+      setRule(o, b.dataset.r, arr);
+    }
+    else if (act === "addword") {
+      const inp = b.closest("[data-tags]").querySelector("input"), r = inp.dataset.r;
+      if (addWords(o, r, inp.value)) focusSel = focusWord(q, o, r); else return inp.focus();
+    }
+    else if (act === "rmword") setRule(o, b.dataset.r, (M(o)[b.dataset.r] || []).filter((w) => w !== b.dataset.w));
     else return;
     mark(); render();
   });
 
-  // ---- Toolbar ----
-  $("#qm-generate").addEventListener("click", () => {
-    if (draft.length && !confirm("Replace all questions with fresh ones made from the menu? Your edits will be lost.")) return;
-    draft = QuickGen.generate(data); openRules.clear(); mark(); render();
-    flash($("#qm-generate"), "\u2713 Generated");
-    sayQ(`Made ${draft.length} question${draft.length === 1 ? "" : "s"} from your menu. Review them, then save.`);
-  });
-  $("#qm-missing").addEventListener("click", () => {
-    const have = new Set(draft.map((q) => q.id));
-    const add = QuickGen.generate(data).filter((q) => !have.has(q.id));
-    if (!add.length) { flash($("#qm-missing"), "Nothing new"); return sayQ("Nothing new to add. Every suggestion is already in the list."); }
+  // ---- Buttons outside the cards ----
+  function generate() {
+    if (draft.length && !confirm("Start over? Your changes will be replaced by new questions made from your menu.")) return;
+    draft = QuickGen.generate(data); openQ = null; openA.clear(); mark(); render();
+    sayQ(`Made ${draft.length} question${draft.length === 1 ? "" : "s"} from your menu. Look them over, then press Save.`);
+  }
+  function addMissing() {
+    const have = new Set(draft.map((q) => q.id)), add = QuickGen.generate(data).filter((q) => !have.has(q.id));
+    if (!add.length) { sayQ("Nothing new to add. Every suggestion is already in your list."); return; }
     draft.push(...add); mark(); render();
-    flash($("#qm-missing"), `\u2713 Added ${add.length}`);
-    sayQ(`Added ${add.length} new question${add.length === 1 ? "" : "s"} at the end. Move them where you like.`);
-  });
+    sayQ(`Added ${add.length} new question${add.length === 1 ? "" : "s"} at the end. Move them where you like, then Save.`);
+  }
+  statusEl.addEventListener("click", (e) => { if (e.target.id === "qm-missing") addMissing(); });
+  $("#qm-generate").addEventListener("click", generate);
   $("#qm-add").addEventListener("click", () => {
     if (draft.length >= 15) return sayQ("Please keep it to 15 questions or fewer.", true);
-    draft.push({ id: "custom-" + Date.now().toString(36), text: "New question", type: "single", mode: "include", enabled: true, note: false, when: null, source: "custom", opts: [{ id: "answer-1", label: "Anything", match: {} }] });
-    mark(); render(); sayQ("");
-    flash($("#qm-add"), "\u2713 Added");
-    list.lastElementChild.querySelector(".qm-text").select();
+    const id = newId("custom-");
+    draft.push({ id, text: "New question", type: "single", mode: "include", enabled: true, note: false, when: null, source: "custom", opts: [{ id: "answer-1", label: "Anything", match: {} }] });
+    openQ = id; focusSel = `[data-id="${CSS.escape(id)}"] .qm-text`; sayQ(""); mark(); render();
+    const c = list.querySelector(`[data-id="${CSS.escape(id)}"]`); if (c) c.scrollIntoView({ block: "center", behavior: "smooth" });
   });
-  stopEl.addEventListener("input", () => { mark(); refreshFlow(); });
+  stopEl.addEventListener("input", () => mark());
 
   $("#qm-save").addEventListener("click", async () => {
     try {
-      sayQ("Saving…");
+      sayQ("Saving\u2026");
       const r = await api("PUT", "/api/quick", { questions: draft, stopAt: stopEl.value });
       saved = r.quick; savedSig = r.sig; draft = clone(saved.questions); dirty = false; render(); status();
       sayQ("Saved. Customers see these questions now. Push to GitHub to update the live site.");
@@ -291,8 +316,8 @@
     } catch (err) { sayQ(err.message, true); }
   });
   $("#qm-discard").addEventListener("click", () => {
-    if (dirty && !confirm("Throw away your unsaved changes?")) return;
-    openRules.clear(); flash($("#qm-discard"), "\u2713 Discarded"); load().then(() => sayQ("")).catch((e) => sayQ(e.message, true));
+    if (!confirm("Undo all the changes you have not saved?")) return;
+    load().then(() => sayQ("")).catch((e) => sayQ(e.message, true));
   });
   $("#qm-reset").addEventListener("click", async () => {
     if (!confirm("Delete your saved questions? Customers will get automatic questions made from the menu.")) return;
