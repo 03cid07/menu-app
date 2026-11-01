@@ -6,7 +6,9 @@
     "ESPRESSO DRINKS",
     "NON-ESPRESSO DRINKS",
     "pizza",
-    "water"
+    "water",
+    "Water Drink",
+    "desert"
   ],
   "items": [
     {
@@ -194,6 +196,32 @@
       "temp": "",
       "label": "popular",
       "available": true
+    },
+    {
+      "id": "mvwm8syg",
+      "name": "Nature Spring",
+      "price": 20,
+      "category": "Water Drink",
+      "description": "cold Water",
+      "ingredients": "",
+      "image": "",
+      "images": [],
+      "model": "",
+      "label": "new",
+      "available": true
+    },
+    {
+      "id": "mvxwwcwj",
+      "name": "pancake",
+      "price": 12,
+      "category": "desert",
+      "description": "hot pancake",
+      "ingredients": "",
+      "image": "",
+      "images": [],
+      "model": "",
+      "label": "",
+      "available": true
     }
   ],
   "quick": {
@@ -232,6 +260,82 @@
         ]
       },
       {
+        "id": "temp",
+        "text": "Hot or cold?",
+        "type": "single",
+        "mode": "include",
+        "enabled": true,
+        "note": false,
+        "when": {
+          "q": "kind",
+          "opts": [
+            "something-to-drink"
+          ]
+        },
+        "source": "auto",
+        "opts": [
+          {
+            "id": "hot",
+            "label": "Hot",
+            "match": {
+              "temp": "hot"
+            }
+          },
+          {
+            "id": "cold",
+            "label": "Cold",
+            "match": {
+              "temp": "cold"
+            }
+          },
+          {
+            "id": "either",
+            "label": "Either",
+            "match": {}
+          }
+        ]
+      },
+      {
+        "id": "category",
+        "text": "Which kind of dish?",
+        "type": "single",
+        "mode": "include",
+        "enabled": true,
+        "note": false,
+        "when": {
+          "q": "kind",
+          "opts": [
+            "something-to-eat"
+          ]
+        },
+        "source": "auto",
+        "opts": [
+          {
+            "id": "mains",
+            "label": "Mains",
+            "match": {
+              "cats": [
+                "mains"
+              ]
+            }
+          },
+          {
+            "id": "desert",
+            "label": "desert",
+            "match": {
+              "cats": [
+                "desert"
+              ]
+            }
+          },
+          {
+            "id": "anything",
+            "label": "Anything",
+            "match": {}
+          }
+        ]
+      },
+      {
         "id": "drink-category",
         "text": "Which kind of drink?",
         "type": "single",
@@ -261,6 +365,15 @@
             "match": {
               "cats": [
                 "non-espresso drinks"
+              ]
+            }
+          },
+          {
+            "id": "water-drink",
+            "label": "Water Drink",
+            "match": {
+              "cats": [
+                "water drink"
               ]
             }
           },
@@ -653,7 +766,7 @@
         ]
       }
     ],
-    "sig": "1fcukx3.13",
-    "savedAt": "2026-10-31T16:26:56.749Z"
+    "sig": "3cgpzj.15",
+    "savedAt": "2026-11-01T14:24:36.874Z"
   }
 }

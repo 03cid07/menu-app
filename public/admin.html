@@ -6,7 +6,7 @@
   <title>Manage menu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=18">
+  <link rel="stylesheet" href="css/style.css?v=19">
 </head>
 <body class="admin-page">
   <nav class="adminnav" aria-label="Admin sections">
@@ -72,6 +72,7 @@
         <button class="btn" type="button" id="qm-generate">✨ Generate questions from my menu</button>
         <p class="hint">Reads your dishes and writes the questions for you. You can still change anything before you save.</p>
       </div>
+      <details class="qm-flowmap"><summary>🔀 See how the questions connect</summary><div id="qm-flow"></div></details>
       <div id="qm-list"></div>
       <button class="btn qm-addq" type="button" id="qm-add">+ Add a question</button>
       <p class="qm-stoprow">Stop asking when only <input id="qm-stop" type="number" min="0" max="10" aria-label="Stop asking when this many dishes are left"> dishes are left. <small>(0 = ask every question)</small></p>
@@ -204,6 +205,6 @@
   <script src="js/marquee.js"></script>
   <script src="js/quick-gen.js?v=3"></script>
   <script src="js/admin.js?v=2"></script>
-  <script src="js/admin-quick.js?v=4"></script>
+  <script src="js/admin-quick.js?v=5"></script>
 </body>
 </html>

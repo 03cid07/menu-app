@@ -18,7 +18,7 @@
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const newId = (p) => p + Date.now().toString(36) + Math.floor(Math.random() * 36).toString(36);
   const sayQ = (t, err) => { const m = $("#qm-msg"); m.textContent = t; m.className = "msg" + (err ? " error" : ""); };
-  const mark = (d = true) => { dirty = d; status(); };
+  const mark = (d = true) => { dirty = d; status(); renderFlow(); };
   const dishes = (n) => `${n} ${n === 1 ? "dish" : "dishes"}`;
   function flash(btn, text) {
     if (btn._t) clearTimeout(btn._t); else { btn._label = btn.textContent; btn.style.minWidth = btn.offsetWidth + "px"; }
@@ -74,6 +74,49 @@
     else if (stale) { statusEl.className = "qm-banner warn"; statusEl.innerHTML = '<span>Your menu changed since you last saved.</span><button type="button" class="btn" id="qm-missing">Add questions for new dishes</button>'; }
     else { statusEl.className = "qm-banner ok"; statusEl.innerHTML = "<span>\u2713 Saved. Customers see these questions.</span>"; }
   }
+
+  // ---- How the questions connect ----
+  const qNum = (id) => draft.findIndex((x) => x.id === id) + 1;
+  // Who sees a question: everyone, or only people who picked a certain answer earlier
+  function whoInfo(q) {
+    const p = q.when && draft.find((x) => x.id === q.when.q);
+    const labels = p ? q.when.opts.map((id) => (p.opts.find((o) => o.id === id) || {}).label).filter(Boolean) : [];
+    if (!p || !labels.length) return { cond: false, text: "Everyone" };
+    const n = qNum(p.id);
+    const warn = !p.enabled ? "The question it depends on is Off, so everyone sees this one." : n > qNum(q.id) ? "This comes before the question it depends on. Move it down." : "";
+    return { cond: true, text: `Only after they pick \u201c${labels.join("\u201d or \u201c")}\u201d in question ${n}`, warn };
+  }
+  function flowHtml() {
+    if (!draft.length) return "";
+    const stop = Number(stopEl.value) || 0;
+    const rows = draft.map((q, i) => {
+      const w = whoInfo(q);
+      const ans = q.opts.map((o) => {
+        const kids = draft.map((c, ci) => (c.when && c.when.q === q.id && c.when.opts.includes(o.id) ? ci + 1 : 0)).filter(Boolean);
+        return `<span class="qm-fa${kids.length ? " go" : ""}">${esc(o.label)}${kids.length ? `<em> \u2192 ${kids.map((n) => "Q" + n).join(", ")}</em>` : ""}</span>`;
+      }).join("");
+      return `<li class="${w.cond ? "cond " : ""}${q.enabled ? "" : "off"}">
+        <span class="qm-num">${i + 1}</span>
+        <div class="qm-fmain">
+          <button type="button" class="qm-flink" data-goto="${esc(q.id)}">${esc(q.text) || "(write a question)"}</button>
+          <div class="qm-fwho">${q.enabled ? (w.cond ? "\u21b3 " : "") + esc(w.text) : "Off. Customers do not see this question."}</div>
+          ${w.warn && q.enabled ? `<div class="qm-warn">${esc(w.warn)}</div>` : ""}
+          <div class="qm-fans">${ans}</div>
+        </div></li>`;
+    }).join("");
+    return `<ol class="qm-flow">${rows}</ol><ul class="qm-fnotes">
+      <li>Customers get the questions from top to bottom.</li>
+      <li>A question with \u21b3 is skipped unless the customer picked that answer. The arrows (\u2192) show which questions an answer opens.</li>
+      <li>A question is also skipped on its own when its answers would not change the results.</li>
+      <li>${stop > 0 ? `Asking stops early when only ${stop} dish${stop === 1 ? " is" : "es are"} left.` : "Asking never stops early."}</li></ul>`;
+  }
+  function renderFlow() { const el = $("#qm-flow"); if (el) el.innerHTML = flowHtml(); }
+  $("#qm-flow").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-goto]");
+    if (!b) return;
+    openQ = b.dataset.goto; render();
+    const c = list.querySelector(`[data-id="${CSS.escape(openQ)}"]`); if (c) c.scrollIntoView({ block: "start", behavior: "smooth" });
+  });
 
   // ---- Loading ----
   async function load() {
@@ -152,7 +195,7 @@
       </div></div>`;
     if (!open) {
       return `<div class="qm-card${q.enabled ? "" : " off"}" data-id="${esc(q.id)}">${head}
-        <div class="qm-pills">${q.opts.map((o) => `<span class="qm-pill${hitsOf(o).length === 0 ? " zero" : ""}">${esc(o.label)}</span>`).join("")}<span class="qm-pill meta">${esc(modeLabel[1])}</span></div>
+        <div class="qm-pills"><p class="qm-who">${whoInfo(q).cond ? "\u21b3 " : ""}${esc(whoInfo(q).text)}</p>${q.opts.map((o) => `<span class="qm-pill${hitsOf(o).length === 0 ? " zero" : ""}">${esc(o.label)}</span>`).join("")}<span class="qm-pill meta">${esc(modeLabel[1])}</span></div>
         ${anyZero ? '<p class="qm-warn qm-cardwarn">An answer here shows no dishes. Tap the question to fix it.</p>' : ""}</div>`;
     }
     return `<div class="qm-card open${q.enabled ? "" : " off"}" data-id="${esc(q.id)}">${head}
@@ -172,6 +215,7 @@
   }
 
   function render() {
+    renderFlow();
     if (!draft.length) {
       list.innerHTML = '<div class="qm-empty"><p>No questions yet.</p><button type="button" class="btn" data-act="gen">Make questions from my menu</button></div>';
       return;
