@@ -7,7 +7,14 @@
   document.body.appendChild(home);
 
   let hist = [], cur = null;
-  // Icon-only bottom nav. Labels stay available to screen readers and as tooltips.
+  // Showing the start / quick screens fades them in; leaving them fades them out before they are hidden
+  const openHome = () => { clearTimeout(home._t); home.classList.remove("leaving"); home.hidden = false; };
+  const leaveHome = () => {
+    if (home.hidden || home.classList.contains("leaving")) return;
+    home.classList.add("leaving");
+    home._t = setTimeout(() => { home.hidden = true; home.classList.remove("leaving"); }, 280);
+  };
+  // Bottom nav with an expanding label: the active tab grows into a pill and its label slides out, the others shrink to icons.
   const SVG = (d) => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const NAV = [
     ["home", "Home", SVG('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>')],
@@ -17,10 +24,11 @@
   const nav = document.createElement("nav");
   nav.className = "bottomnav";
   nav.setAttribute("aria-label", "Main");
-  nav.innerHTML = `<div class="bottomnav-in">${NAV.map(([k, t, icon]) => `<button type="button" class="navlink" data-nav="${k}" aria-label="${t}" title="${t}">${icon}</button>`).join("")}</div>`;
+  nav.innerHTML = `<div class="bottomnav-in">${NAV.map(([k, t, icon]) => `<button type="button" class="navlink" data-nav="${k}" aria-label="${t}" title="${t}">${icon}<span class="nav-label" aria-hidden="true">${t}</span></button>`).join("")}</div>`;
   document.body.appendChild(nav);
-  // The start screen has no bottom bar; it appears once the customer picks Full menu or Quick menu
-  const setNav = (on) => { nav.hidden = on === "home"; nav.querySelectorAll(".navlink").forEach((b) => (b.dataset.nav === on ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"))); };
+  // The start screen has no bottom bar; it slides up once the customer picks Full menu or Quick menu
+  // On the start screen the bar slides down out of sight (and back up later) instead of blinking away
+  const setNav = (on) => { nav.classList.toggle("away", on === "home"); nav.inert = on === "home"; nav.querySelectorAll(".navlink").forEach((b) => (b.dataset.nav === on ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"))); };
   setNav("home");
   // Questions: the ones the owner reviewed in the admin (data.quick), or ones made live from the menu
   const cfg = () => (data.quick && Array.isArray(data.quick.questions) && data.quick.questions.length ? data.quick : { stopAt: 3, questions: QuickGen.generate(data) });
@@ -30,7 +38,7 @@
     home.innerHTML = `<div class="home-box"><h1>${esc(data.restaurant)}</h1><p class="home-sub">How would you like to order?</p>
       <button type="button" class="home-card" data-go="full"><strong>Full menu</strong><span>Browse every dish</span></button>
       <button type="button" class="home-card" data-go="quick"><strong>Quick menu</strong><span>Answer a few questions and we'll find what suits you</span></button></div>`;
-    home.hidden = false; home.scrollTop = 0; setNav("home");
+    openHome(); home.scrollTop = 0; setNav("home");
   };
 
   function show(answers) {
@@ -38,7 +46,7 @@
     if (r.done) return results(r.answers);
     const q = r.q;
     cur = { answers: r.answers, q, opts: r.opts, sel: new Set() };
-    home.hidden = false; setNav("quick");
+    openHome(); setNav("quick");
     home.innerHTML = `<div class="home-box"><button type="button" class="home-back" data-back>\u2039 Back</button>
       <h2 class="home-q">${esc(q.text)}</h2>
       ${q.type === "multi"
@@ -51,7 +59,7 @@
     const c = cfg();
     const items = QuickGen.filter(data.items, c, answers).sort(PICK_SORT);
     const noted = answers.some((a) => !a.auto && a.opts.length && (c.questions.find((q) => q.id === a.q) || {}).note);
-    home.hidden = false; setNav("quick");
+    openHome(); setNav("quick");
     home.innerHTML = `<div class="home-box"><button type="button" class="home-back" data-back>\u2039 Back</button>
       <h2 class="home-q">${items.length ? "Here's what we picked for you" : "Nothing matched that"}</h2>
       <p class="home-sub">${items.length ? "Tap a dish for details." : "Try different answers or browse the full menu."}</p>
@@ -69,7 +77,7 @@
     if (card) return openSheet(card.dataset.id, card.querySelector(".item-open"));
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.dataset.go === "full") { home.hidden = true; setNav("full"); window.scrollTo(0, 0); }
+    if (b.dataset.go === "full") { leaveHome(); setNav("full"); window.scrollTo(0, 0); }
     else if (b.dataset.go === "quick" || b.hasAttribute("data-restart")) { hist = []; show([]); }
     else if (b.dataset.multi !== undefined) { const k = cur.opts[b.dataset.multi].id; if (cur.sel.has(k)) cur.sel.delete(k); else cur.sel.add(k); b.setAttribute("aria-pressed", String(cur.sel.has(k))); }
     else if (b.hasAttribute("data-continue")) answer([...cur.sel]);
@@ -82,7 +90,7 @@
     const n = e.target.closest("[data-nav]");
     if (!n) return;
     if (n.dataset.nav === "home") landing();
-    else if (n.dataset.nav === "full") { home.hidden = true; setNav("full"); window.scrollTo(0, 0); }
+    else if (n.dataset.nav === "full") { leaveHome(); setNav("full"); window.scrollTo(0, 0); }
     else { hist = []; show([]); }
   });
 

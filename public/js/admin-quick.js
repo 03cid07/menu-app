@@ -17,7 +17,13 @@
   const clone = (x) => JSON.parse(JSON.stringify(x));
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const newId = (p) => p + Date.now().toString(36) + Math.floor(Math.random() * 36).toString(36);
-  const sayQ = (t, err) => { if (window.isPinError && window.isPinError(t, err)) return window.pinNotice(t); const m = $("#qm-msg"); m.textContent = t; m.className = "msg" + (err ? " error" : ""); };
+  // Messages float on screen (the old spot was at the very bottom of the tab, out of sight) and fade after a few seconds.
+  const sayQ = (t, err) => {
+    if (window.isPinError && window.isPinError(t, err)) return window.pinNotice(t);
+    const m = $("#qm-msg"); m.textContent = t; m.className = "msg" + (err ? " error" : "");
+    clearTimeout(sayQ.t);
+    if (t) sayQ.t = setTimeout(() => { m.textContent = ""; m.className = "msg"; }, err ? 7000 : 5000);
+  };
   const mark = (d = true) => { dirty = d; status(); renderFlow(); };
   const dishes = (n) => `${n} ${n === 1 ? "dish" : "dishes"}`;
   function flash(btn, text) {
@@ -336,7 +342,7 @@
   }
   function addMissing() {
     const have = new Set(draft.map((q) => q.id)), add = QuickGen.generate(data).filter((q) => !have.has(q.id));
-    if (!add.length) { sayQ("Nothing new to add. Every suggestion is already in your list."); return; }
+    if (!add.length) { sayQ("Nothing new to add, so there is nothing to save. To rebuild the questions from your menu, press Generate questions from my menu."); return; }
     draft.push(...add); mark(); render();
     sayQ(`Added ${add.length} new question${add.length === 1 ? "" : "s"} at the end. Move them where you like, then Save.`);
   }

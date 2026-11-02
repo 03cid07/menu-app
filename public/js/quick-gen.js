@@ -24,25 +24,59 @@
     const t = (i.name || "") + " " + (i.description || "");
     return SAYS_DRINK_RE.test(t) && !WITH_DRINK_RE.test(t) ? "drink" : "food";
   };
-  // Hot or cold: the name decides first, then the description ("cold water drink"), otherwise hot.
-  const tempOf = (i) => {
-    if (kindOf(i) === "food") return "food";
+  // Which ways a drink is served, read only from what the menu says. A drink that says "hot" is hot, one that says
+  // "iced"/"cold" is cold, and one that says nothing could be either. The Hot or cold question is only asked
+  // when the menu really has a hot drink (see generate), so a cold-only menu never gets it.
+  const tempsOf = (i) => {
+    if (kindOf(i) === "food") return [];
     const n = i.name || "", d = i.description || "";
-    if (HOT_RE.test(n)) return "hot";
-    if (COLD_RE.test(n)) return "cold";
-    if (HOT_RE.test(d)) return "hot";
-    return COLD_WORDS_RE.test(d) ? "cold" : "hot";
+    if (HOT_RE.test(n)) return ["hot"];
+    if (COLD_RE.test(n)) return ["cold"];
+    const hot = HOT_RE.test(d), cold = COLD_WORDS_RE.test(d);
+    if (hot && !cold) return ["hot"];
+    if (cold && !hot) return ["cold"];
+    return ["hot", "cold"];
   };
+  const tempOf = (i) => { const t = tempsOf(i); return !t.length ? "food" : t.length === 1 ? t[0] : "either"; };
   const norm = (s) => String(s == null ? "" : s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  // "coconut milk" or "soy milk" is not dairy, so those words are dropped before looking for keywords
-  const textOf = (i) => norm([i.name, i.description, i.ingredients].join(" ")).replace(/\b(coconut|almond|soy|oat|rice)\s+(milk|cream)\b/g, " ");
+
+  // ---- Dictionary: other spellings, typos and local words, each mapped to the one word the lists below use ----
+  // Add a line here when a dish is spelled differently from the word lists (e.g. "MACHA" on the menu means matcha).
+  const DICTIONARY = [
+    ["matcha", ["macha", "maccha", "matcah", "mathca", "green tea powder"]],
+    ["macchiato", ["machiato", "machiatto", "macciato", "makiato", "macchiatto"]],
+    ["espresso", ["expresso", "espreso", "esspresso", "shot of coffee"]],
+    ["cappuccino", ["capuccino", "cappucino", "capucino", "cappuchino"]],
+    ["mocha", ["moka", "mocca"]],
+    ["chocolate", ["choco", "chocolat", "chokolate", "tsokolate", "cacao"]],
+    ["caramel", ["carmel", "carammel", "karamel", "caramell"]],
+    ["vanilla", ["vanila", "vanilla bean"]],
+    ["strawberry", ["strawbery", "strawberi", "stawberry"]],
+    ["blueberry", ["bluberry", "blueberi", "blue berry"]],
+    ["calamansi", ["kalamansi", "calamondin"]],
+    ["milk", ["gatas", "fresh milk", "evaporated milk", "condensed milk"]],
+    ["pork", ["baboy", "liempo", "pata", "crispy pata"]],
+    ["chicken", ["manok", "chicken wings"]],
+    ["fish", ["isda", "bangus", "tilapia", "galunggong"]],
+    ["shrimp", ["hipon", "prawns"]],
+    ["egg", ["itlog", "eggs"]],
+    ["rice", ["kanin", "sinangag", "garlic rice"]],
+    ["vegetable", ["gulay", "veggies"]],
+    ["spicy", ["maanghang", "siling labuyo", "labuyo"]],
+    ["noodle", ["pancit", "pansit", "miki", "bihon"]],
+  ];
+  const aliasRes = DICTIONARY.map(([canon, alts]) => [canon, new RegExp("(^|[^a-z0-9])(?:" + alts.filter((a) => a !== canon).map((a) => a.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|") + ")(?![a-z0-9])", "g")]).filter(([, re]) => !/\(\?:\)/.test(re.source));
+  // Lower-cased text with every dictionary spelling swapped for its main word
+  const canon = (s) => aliasRes.reduce((t, [word, re]) => t.replace(re, "$1" + word), norm(s));
+  // "coconut milk" or "soy milk" is not dairy, and "sweet chili" is not spicy, so those words are dropped before looking for keywords
+  const textOf = (i) => canon([i.name, i.description, i.ingredients].join(" ")).replace(/\b(coconut|almond|soy|oat|rice)\s+(milk|cream)\b/g, " ").replace(/\bsweet\s+chil(?:i|li|ies|lies)\b/g, " ");
   const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
   // Whole-word match with an optional plural ending. No lookbehind, so older phones can run it.
   const reCache = new Map();
   function wordsRe(list) {
     const key = list.join("|");
-    if (!reCache.has(key)) reCache.set(key, new RegExp("(?:^|[^a-z0-9])(?:" + list.map((w) => esc(norm(w))).join("|") + ")(?:s|es)?(?![a-z0-9])", "i"));
+    if (!reCache.has(key)) reCache.set(key, new RegExp("(?:^|[^a-z0-9])(?:" + list.map((w) => esc(canon(w))).join("|") + ")(?:s|es)?(?![a-z0-9])", "i"));
     return reCache.get(key);
   }
 
@@ -50,7 +84,7 @@
   function matchOpt(i, m) {
     if (!m) return true;
     if (m.kind && kindOf(i) !== m.kind) return false;
-    if (m.temp && tempOf(i) !== m.temp) return false;
+    if (m.temp && !tempsOf(i).includes(m.temp)) return false;
     if (m.cats && m.cats.length && !m.cats.includes(norm(i.category).trim())) return false;
     if (m.labels && m.labels.length && !m.labels.includes(i.label)) return false;
     if (m.maxPrice != null && !(Number(i.price) <= m.maxPrice)) return false;
@@ -63,7 +97,7 @@
   const MEAT = ["chicken", "manok", "beef", "baka", "steak", "tapa", "pork", "bacon", "ham", "lechon", "chorizo", "longganisa", "sausage", "bagnet", "sisig", "fish", "shrimp", "prawn", "crab", "squid", "calamari", "seafood", "tuna", "salmon", "bagoong", "anchovy", "lobster"];
   const AVOID = [
     ["pork", "Pork", ["pork", "bacon", "ham", "lechon", "chorizo", "longganisa", "sausage", "bagnet", "sisig"]],
-    ["dairy", "Dairy (milk, cheese, cream)", ["milk", "cheese", "cream", "butter", "yogurt", "yoghurt", "whey", "ice cream", "custard"]],
+    ["dairy", "Dairy (milk, cheese, cream)", ["milk", "cheese", "cream", "butter", "yogurt", "yoghurt", "whey", "ice cream", "custard", "creamer"]],
     ["seafood", "Seafood", ["fish", "shrimp", "prawn", "crab", "squid", "calamari", "seafood", "oyster", "mussel", "clam", "tuna", "salmon", "bagoong", "anchovy", "lobster", "scallop"]],
     ["nuts", "Nuts", ["nut", "peanut", "almond", "cashew", "walnut", "pistachio", "pecan", "hazelnut", "pili"]],
     ["egg", "Eggs", ["egg", "mayo", "mayonnaise", "meringue", "custard"]],
@@ -71,25 +105,30 @@
     ["spicy", "Spicy food", ["chili", "chilli", "chilies", "chillies", "spicy", "siling", "sili", "jalapeno", "sriracha", "hot sauce"]],
   ];
   const FOOD_GROUPS = [
-    ["Chicken", ["chicken", "manok"]],
+    ["Chicken", ["chicken"]],
     ["Beef", ["beef", "baka", "steak", "tapa"]],
     ["Pork", ["pork", "bacon", "ham", "lechon", "chorizo", "longganisa", "sausage", "bagnet", "sisig"]],
     ["Seafood", ["fish", "shrimp", "prawn", "crab", "squid", "calamari", "seafood", "oyster", "mussel", "tuna", "salmon", "lobster"]],
     ["Eggs", ["egg"]],
-    ["Noodles & pasta", ["noodle", "pasta", "spaghetti", "pancit", "ramen"]],
-    ["Rice", ["rice", "sinangag"]],
+    ["Noodles & pasta", ["noodle", "pasta", "spaghetti", "ramen"]],
+    ["Rice", ["rice"]],
+    ["Soup", ["soup", "sinigang", "tinola", "nilaga", "bulalo", "sabaw", "arroz caldo", "lugaw"]],
+    ["Crispy & fried", ["crispy", "fried", "crunchy", "deep-fried", "lechon kawali"]],
+    ["Rolls & snacks", ["lumpia", "spring roll", "fries", "nuggets", "wings", "siomai"]],
     ["Cheesy", ["cheese", "mozzarella", "parmesan", "cheddar"]],
-    ["Veggies", ["vegetable", "veggie", "cabbage", "carrot", "eggplant", "talong", "kangkong", "spinach", "mushroom", "lettuce", "broccoli"]],
+    ["Veggies", ["vegetable", "cabbage", "carrot", "eggplant", "talong", "kangkong", "spinach", "mushroom", "lettuce", "broccoli"]],
     ["Something spicy", ["chili", "chilli", "spicy", "siling", "sili", "jalapeno", "sriracha", "hot sauce"]],
     ["Dessert", ["dessert", "cake", "ice cream", "brownie", "pudding", "flan", "halo-halo", "cookie", "pie"]],
   ];
   const DRINK_GROUPS = [
-    ["Coffee", ["coffee", "espresso", "latte", "cappuccino", "americano", "mocha", "macchiato"]],
-    ["Tea", ["tea", "matcha", "chai"]],
+    ["Coffee", ["coffee", "espresso", "latte", "cappuccino", "americano", "mocha", "macchiato", "flat white", "cortado", "cold brew", "affogato"]],
+    ["Matcha", ["matcha"]],
+    ["Tea", ["tea", "chai", "hojicha", "earl grey"]],
     ["Chocolate", ["chocolate", "cocoa", "mocha"]],
-    ["Fruity", ["mango", "strawberry", "lemon", "orange", "berry", "apple", "pineapple", "fruit", "calamansi", "watermelon", "peach", "lychee", "banana", "melon"]],
-    ["Milky & creamy", ["milk", "cream", "creamy", "yogurt"]],
-    ["Sweet & syrupy", ["caramel", "vanilla", "hazelnut", "syrup", "honey"]],
+    ["Caramel", ["caramel"]],
+    ["Vanilla & hazelnut", ["vanilla", "hazelnut"]],
+    ["Fruity", ["mango", "strawberry", "lemon", "orange", "berry", "blueberry", "raspberry", "blackberry", "cranberry", "cherry", "apple", "pineapple", "fruit", "calamansi", "dalandan", "watermelon", "peach", "lychee", "banana", "melon", "grape", "kiwi", "guava", "passion fruit", "ube"]],
+    ["Milk", ["milk", "creamer"]],
   ];
   const NO_CAFFEINE = ["coffee", "espresso", "latte", "cappuccino", "americano", "mocha", "macchiato", "tea", "matcha", "chai", "cola"];
   const STOP = new Set(["salt", "pepper", "water", "oil", "sugar", "ice", "spices", "spice", "seasoning", "sauce", "broth", "stock", "vinegar", "soy", "garlic", "onion", "onions", "ginger", "syrup"]);
@@ -141,7 +180,8 @@
 
     if (both) q("kind", "What are you in the mood for?", "single", [["Something to eat", { kind: "food" }], ["Something to drink", { kind: "drink" }], ["Surprise me", {}]]);
 
-    if (drinks.some((i) => tempOf(i) === "hot") && drinks.some((i) => tempOf(i) === "cold"))
+    // Only ask when the menu has a drink that is really served hot. No hot drink on the menu, no question.
+    if (drinks.some((i) => tempOf(i) === "hot"))
       q("temp", "Hot or cold?", "single", [["Hot", { temp: "hot" }], ["Cold", { temp: "cold" }], ["Either", {}]], { when: whenKind("drink") });
 
     const catsOf = (list) => { const m = new Map(); list.forEach((i) => { const k = norm(i.category).trim(); if (k && !m.has(k)) m.set(k, String(i.category).trim()); }); return [...m]; };
@@ -272,5 +312,5 @@
     }));
   }
 
-  return { generate, signature, matchOpt, count, next, filter, sanitize, renameCategory, kindOf, tempOf };
+  return { generate, signature, matchOpt, count, next, filter, sanitize, renameCategory, kindOf, tempOf, tempsOf };
 });

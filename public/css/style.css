@@ -220,8 +220,9 @@ body.no-scroll { overflow: hidden; }
 .viewlink { font-size: .9rem; white-space: nowrap; }
 main > .msg:empty, #form-msg:empty { display: none; }
 /* Floating notice (e.g. "Wrong PIN", "Item deleted"): stays in view while scrolling the item list */
-main > #msg { position: fixed; left: 50%; bottom: 1.25rem; transform: translateX(-50%); z-index: 20; max-width: min(92vw, 420px); margin: 0; padding: .7rem 1.1rem; border-radius: 8px; text-align: center; background: var(--bg); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0,0,0,.45); }
-main > #msg.error { border-color: var(--alert); }
+main > #msg, #qm-msg { position: fixed; left: 50%; bottom: 5.2rem; transform: translateX(-50%); z-index: 20; max-width: min(92vw, 420px); margin: 0; padding: .7rem 1.1rem; border-radius: 8px; text-align: center; background: var(--bg); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0,0,0,.45); }
+main > #msg.error, #qm-msg.error { border-color: var(--alert); }
+#qm-msg:empty { display: none; }
 [data-panel][hidden] { display: none; }
 
 /* ---- Coffee-bean background + matte cards ---- */
@@ -493,6 +494,22 @@ body.has-list .home-box { padding-bottom: 7rem; }
 .bottomnav .navlink:hover { color: var(--ink); }
 .bottomnav .navlink:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .bottomnav .navlink[aria-current="page"] { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--accent); }
+/* Expanding label: the active tab grows into a pill and its label slides out. Others shrink to just the icon. */
+.bottomnav .navlink { flex: 1 1 0; min-width: 0; gap: 0; overflow: hidden; transition: flex-grow .35s cubic-bezier(.3,1.2,.5,1), background-color .2s ease, color .2s ease; }
+.bottomnav .navlink[aria-current="page"] { flex-grow: 2.7; }
+.bottomnav .navlink svg { flex: none; }
+.bottomnav .nav-label { display: inline-block; max-width: 0; margin-left: 0; opacity: 0; overflow: hidden; white-space: nowrap; font-size: .92rem; font-weight: 700; transition: max-width .35s ease, margin-left .35s ease, opacity .25s ease; }
+.bottomnav .navlink[aria-current="page"] .nav-label { max-width: 7.5rem; margin-left: .45rem; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .bottomnav .navlink, .bottomnav .nav-label { transition: none; } }
+/* Sliding in and out: the bar drops away on the start screen; screens fade and rise instead of popping */
+.bottomnav { transition: transform .5s cubic-bezier(.2,1.15,.4,1), opacity .3s ease; }
+.bottomnav.away { transform: translateY(150%); opacity: 0; transition: transform .45s cubic-bezier(.55,0,.8,.4) .2s, opacity .3s ease .3s; }
+.home:not([hidden]) { animation: homeFade .35s ease both; }
+.home.leaving { opacity: 0; transform: scale(.985); transition: opacity .26s ease, transform .26s ease; pointer-events: none; }
+.home-box { animation: boxRise .4s cubic-bezier(.2,.9,.3,1) both; }
+@keyframes homeFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes boxRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .bottomnav, .bottomnav.away { transition: none; } .home:not([hidden]), .home-box { animation: none; } .home.leaving { transition: none; } }
 /* Room for the bar so the last dish is never hidden behind it */
 body { padding-bottom: calc(var(--nav-h) + 1.5rem + env(safe-area-inset-bottom, 0px)); }
 .home-box { padding-bottom: calc(var(--nav-h) + 2rem + env(safe-area-inset-bottom, 0px)); }
