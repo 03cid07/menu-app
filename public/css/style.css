@@ -494,22 +494,21 @@ body.has-list .home-box { padding-bottom: 7rem; }
 .bottomnav .navlink:hover { color: var(--ink); }
 .bottomnav .navlink:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .bottomnav .navlink[aria-current="page"] { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--accent); }
-/* Expanding label: the active tab grows into a pill and its label slides out. Others shrink to just the icon. */
-.bottomnav .navlink { flex: 1 1 0; min-width: 0; gap: 0; overflow: hidden; transition: flex-grow .35s cubic-bezier(.3,1.2,.5,1), background-color .2s ease, color .2s ease; }
-.bottomnav .navlink[aria-current="page"] { flex-grow: 2.7; }
+/* Motion: the bottom bar and the start / quick screens move with Springs.spring (see README, "Motion and feel").
+   quick.js sets these variables each frame: --p (0-1) on each tab = how "open" its pill is, --away (0-1) on the bar,
+   --h on the start screen, --r on the screen's content. No CSS transitions or easing here, so the spring is the only motion. */
+.bottomnav { transform: translateY(calc(var(--away, 0) * 150%)); opacity: calc(1 - var(--away, 0)); }
+.bottomnav .navlink, .bottomnav .navlink[aria-current="page"] {
+  flex: calc(1 + var(--p, 0) * 1.7) 1 0; min-width: 0; gap: 0; overflow: hidden; transition: none;
+  background: color-mix(in srgb, var(--accent) calc(var(--p, 0) * 24%), transparent);
+  color: color-mix(in srgb, var(--accent) calc(var(--p, 0) * 100%), var(--muted));
+}
+.bottomnav .navlink:hover { color: color-mix(in srgb, var(--accent) calc(var(--p, 0) * 100%), var(--ink)); }
 .bottomnav .navlink svg { flex: none; }
-.bottomnav .nav-label { display: inline-block; max-width: 0; margin-left: 0; opacity: 0; overflow: hidden; white-space: nowrap; font-size: .92rem; font-weight: 700; transition: max-width .35s ease, margin-left .35s ease, opacity .25s ease; }
-.bottomnav .navlink[aria-current="page"] .nav-label { max-width: 7.5rem; margin-left: .45rem; opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .bottomnav .navlink, .bottomnav .nav-label { transition: none; } }
-/* Sliding in and out: the bar drops away on the start screen; screens fade and rise instead of popping */
-.bottomnav { transition: transform .5s cubic-bezier(.2,1.15,.4,1), opacity .3s ease; }
-.bottomnav.away { transform: translateY(150%); opacity: 0; transition: transform .45s cubic-bezier(.55,0,.8,.4) .2s, opacity .3s ease .3s; }
-.home:not([hidden]) { animation: homeFade .35s ease both; }
-.home.leaving { opacity: 0; transform: scale(.985); transition: opacity .26s ease, transform .26s ease; pointer-events: none; }
-.home-box { animation: boxRise .4s cubic-bezier(.2,.9,.3,1) both; }
-@keyframes homeFade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes boxRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .bottomnav, .bottomnav.away { transition: none; } .home:not([hidden]), .home-box { animation: none; } .home.leaving { transition: none; } }
+.bottomnav .nav-label { display: inline-block; max-width: calc(var(--p, 0) * 7.5rem); margin-left: calc(var(--p, 0) * .45rem); opacity: var(--p, 0); overflow: hidden; white-space: nowrap; font-size: .92rem; font-weight: 700; }
+.home { opacity: var(--h, 1); transform: scale(calc(.985 + var(--h, 1) * .015)); }
+.home.leaving { pointer-events: none; }
+.home-box { opacity: var(--r, 1); transform: translateY(calc((1 - var(--r, 1)) * 14px)); }
 /* Room for the bar so the last dish is never hidden behind it */
 body { padding-bottom: calc(var(--nav-h) + 1.5rem + env(safe-area-inset-bottom, 0px)); }
 .home-box { padding-bottom: calc(var(--nav-h) + 2rem + env(safe-area-inset-bottom, 0px)); }

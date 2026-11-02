@@ -7,13 +7,32 @@
   document.body.appendChild(home);
 
   let hist = [], cur = null;
+  // ---- Motion: Springs.spring from spring.js (README, "Motion and feel"), no CSS easing ----
+  // A value runs 0-100 (the spring stops when it is within 0.4 of its target, so 0-1 would stop at once) and is
+  // written to a CSS variable as 0-1. A new tween on the same variable takes over from where the last one got to.
+  const spring = window.Springs ? Springs.spring : ({ to, onUpdate, onDone }) => { onUpdate && onUpdate(to); onDone && onDone(); return { stop() {} }; };
+  const tween = (el, name, to, { delay = 0, response = 0.45, done } = {}) => {
+    const t = (el._tw = el._tw || {})[name] || (el._tw[name] = { v: 100 * parseFloat(el.style.getPropertyValue(name) || (name === "--away" || name === "--p" ? 0 : 1)) });
+    clearTimeout(t.timer); if (t.ctl) t.ctl.stop();
+    const put = (x) => { t.v = x; el.style.setProperty(name, (x / 100).toFixed(4)); };
+    const run = () => { t.ctl = spring({ from: t.v, to: to * 100, response, damping: 1, onUpdate: put, onDone: done }); };
+    if (delay) t.timer = setTimeout(run, delay); else run();
+  };
+  const snap = (el, name, to) => { const t = (el._tw = el._tw || {})[name] || (el._tw[name] = { v: 0 }); clearTimeout(t.timer); if (t.ctl) t.ctl.stop(); t.v = to * 100; el.style.setProperty(name, String(to)); };
   // Showing the start / quick screens fades them in; leaving them fades them out before they are hidden
-  const openHome = () => { clearTimeout(home._t); home.classList.remove("leaving"); home.hidden = false; };
+  const openHome = () => {
+    home.classList.remove("leaving");
+    if (home.hidden) { home.hidden = false; snap(home, "--h", 0); tween(home, "--h", 1, { response: 0.4 }); }
+    else tween(home, "--h", 1, { response: 0.3 });
+  };
   const leaveHome = () => {
     if (home.hidden || home.classList.contains("leaving")) return;
     home.classList.add("leaving");
-    home._t = setTimeout(() => { home.hidden = true; home.classList.remove("leaving"); }, 280);
+    tween(home, "--h", 0, { response: 0.3, done: () => { home.hidden = true; home.classList.remove("leaving"); snap(home, "--h", 1); } });
   };
+  // Content of the current screen rises into place each time a new screen is drawn
+  const rise = () => { const box = home.firstElementChild; if (box) { snap(box, "--r", 0); tween(box, "--r", 1, { response: 0.5 }); } };
+
   // Bottom nav with an expanding label: the active tab grows into a pill and its label slides out, the others shrink to icons.
   const SVG = (d) => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
   const NAV = [
@@ -27,8 +46,19 @@
   nav.innerHTML = `<div class="bottomnav-in">${NAV.map(([k, t, icon]) => `<button type="button" class="navlink" data-nav="${k}" aria-label="${t}" title="${t}">${icon}<span class="nav-label" aria-hidden="true">${t}</span></button>`).join("")}</div>`;
   document.body.appendChild(nav);
   // The start screen has no bottom bar; it slides up once the customer picks Full menu or Quick menu
-  // On the start screen the bar slides down out of sight (and back up later) instead of blinking away
-  const setNav = (on) => { nav.classList.toggle("away", on === "home"); nav.inert = on === "home"; nav.querySelectorAll(".navlink").forEach((b) => (b.dataset.nav === on ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"))); };
+  // On the start screen the bar slides down out of sight (and back up later). The active tab opens into a pill with its label.
+  let navReady = false;
+  const setNav = (on) => {
+    const away = on === "home", first = !navReady;
+    navReady = true;
+    nav.inert = away;
+    if (first) snap(nav, "--away", away ? 1 : 0); else tween(nav, "--away", away ? 1 : 0, { delay: away ? 150 : 0, response: 0.5 });
+    nav.querySelectorAll(".navlink").forEach((b) => {
+      const active = b.dataset.nav === on;
+      if (active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+      if (first) snap(b, "--p", active ? 1 : 0); else tween(b, "--p", active ? 1 : 0, { response: 0.4 });
+    });
+  };
   setNav("home");
   // Questions: the ones the owner reviewed in the admin (data.quick), or ones made live from the menu
   const cfg = () => (data.quick && Array.isArray(data.quick.questions) && data.quick.questions.length ? data.quick : { stopAt: 3, questions: QuickGen.generate(data) });
@@ -38,7 +68,7 @@
     home.innerHTML = `<div class="home-box"><h1>${esc(data.restaurant)}</h1><p class="home-sub">How would you like to order?</p>
       <button type="button" class="home-card" data-go="full"><strong>Full menu</strong><span>Browse every dish</span></button>
       <button type="button" class="home-card" data-go="quick"><strong>Quick menu</strong><span>Answer a few questions and we'll find what suits you</span></button></div>`;
-    openHome(); home.scrollTop = 0; setNav("home");
+    openHome(); home.scrollTop = 0; setNav("home"); rise();
   };
 
   function show(answers) {
@@ -52,7 +82,7 @@
       ${q.type === "multi"
         ? `<p class="home-sub">Pick all that apply, or just continue.</p>${r.opts.map((o, n) => `<button type="button" class="home-card pick" data-multi="${n}" aria-pressed="false"><strong>${esc(o.label)}</strong></button>`).join("")}<div class="home-actions"><button type="button" class="btn" data-continue>Continue</button></div>`
         : r.opts.map((o, n) => `<button type="button" class="home-card" data-opt="${n}"><strong>${esc(o.label)}</strong></button>`).join("")}</div>`;
-    home.scrollTop = 0;
+    home.scrollTop = 0; rise();
   }
 
   function results(answers) {
@@ -66,7 +96,7 @@
       ${items.length && noted ? '<p class="home-note">Based on the ingredients and descriptions listed. Please tell our staff about any allergies.</p>' : ""}
       <section class="cat">${items.map((i) => itemHtml(i)).join("")}</section>
       <div class="home-actions"><button type="button" class="btn" data-go="full">See full menu</button><button type="button" class="btn ghost" data-restart>Start over</button></div></div>`;
-    home.scrollTop = 0;
+    home.scrollTop = 0; rise();
     cur = { answers, q: null };
   }
 
