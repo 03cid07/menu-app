@@ -2,12 +2,24 @@ let data;
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // Messages show right above the Save button while the add/edit form is open, so they can't be missed.
+// A wrong PIN always shows as the floating notice (#msg is pinned to the screen), whichever tab or form you're in.
+const isPinError = (t, err) => !!err && /wrong pin/i.test(t || "");
+const pinNotice = (t) => {
+  for (const id of ["#form-msg", "#cat-msg", "#qm-msg"]) { const m = $(id); if (m) { m.textContent = ""; m.className = "msg"; } }
+  const m = $("#msg"); m.textContent = t; m.className = "msg error";
+  clearTimeout(say.timer); say.timer = setTimeout(() => { m.textContent = ""; m.className = "msg"; }, 6000);
+};
+window.pinNotice = pinNotice; window.isPinError = isPinError;
 const say = (t, err) => {
+  if (isPinError(t, err)) return pinNotice(t);
   const formOpen = !$("#form").hidden;
   const target = $(formOpen ? "#form-msg" : "#msg"), other = $(formOpen ? "#msg" : "#form-msg");
   other.textContent = ""; other.className = "msg";
   target.textContent = t; target.className = "msg" + (err ? " error" : "");
   if (formOpen && t) target.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  // The list message floats at the bottom of the screen, so it's visible wherever you've scrolled; it fades after a few seconds.
+  clearTimeout(say.timer);
+  if (!formOpen && t) say.timer = setTimeout(() => { target.textContent = ""; target.className = "msg"; }, err ? 6000 : 3500);
 };
 
 // Tabs: only one section is shown at a time, which keeps the page short
@@ -192,7 +204,7 @@ $("#list").addEventListener("click", async (e) => {
   } catch (err) { say(err.message, true); }
 });
 
-const sayCat = (t, err) => { $("#cat-msg").textContent = t; $("#cat-msg").className = "msg" + (err ? " error" : ""); };
+const sayCat = (t, err) => { if (isPinError(t, err)) return pinNotice(t); $("#cat-msg").textContent = t; $("#cat-msg").className = "msg" + (err ? " error" : ""); };
 $("#cat-manage").addEventListener("click", async (e) => {
   const t = e.target.closest("button");
   if (!t) return;

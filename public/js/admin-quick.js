@@ -17,7 +17,7 @@
   const clone = (x) => JSON.parse(JSON.stringify(x));
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const newId = (p) => p + Date.now().toString(36) + Math.floor(Math.random() * 36).toString(36);
-  const sayQ = (t, err) => { const m = $("#qm-msg"); m.textContent = t; m.className = "msg" + (err ? " error" : ""); };
+  const sayQ = (t, err) => { if (window.isPinError && window.isPinError(t, err)) return window.pinNotice(t); const m = $("#qm-msg"); m.textContent = t; m.className = "msg" + (err ? " error" : ""); };
   const mark = (d = true) => { dirty = d; status(); renderFlow(); };
   const dishes = (n) => `${n} ${n === 1 ? "dish" : "dishes"}`;
   function flash(btn, text) {
