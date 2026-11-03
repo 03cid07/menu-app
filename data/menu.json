@@ -64,7 +64,7 @@
       "images": [
         "images/mvtlbkve-xj2cf.jpg"
       ],
-      "model": "",
+      "model": "models/static_co_iced_coffee_13cm.glb",
       "temp": "",
       "label": "new",
       "available": true
