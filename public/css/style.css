@@ -806,3 +806,12 @@ html.theme-anim body, html.theme-anim body * { transition: background-color .35s
 .qm-fnotes { margin: .9rem 0 0; padding-left: 1.1rem; color: var(--muted); font-size: .88rem; }
 .qm-fnotes li { margin: .2rem 0; }
 .qm-who { flex-basis: 100%; margin: 0; color: var(--muted); font-size: .85rem; }
+
+/* ---- Search loading (press Enter): icon spins, skeleton rows shimmer, results fade in ---- */
+.fs-bar.is-searching .fs-search-ic svg { display: none; }
+.fs-bar.is-searching .fs-search-ic::before { content: ""; width: 20px; height: 20px; box-sizing: border-box; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color: var(--accent); animation: fs-spin .7s linear infinite; }
+@keyframes fs-spin { to { transform: rotate(360deg); } }
+.item.sk .thumb { flex: none; width: 56px; height: 56px; border-radius: 12px; }
+.sk-body { flex: 1; min-width: 0; }
+#menu.sk-results-in { animation: sk-in .35s ease both; }
+@media (prefers-reduced-motion: reduce) { .fs-bar.is-searching .fs-search-ic::before { animation-duration: 2s; } #menu.sk-results-in { animation: none; } }
