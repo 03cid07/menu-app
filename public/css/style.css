@@ -813,3 +813,28 @@ body.fs-stuck .fs-row-search .fs-list { background: color-mix(in srgb, var(--sur
 /* Soft backdrop behind the pinned row (also covers the small gap between the search bar and My list) */
 #fs { padding-bottom: .6rem; margin-bottom: -.6rem; background: linear-gradient(color-mix(in srgb, var(--bg) 0%, transparent), color-mix(in srgb, var(--bg) 0%, transparent)); transition: background-color .25s ease; }
 body.fs-stuck #fs { background: linear-gradient(color-mix(in srgb, var(--bg) 88%, transparent) 70%, transparent); }
+
+/* ---- Book-style menu: one category per page, swipe to turn (see pager.js) ---- */
+.pgr { position: relative; touch-action: pan-y pinch-zoom; overflow-x: clip; margin-inline: -1.25rem; } /* bleeds to the screen edge (main has 1.25rem padding) so pages slide off the edge, not off a window */
+@supports not (overflow: clip) { .pgr { overflow: hidden; } }
+.pgr-page { display: flow-root; outline: none; padding-inline: 1.25rem; } /* flow-root keeps the title's top margin inside the page, so every page lines up */
+.pgr-page.pgr-off { display: none; }
+.pgr-page.pgr-peek { position: absolute; left: 0; right: 0; top: 0; will-change: transform, opacity; }
+.pgr-page h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.pgr-count { flex: none; font-size: .8rem; font-weight: 600; letter-spacing: .06em; color: var(--muted); }
+.pgr-nav { margin: 1.4rem 0 .5rem; display: grid; gap: .55rem; justify-items: center; }
+.pgr-dots { display: flex; flex-wrap: wrap; justify-content: center; }
+.pgr-dot { width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; -webkit-tap-highlight-color: transparent; }
+.pgr-dot::before { content: ""; width: 8px; height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 30%, transparent); transition: width .25s ease, background-color .25s ease; }
+.pgr-dot.on::before { width: 20px; background: var(--accent); }
+.pgr-btns { display: flex; gap: .6rem; width: 100%; }
+.pgr-sp { flex: 1 1 0; }
+.pgr-btn { flex: 1 1 0; min-width: 0; height: 44px; display: flex; align-items: center; gap: .5rem; padding: 0 1rem; border-radius: 999px; font: inherit; font-weight: 600; font-size: .92rem; color: var(--ink); cursor: pointer;
+  border: 1px solid var(--outline); background: color-mix(in srgb, var(--surface) 88%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.pgr-btn.prev { justify-content: flex-start; text-align: left; }
+.pgr-btn.next { justify-content: flex-end; text-align: right; }
+.pgr-btn:active { background: color-mix(in srgb, var(--surface) 70%, var(--ink)); }
+.pgr-lbl { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pgr-arr { flex: none; font-size: 1.3rem; line-height: 1; color: var(--accent); }
+.pgr-hint { display: none; margin: 0; font-size: .78rem; color: var(--muted); }
+@media (hover: none) { .pgr-hint { display: block; } }
