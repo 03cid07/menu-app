@@ -841,3 +841,11 @@ body.fs-stuck #fs { background: linear-gradient(color-mix(in srgb, var(--bg) 88%
 .pgr-arr { flex: none; font-size: 1.3rem; line-height: 1; color: var(--accent); }
 .pgr-hint { display: none; margin: 0; font-size: .78rem; color: var(--muted); }
 @media (hover: none) { .pgr-hint { display: block; } }
+
+
+/* ---- Entering the Full menu: each row shows a placeholder inside its card, then fills in (see menuIntro in menu.js) ---- */
+.item.sk-hold { position: relative; }
+.item.sk-hold > :not(.sk-ov) { visibility: hidden; }
+.item .sk-ov { position: absolute; inset: 0; box-sizing: border-box; padding: inherit; display: flex; align-items: center; gap: .75rem; pointer-events: none; }
+.item .sk-ov .thumb { flex: none; border-radius: 12px; }
+.item.sk-in > :not(.sk-ov) { opacity: var(--p, 1); }

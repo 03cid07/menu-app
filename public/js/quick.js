@@ -30,6 +30,13 @@
     home.classList.add("leaving");
     tween(home, "--h", 0, { response: 0.3, done: () => { home.hidden = true; home.classList.remove("leaving"); snap(home, "--h", 1); } });
   };
+  // Going from the start screen to the Full menu: the dishes load in one after another (menuIntro in menu.js).
+  // Tapping "Full menu" while already in it does nothing new, so only the start screen counts.
+  const enterFull = () => {
+    const fromHome = !home.hidden && !home.classList.contains("leaving");
+    leaveHome(); setNav("full"); window.scrollTo(0, 0);
+    if (fromHome && window.menuIntro) window.menuIntro();
+  };
   // Content of the current screen rises into place each time a new screen is drawn
   const rise = () => { const box = home.firstElementChild; if (box) { snap(box, "--r", 0); tween(box, "--r", 1, { response: 0.5 }); } };
 
@@ -107,7 +114,7 @@
     if (card) return openSheet(card.dataset.id, card.querySelector(".item-open"));
     const b = e.target.closest("button");
     if (!b) return;
-    if (b.dataset.go === "full") { leaveHome(); setNav("full"); window.scrollTo(0, 0); }
+    if (b.dataset.go === "full") enterFull();
     else if (b.dataset.go === "quick" || b.hasAttribute("data-restart")) { hist = []; show([]); }
     else if (b.dataset.multi !== undefined) { const k = cur.opts[b.dataset.multi].id; if (cur.sel.has(k)) cur.sel.delete(k); else cur.sel.add(k); b.setAttribute("aria-pressed", String(cur.sel.has(k))); }
     else if (b.hasAttribute("data-continue")) answer([...cur.sel]);
@@ -120,7 +127,7 @@
     const n = e.target.closest("[data-nav]");
     if (!n) return;
     if (n.dataset.nav === "home") landing();
-    else if (n.dataset.nav === "full") { leaveHome(); setNav("full"); window.scrollTo(0, 0); }
+    else if (n.dataset.nav === "full") enterFull();
     else { hist = []; show([]); }
   });
 
