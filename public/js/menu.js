@@ -198,7 +198,49 @@ function render() {
   renderList();
 }
 
+// ---- Entering the Full menu: the rows load one after another ----
+// Each row on screen first shows a shimmering placeholder inside its card, then fills in with its dish, top to bottom.
+// Only quick.js calls this, when the person goes from the start screen to the Full menu (not for page turns or searches).
+const INTRO_FIRST = 260, INTRO_STEP = 130, INTRO_ROWS = 12, INTRO_RISE = 14;
+let introJobs = [];
+function cleanIntroRow(row) {
+  row.classList.remove("sk-hold", "sk-in");
+  row.style.transform = "";
+  row.style.removeProperty("--p");
+  row.querySelector(":scope > .sk-ov")?.remove();
+}
+function cancelIntro() {
+  for (const j of introJobs) { clearTimeout(j.timer); if (j.ctl) j.ctl.stop(); cleanIntroRow(j.row); }
+  introJobs = [];
+}
+function menuIntro() {
+  cancelIntro();
+  if (!window.Springs || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const rows = Array.from(document.querySelectorAll("#menu .item"))
+    .filter((n) => !n.closest(".pgr-off") && n.getBoundingClientRect().top < innerHeight).slice(0, INTRO_ROWS);
+  rows.forEach((row, k) => {
+    const th = row.querySelector(".thumb"), w = (th && th.offsetWidth) || 56, h = (th && th.offsetHeight) || 56;
+    row.insertAdjacentHTML("beforeend", `<div class="sk-ov" aria-hidden="true"><div class="thumb" style="width:${w}px;height:${h}px"></div><div class="sk-body"><span class="sk-line"></span><span class="sk-line s"></span></div></div>`);
+    row.classList.add("sk-hold");
+    const job = { row, timer: 0, ctl: null };
+    introJobs.push(job);
+    job.timer = setTimeout(() => {
+      row.querySelector(":scope > .sk-ov")?.remove();
+      row.classList.remove("sk-hold");
+      row.classList.add("sk-in");
+      // the row's content fades in while the row rises a few pixels into place (a spring, like the rest of the app)
+      job.ctl = Springs.spring({
+        from: 0, to: 100, response: 0.5, damping: 0.9,
+        onUpdate: (x) => { row.style.setProperty("--p", Math.max(0, Math.min(1, x / 100)).toFixed(3)); row.style.transform = `translate3d(0, ${((1 - x / 100) * INTRO_RISE).toFixed(2)}px, 0)`; },
+        onDone: () => { cleanIntroRow(row); introJobs = introJobs.filter((j) => j !== job); },
+      });
+    }, INTRO_FIRST + k * INTRO_STEP);
+  });
+}
+window.menuIntro = menuIntro;
+
 function renderList() {
+  cancelIntro();
   if (window.Pager) Pager.clear();
   const items = visibleItems();
   let html;
