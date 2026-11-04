@@ -585,11 +585,7 @@ body.has-list main { padding-bottom: 0; }
    rubber band; this fills the gap that would open under them on phones. */
 @media (max-width: 599px) { .sheet-box, .mylist-box { box-shadow: 0 400px 0 var(--surface); } }
 
-/* ---- QR + My list: the list button is a pill (icon + label); both float top-right once the row scrolls out of view ---- */
-.fs-top .fs-actions { flex: none; display: flex; align-items: center; gap: .75rem; }
-.fs-top .fs-list { width: auto; min-width: 44px; gap: .5rem; padding: 0 1.1rem 0 .9rem; font: inherit; font-size: .95rem; font-weight: 600; white-space: nowrap; }
-body.fs-float .fs-top .fs-actions { position: fixed; top: calc(env(safe-area-inset-top, 0px) + .75rem); right: 1rem; z-index: 7; }
-body.fs-float .fs-top .fs-qr, body.fs-float .fs-top .fs-list { box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+/* ---- My list button is a pill (icon + label) ---- */
 
 /* ---- 3D indicator: small cube on the photo of dishes that have a 3D model ---- */
 .thumb-wrap { position: relative; flex: none; display: block; line-height: 0; }
@@ -637,38 +633,24 @@ img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: sk-in .3s ease; }
 @media (prefers-reduced-motion: reduce) { .item.sk .thumb, .sk-line, :is(#menu, .home) .item .thumb:not(.ph):not(.ld), .gal-slide:not(.ld), img.sheet-hero:not(.ld) { animation: none; } img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: none; } }
 
 /* ---- Layout v2: settings gear (top right, holds QR) / [search bar | My list pill] ---- */
-.fs-top { justify-content: flex-end; }
-.fs-top .fs-actions { position: relative; }
-.fs-top .fs-gear { flex: none; width: 44px; height: 44px; padding: 0; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+.fs-actions { position: relative; flex: none; }
+.fs-gear { flex: none; width: 44px; height: 44px; padding: 0; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
   background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent); -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); }
-.fs-top .fs-gear[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+.fs-gear[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
 .fs-settings { position: absolute; top: calc(100% + .5rem); right: 0; z-index: 8; min-width: 190px; padding: .35rem; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); box-shadow: 0 10px 28px rgba(0,0,0,.4); }
 .fs-settings[hidden] { display: none; }
 .fs-set-item { display: flex; align-items: center; gap: .7rem; width: 100%; padding: .7rem .8rem; border: 0; border-radius: 10px; background: transparent; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
 .fs-set-item:hover, .fs-set-item:focus-visible { background: var(--ctl); outline: none; }
 .fs-set-item svg { color: var(--muted); flex: none; }
-body.fs-float .fs-top .fs-actions { position: fixed; top: calc(env(safe-area-inset-top, 0px) + .75rem); right: 1rem; z-index: 7; }
-body.fs-float .fs-top .fs-gear { box-shadow: 0 4px 14px rgba(0,0,0,.35); }
 
-.fs-row-search { display: flex; align-items: center; gap: .6rem; margin-top: .6rem; }
+.fs-row-search { display: flex; align-items: center; gap: .6rem; }
 .fs-row-search .fs-bar { flex: 1; min-width: 0; margin-top: 0; }
 .fs-row-search .fs-list { position: relative; flex: none; display: flex; align-items: center; gap: .5rem; height: 50px; width: auto; min-width: 44px; padding: 0 1.1rem 0 .9rem; border-radius: 999px; font: inherit; font-size: .95rem; font-weight: 600; white-space: nowrap; border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
   background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent); -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); }
 .fs-row-search .fs-badge { top: -4px; right: -4px; }
 @media (max-width: 340px) { .fs-row-search .fs-list-t { display: none; } .fs-row-search .fs-list { width: 50px; padding: 0; justify-content: center; } }
 
-/* My list floats beside the gear once the search row scrolls out of view */
-.fs-list-slot { flex: none; display: block; min-width: var(--fs-list-w, 0px); }
-body.fs-float-list .fs-row-search .fs-list { position: fixed; top: calc(env(safe-area-inset-top, 0px) + .75rem); right: calc(1rem + 44px + .6rem); z-index: 7; height: 44px; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
-
-/* Smooth pop when the gear / My list float out (and a soft fade when they return) */
-@keyframes fs-pop-in { 0% { opacity: 0; transform: translateY(-14px) scale(.8); } 60% { opacity: 1; transform: translateY(2px) scale(1.06); } 100% { opacity: 1; transform: none; } }
-@keyframes fs-pop-back { 0% { opacity: 0; transform: scale(.85); } 100% { opacity: 1; transform: none; } }
-body.pop-gear.fs-float .fs-top .fs-gear { animation: fs-pop-in .38s cubic-bezier(.2,.8,.3,1) both; }
-body.pop-list.fs-float-list .fs-row-search .fs-list { animation: fs-pop-in .38s cubic-bezier(.2,.8,.3,1) .05s both; }
-body.pop-gear-back .fs-top .fs-gear, body.pop-list-back .fs-row-search .fs-list { animation: fs-pop-back .3s ease-out both; }
-.fs-top .fs-gear, .fs-row-search .fs-list { transition: box-shadow .25s ease, border-color .2s ease, color .2s ease; }
-@media (prefers-reduced-motion: reduce) { body[class*="pop-"] .fs-gear, body[class*="pop-"] .fs-list { animation: none !important; } }
+.fs-gear, .fs-row-search .fs-list, .fs-bar { transition: box-shadow .25s ease, border-color .2s ease, color .2s ease, background-color .25s ease; }
 
 /* ---- Theme switch inside the settings menu ---- */
 .fs-settings { min-width: 250px; padding: .6rem; }
@@ -815,3 +797,19 @@ html.theme-anim body, html.theme-anim body * { transition: background-color .35s
 .sk-body { flex: 1; min-width: 0; }
 #menu.sk-results-in { animation: sk-in .35s ease both; }
 @media (prefers-reduced-motion: reduce) { .fs-bar.is-searching .fs-search-ic::before { animation-duration: 2s; } #menu.sk-results-in { animation: none; } }
+
+
+/* ---- Header: settings gear sits on the right of the title (scrolls away with the header, never floats) ---- */
+header.top .top-row { display: flex; align-items: center; justify-content: space-between; gap: .9rem; margin: 0 0 .5rem; }
+header.top .top-row .fs-actions { order: 2; }
+header.top .top-row h1 { margin: 0; min-width: 0; }
+
+/* ---- Search bar + My list: one row that stays pinned at the top while the menu scrolls ---- */
+#fs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 7; padding-top: .6rem; }
+#fs .fs-panel { max-height: calc(100vh - 9rem); max-height: calc(100dvh - 9rem); overflow-y: auto; overscroll-behavior: contain; }
+/* While pinned: a bit more solid with a soft shadow, so dishes scrolling underneath don't clash with it */
+body.fs-stuck .fs-row-search .fs-bar,
+body.fs-stuck .fs-row-search .fs-list { background: color-mix(in srgb, var(--surface) 93%, transparent); box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+/* Soft backdrop behind the pinned row (also covers the small gap between the search bar and My list) */
+#fs { padding-bottom: .6rem; margin-bottom: -.6rem; background: linear-gradient(color-mix(in srgb, var(--bg) 0%, transparent), color-mix(in srgb, var(--bg) 0%, transparent)); transition: background-color .25s ease; }
+body.fs-stuck #fs { background: linear-gradient(color-mix(in srgb, var(--bg) 88%, transparent) 70%, transparent); }

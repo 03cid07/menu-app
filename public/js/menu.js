@@ -8,6 +8,12 @@ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 document.querySelector("nav.cats")?.remove();
 // Make sure the filter bar has a place on the page, even if index.html is an older copy
 if (!$("#fs")) { const el = document.createElement("div"); el.id = "fs"; $("#menu").before(el); }
+// The settings gear sits in the header, left of the title (older index.html copies get the slot made here)
+if (!$("#gear-slot") && $("#name")) {
+  const row = document.createElement("div"), slot = document.createElement("div"), h = $("#name");
+  row.className = "top-row"; slot.className = "fs-actions"; slot.id = "gear-slot";
+  h.before(row); row.append(slot, h);
+}
 const view = { avail: false, ar: false, photo: false, sort: "featured", open: "", q: "" };
 let searching = false, searchTimer = 0; // Enter-to-search loading state (see runSearchLoad)
 const SORTS = { featured: "Featured", low: "Price, low to high", high: "Price, high to low", az: "Name, A to Z" };
@@ -131,7 +137,8 @@ function themeHint(pref, now) { return pref === "auto" ? `Auto: light from 6 AM 
 // Open/close the settings menu and refresh the theme buttons without rebuilding the whole bar (a rebuild made it flash)
 function syncSettings(open) {
   if (typeof open === "boolean") settingsOpen = open;
-  const root = $("#fs");
+  const root = $("#gear-slot");
+  if (!root) return;
   const gear = root.querySelector("[data-open-settings]"), menu = root.querySelector("#fs-settings");
   if (gear) gear.setAttribute("aria-expanded", String(settingsOpen));
   if (menu) menu.hidden = !settingsOpen;
@@ -147,25 +154,12 @@ function renderBar() {
   const key = focused && (focused.id === "fs-q" ? "#fs-q" : focused.dataset.openSettings !== undefined ? "[data-open-settings]" : focused.dataset.open ? `[data-open="${focused.dataset.open}"]` : focused.dataset.f ? `[data-f="${focused.dataset.f}"]` : focused.dataset.c ? `[data-c="${focused.dataset.c.replace(/"/g, "\\\"")}"]` : focused.name === "sort" ? `input[value="${focused.value}"]` : "");
   const themePref = (window.menuTheme && window.menuTheme.pref()) || "auto", themeNow = (window.menuTheme && window.menuTheme.eff()) || "dark";
   const m = view.open === "menu", dot = n > 0 || view.sort !== "featured";
-  $("#fs").innerHTML = `<div class="fs-top">
-      <div class="fs-top-slot" id="fs-slot"><!-- reserved: new feature goes here --></div>
-      <div class="fs-actions">
-        <button type="button" class="fs-icon fs-gear" data-open-settings aria-haspopup="true" aria-expanded="${settingsOpen}" aria-controls="fs-settings" aria-label="Settings" title="Settings">${GEAR_ICON}</button>
-        <div class="fs-settings" id="fs-settings" role="menu" ${settingsOpen ? "" : "hidden"}>
-          <div class="fs-set-label" id="fs-theme-l">Theme</div>
-          <div class="fs-seg" role="group" aria-labelledby="fs-theme-l">${THEMES.map(([k, t, ic]) => `<button type="button" class="fs-seg-b" data-theme-set="${k}" aria-pressed="${themePref === k}">${ic}<span>${t}</span></button>`).join("")}</div>
-          <p class="fs-set-hint">${themeHint(themePref, themeNow)}</p>
-          <div class="fs-set-sep"></div>
-          <button type="button" class="fs-set-item" role="menuitem" data-open-qr>${QR_ICON}<span>QR code</span></button>
-        </div>
-      </div>
-    </div>
-    <div class="fs-row-search"><div class="fs-bar">
+  $("#fs").innerHTML = `<div class="fs-row-search"><div class="fs-bar">
       <button type="button" class="fs-icon fs-burger${dot ? " has-active" : ""}" data-open="menu" aria-expanded="${m}" aria-controls="fs-menu" aria-label="Filter and sort${n ? ` (${n} filter${n === 1 ? "" : "s"} on)` : ""}">${BURGER}</button>
       <input type="search" id="fs-q" class="fs-q" placeholder="Search dishes…" aria-label="Search dishes" autocomplete="off" value="${esc(view.q)}">
       <span class="fs-search-ic">${SEARCH}</span>
     </div>
-    <span class="fs-list-slot"><button type="button" class="fs-icon fs-list" data-open-list aria-label="My list${lc ? ` (${lc} item${lc === 1 ? "" : "s"})` : ""}">${LIST_ICON}<span class="fs-list-t">My list</span><span class="fs-badge"${lc ? "" : " hidden"}>${lc}</span></button></span></div>
+    <button type="button" class="fs-icon fs-list" data-open-list aria-label="My list${lc ? ` (${lc} item${lc === 1 ? "" : "s"})` : ""}">${LIST_ICON}<span class="fs-list-t">My list</span><span class="fs-badge"${lc ? "" : " hidden"}>${lc}</span></button></div>
     <div class="fs-panel" id="fs-menu" ${m ? "" : "hidden"}>
       <div class="fs-row"><span class="fs-label">Category</span>${["All", ...data.categories].map((c) => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c === active}">${esc(c)}</button>`).join("")}</div>
       ${FILTERS.map(([label, chips]) => `<div class="fs-row"><span class="fs-label">${label}</span>${chips.map(([k, t]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="${view[k]}">${t}</button>`).join("")}</div>`).join("")}
@@ -179,9 +173,25 @@ function renderBar() {
   if (window.fsFloatUpdate) window.fsFloatUpdate();
 }
 
+// The gear is drawn once into the header (it does not float or scroll with the search bar)
+function renderGear() {
+  const slot = $("#gear-slot");
+  if (!slot || slot.firstElementChild) return;
+  const themePref = (window.menuTheme && window.menuTheme.pref()) || "auto", themeNow = (window.menuTheme && window.menuTheme.eff()) || "dark";
+  slot.innerHTML = `<button type="button" class="fs-icon fs-gear" data-open-settings aria-haspopup="true" aria-expanded="${settingsOpen}" aria-controls="fs-settings" aria-label="Settings" title="Settings">${GEAR_ICON}</button>
+        <div class="fs-settings" id="fs-settings" role="menu" ${settingsOpen ? "" : "hidden"}>
+          <div class="fs-set-label" id="fs-theme-l">Theme</div>
+          <div class="fs-seg" role="group" aria-labelledby="fs-theme-l">${THEMES.map(([k, t, ic]) => `<button type="button" class="fs-seg-b" data-theme-set="${k}" aria-pressed="${themePref === k}">${ic}<span>${t}</span></button>`).join("")}</div>
+          <p class="fs-set-hint">${themeHint(themePref, themeNow)}</p>
+          <div class="fs-set-sep"></div>
+          <button type="button" class="fs-set-item" role="menuitem" data-open-qr>${QR_ICON}<span>QR code</span></button>
+        </div>`;
+}
+
 function render() {
   $("#name").textContent = data.restaurant;
   document.title = `${data.restaurant} menu`;
+  renderGear();
   renderBar();
   renderList();
 }
@@ -200,11 +210,13 @@ function renderList() {
   $("#menu").innerHTML = html;
 }
 
-$("#fs").addEventListener("click", (e) => {
+$("#gear-slot")?.addEventListener("click", (e) => {
   const th = e.target.closest("[data-theme-set]");
   if (th) { window.menuTheme && window.menuTheme.set(th.dataset.themeSet); return syncSettings(); }
   if (e.target.closest("[data-open-settings]")) return syncSettings(!settingsOpen);
   if (e.target.closest("[data-open-qr]")) return syncSettings(false);
+});
+$("#fs").addEventListener("click", (e) => {
   const t = e.target.closest("[data-open],[data-f],[data-c]");
   if (!t) return;
   if (t.dataset.c !== undefined) active = t.dataset.c;
@@ -216,7 +228,7 @@ document.addEventListener("click", (e) => {
   if (settingsOpen && !e.composedPath().some((n) => n.classList && n.classList.contains("fs-actions"))) syncSettings(false);
 });
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && settingsOpen) { syncSettings(false); $("#fs").querySelector("[data-open-settings]")?.focus(); }
+  if (e.key === "Escape" && settingsOpen) { syncSettings(false); document.querySelector("#gear-slot [data-open-settings]")?.focus(); }
 });
 // Typing only refreshes the dish list, so the search box keeps focus
 $("#fs").addEventListener("input", (e) => {
@@ -598,30 +610,15 @@ $("#viewer-close").addEventListener("click", closeViewer);
 viewer.addEventListener("click", (e) => { if (e.target === viewer) closeViewer(); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !viewer.hidden) closeViewer(); });
 
-// Float the settings gear and My list: when their rows scroll out of view they stay pinned top-right,
-// so the list can be opened from anywhere on the menu. A slot keeps the search bar from jumping.
+// The search bar + My list row is sticky (CSS). This only adds a class while it is pinned so it can look a little
+// more solid and lift off the dishes scrolling underneath.
 (() => {
-  let wasGear = false, wasList = false, t1 = 0, t2 = 0;
-  // Plays a short pop animation (CSS) only at the moment a button floats or returns, not on every redraw
-  const pop = (cls, id) => {
-    document.body.classList.add(cls);
-    clearTimeout(id === 1 ? t1 : t2);
-    const t = setTimeout(() => document.body.classList.remove(cls), 450);
-    if (id === 1) t1 = t; else t2 = t;
-  };
+  let was = false;
   const update = () => {
-    const row = document.querySelector("#fs .fs-top");
-    const r = row && row.getClientRects().length ? row.getBoundingClientRect() : null;
-    const gear = !!r && r.top < 8;
-    document.body.classList.toggle("fs-float", gear);
-    if (gear !== wasGear) { pop(gear ? "pop-gear" : "pop-gear-back", 1); wasGear = gear; }
-    const sr = document.querySelector("#fs .fs-row-search");
-    const q = sr && sr.getClientRects().length ? sr.getBoundingClientRect() : null;
-    const btn = document.querySelector("#fs .fs-list");
-    if (btn && !document.body.classList.contains("fs-float-list") && btn.offsetWidth) document.body.style.setProperty("--fs-list-w", btn.offsetWidth + "px");
-    const list = !!q && q.top < 64;
-    document.body.classList.toggle("fs-float-list", list);
-    if (list !== wasList) { pop(list ? "pop-list" : "pop-list-back", 2); wasList = list; }
+    const fs = document.getElementById("fs");
+    if (!fs || !fs.getClientRects().length) return;
+    const stuck = fs.getBoundingClientRect().top <= (parseFloat(getComputedStyle(fs).top) || 0) + 0.5;
+    if (stuck !== was) { was = stuck; document.body.classList.toggle("fs-stuck", stuck); }
   };
   window.fsFloatUpdate = update;
   window.addEventListener("scroll", update, { passive: true });
