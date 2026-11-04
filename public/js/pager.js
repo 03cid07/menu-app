@@ -46,9 +46,23 @@
     els.forEach((n, j) => n.classList.toggle("pgr-off", j !== i));
     const S = (P = { el, els, pages, i, onChange, x: 0, W: 1, limit: 0, anim: null, peeks: [], suppress: false });
     bind(S);
+    warmNear(S);
     if (onChange) onChange(pages[i].key); // remember the page even when the old one no longer exists
     return S;
   }
+
+  // The photos are lazy: on a page that is not on screen they would only start loading when it slides in
+  // (grey placeholder, then a fade from transparent = the "blink"). So load and decode the neighbouring pages early.
+  function warm(S, j) {
+    const n = S.els[j];
+    if (!n) return Promise.resolve();
+    const jobs = Array.from(n.querySelectorAll("img")).map((im) => {
+      if (im.loading === "lazy") im.loading = "eager";
+      return im.decode ? im.decode().catch(() => {}) : Promise.resolve();
+    });
+    return Promise.all(jobs);
+  }
+  const warmNear = (S) => { warm(S, S.i - 1); warm(S, S.i + 1); };
 
   const animating = (S) => !!(S.anim && S.anim.running && S.anim.running());
 
@@ -64,6 +78,7 @@
     S.limit = Math.max(0, top);
     const Y = Math.max(0, window.scrollY - top);
     S.el.style.minHeight = cur.offsetHeight + "px";
+    S.el.classList.add("live");
     S.peeks = targets.filter((j) => j >= 0 && j < S.els.length && j !== S.i).map((j) => {
       const n = S.els[j];
       n.classList.remove("pgr-off");
@@ -71,19 +86,15 @@
       n.style.top = Y + "px";
       return { n, j, side: Math.sign(j - S.i) };
     });
+    setX(S, S.x); // put the incoming pages beside the current one right now, not a frame later (that frame was a flash)
   }
 
   // Draw the pages with the current one dragged x pixels sideways
   function setX(S, x) {
     S.x = x;
-    const span = S.W + GAP, prog = Math.min(1, Math.abs(x) / span);
-    const cur = S.els[S.i];
-    cur.style.transform = x ? `translate3d(${x}px,0,0)` : "";
-    cur.style.opacity = x ? String(1 - 0.4 * prog) : "";
-    for (const p of S.peeks) {
-      p.n.style.transform = `translate3d(${x + p.side * span}px,0,0)`;
-      p.n.style.opacity = String(Math.sign(x) === -p.side ? 0.6 + 0.4 * prog : 0.6);
-    }
+    const span = S.W + GAP;
+    S.els[S.i].style.transform = x ? `translate3d(${x}px,0,0)` : "";
+    for (const p of S.peeks) p.n.style.transform = `translate3d(${x + p.side * span}px,0,0)`;
   }
 
   // Everything has stopped moving: make page j the one on screen
@@ -91,16 +102,18 @@
     if (S !== P) return;
     const changed = j !== S.i;
     const hadFocus = S.els[S.i].contains(document.activeElement);
-    for (const n of S.els) { n.style.transform = n.style.opacity = n.style.top = ""; n.classList.remove("pgr-peek"); }
+    for (const n of S.els) { n.style.transform = n.style.top = ""; n.classList.remove("pgr-peek"); }
     S.i = j;
     S.els.forEach((n, k) => n.classList.toggle("pgr-off", k !== j));
     S.el.style.minHeight = "";
+    S.el.classList.remove("live");
     S.peeks = []; S.x = 0; S.anim = null;
     if (!changed) return;
     // turning a page starts at the top of the new page (when the person had scrolled past it)
     if (window.scrollY > S.limit) window.scrollTo({ top: S.limit, left: 0, behavior: "instant" });
     if (hadFocus) S.els[j].focus({ preventScroll: true }); // keyboard users keep their place
     if (S.onChange) S.onChange(S.pages[j].key);
+    warmNear(S);
   }
 
   function animateTo(S, target, velocity, j) {
@@ -110,9 +123,15 @@
 
   // Turn to page j (the dots, the buttons and the arrow keys use this)
   function go(S, j) {
-    if (S !== P || j === S.i || j < 0 || j >= S.els.length || animating(S)) return;
-    prepare(S, [j]);
-    animateTo(S, -Math.sign(j - S.i) * (S.W + GAP), 0, j);
+    if (S !== P || j === S.i || j < 0 || j >= S.els.length || animating(S) || S.busy) return;
+    const ready = Promise.race([warm(S, j), new Promise((r) => setTimeout(r, 250))]);
+    S.busy = true;
+    ready.then(() => {
+      S.busy = false;
+      if (S !== P || S.i === j || animating(S)) return;
+      prepare(S, [j]);
+      animateTo(S, -Math.sign(j - S.i) * (S.W + GAP), 0, j);
+    });
   }
 
   function bind(S) {
