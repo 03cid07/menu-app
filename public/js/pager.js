@@ -97,6 +97,20 @@
     for (const p of S.peeks) p.n.style.transform = `translate3d(${x + p.side * span}px,0,0)`;
   }
 
+  // The height of the window with the phone browser's address bar tucked away (the largest it gets)
+  function tallestView(root) {
+    let lvh = 0;
+    if (window.CSS && CSS.supports && CSS.supports("height", "100lvh")) {
+      const probe = document.createElement("div");
+      probe.style.cssText = "position:fixed;left:0;top:0;width:0;height:100lvh;visibility:hidden;pointer-events:none";
+      document.body.appendChild(probe);
+      lvh = probe.offsetHeight;
+      probe.remove();
+    }
+    // an older browser without lvh: leave room for a typical address bar instead
+    return Math.max(lvh || root.clientHeight + 80, root.clientHeight, window.innerHeight);
+  }
+
   // Everything has stopped moving: make page j the one on screen
   function settle(S, j) {
     if (S !== P) return;
@@ -116,7 +130,9 @@
     // snaps the page back to the very top and the big CupView header pops up. Give the pager just enough height
     // to hold the position, so the new page stays right under the pinned search bar like the long ones do.
     const root = document.scrollingElement || document.documentElement;
-    const room = root.scrollHeight - root.clientHeight; // how far the page can scroll with the new page showing
+    // Measure against the TALLEST the window can get: Chrome on a phone hides its address bar while you scroll,
+    // which makes the window taller and the page's scroll range shorter, and would snap the page up again.
+    const room = root.scrollHeight - tallestView(root); // how far the page can scroll with the new page showing
     if (room < keep) S.el.style.minHeight = Math.ceil(S.el.offsetHeight + (keep - room)) + "px";
     if (Math.abs(window.scrollY - keep) > 0.5) window.scrollTo({ top: keep, left: 0, behavior: "instant" });
     if (hadFocus) S.els[j].focus({ preventScroll: true }); // keyboard users keep their place
