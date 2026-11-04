@@ -18,6 +18,7 @@
   if (!(window.CSS && CSS.supports && CSS.supports("translate", "0 1px"))) return; // old browser: skip quietly
 
   const C = 0.55; // touch coefficient (TouchRubberBandingCoefficient)
+  const FLICK_BOUNCE = false; // the small bounce after a fast flick into an end; off so lists stop still on Android
   const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
   const pageEl = () => document.scrollingElement || document.documentElement;
   const ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -181,7 +182,7 @@
   // ---- a fast flick into an end: a small bounce (the browser's own momentum scroll, so we only watch it) ----
   const seen = new WeakMap();
   document.addEventListener("scroll", (e) => {
-    if (ios || reduced() || (g && g.touching)) return;
+    if (!FLICK_BOUNCE || ios || reduced() || (g && g.touching)) return;
     const sc = e.target === document ? pageEl() : e.target;
     if (!sc || sc.nodeType !== 1 || sc.dataset.rb === "off") return;
     const now = performance.now(), prev = seen.get(sc);
