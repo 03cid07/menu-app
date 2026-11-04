@@ -191,6 +191,7 @@ function renderGear() {
 function render() {
   $("#name").textContent = data.restaurant;
   document.title = `${data.restaurant} menu`;
+  cancelSearchLoad();
   renderGear();
   renderBar();
   renderList();
@@ -233,13 +234,15 @@ document.addEventListener("keydown", (e) => {
 // Typing only refreshes the dish list, so the search box keeps focus
 $("#fs").addEventListener("input", (e) => {
   if (e.target.id !== "fs-q") return;
-  cancelSearchLoad();
   view.q = e.target.value;
-  renderList();
+  // Typing shows the loading skeleton too, then the results once you pause. An empty box goes straight back to the full menu.
+  if (!view.q.trim()) { cancelSearchLoad(); renderList(); return; }
+  runSearchLoad(SEARCH_TYPE_MS);
 });
 
-// ---- Search loading: press Enter and the icon spins, skeleton rows shimmer, results fade in ----
-const SEARCH_LOAD_MS = 650;
+// ---- Search loading: while you type (or press Enter) the icon spins, skeleton rows shimmer, results fade in ----
+const SEARCH_LOAD_MS = 650;      // after pressing Enter
+const SEARCH_TYPE_MS = 450;      // after the last keystroke
 const SK_ROW = '<article class="item sk" aria-hidden="true"><div class="thumb"></div><div class="sk-body"><span class="sk-line"></span><span class="sk-line s"></span></div></article>';
 function cancelSearchLoad() {
   if (!searching) return;
@@ -248,26 +251,32 @@ function cancelSearchLoad() {
   $("#fs .fs-bar")?.classList.remove("is-searching");
   $("#menu").removeAttribute("aria-busy");
 }
-function runSearchLoad() {
-  cancelSearchLoad();
-  searching = true;
-  $("#fs .fs-bar")?.classList.add("is-searching");
+function runSearchLoad(ms = SEARCH_LOAD_MS) {
   const menu = $("#menu");
-  menu.setAttribute("aria-busy", "true");
-  menu.classList.remove("sk-results-in");
-  menu.innerHTML = `<section class="cat sk-cat">${SK_ROW.repeat(3)}</section>`;
+  if (searching) { // already showing the skeleton: just push the results back, so the shimmer doesn't restart on every key
+    clearTimeout(searchTimer);
+  } else {
+    searching = true;
+    $("#fs .fs-bar")?.classList.add("is-searching");
+    menu.setAttribute("aria-busy", "true");
+    menu.classList.remove("sk-results-in");
+    // the bar is pinned, so you can search from far down the page: bring the list top into view so the skeleton is seen
+    const barH = $("#fs").offsetHeight, top = menu.getBoundingClientRect().top + window.scrollY - barH - 8;
+    if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+    menu.innerHTML = `<section class="cat sk-cat">${SK_ROW.repeat(3)}</section>`;
+  }
   searchTimer = setTimeout(() => {
     cancelSearchLoad();
     renderList();
     menu.classList.add("sk-results-in");
     menu.addEventListener("animationend", () => menu.classList.remove("sk-results-in"), { once: true });
-  }, SEARCH_LOAD_MS);
+  }, ms);
 }
 $("#fs").addEventListener("keydown", (e) => {
   if (e.target.id !== "fs-q" || e.key !== "Enter" || e.isComposing) return;
   e.preventDefault();
   if (!view.q.trim()) return;
-  runSearchLoad();
+  runSearchLoad(SEARCH_LOAD_MS);
   e.target.blur(); // closes the phone keyboard so the results are visible
 });
 $("#fs").addEventListener("change", (e) => { if (e.target.name === "sort") { view.sort = e.target.value; render(); } });
