@@ -15,6 +15,7 @@ if (!$("#gear-slot") && $("#name")) {
   h.before(row); row.append(slot, h);
 }
 const view = { avail: false, ar: false, photo: false, sort: "featured", open: "", q: "" };
+let pageCat = null; // which category page the book-style menu is on (see pager.js)
 let searching = false, searchTimer = 0; // Enter-to-search loading state (see runSearchLoad)
 const SORTS = { featured: "Featured", low: "Price, low to high", high: "Price, high to low", az: "Name, A to Z" };
 const FILTERS = [["Availability", [["avail", "Available now"]]], ["Extras", [["ar", "3D / AR"], ["photo", "With photo"]]]];
@@ -198,15 +199,20 @@ function render() {
 }
 
 function renderList() {
+  if (window.Pager) Pager.clear();
   const items = visibleItems();
   let html;
   if (!data.items.length) html = '<p class="empty">No items yet. Add some on the admin page.</p>';
   else if (!items.length) html = '<p class="empty">No dishes match these filters. <button type="button" class="linkbtn" data-clear>Clear filters</button></p>';
   else if (view.sort === "featured") {
-    html = data.categories.map((c) => {
-      const inCat = items.filter((i) => i.category === c);
-      return inCat.length ? `<section class="cat"><h2>${esc(c)}</h2>${inCat.map((i) => itemHtml(i)).join("")}</section>` : "";
-    }).join("");
+    const groups = data.categories.map((c) => ({ c, inCat: items.filter((i) => i.category === c) })).filter((g) => g.inCat.length);
+    // Book style: with nothing picked and nothing searched, each category is a page you swipe through.
+    // A search, a sort or one chosen category shows a plain list instead (nothing to turn to).
+    if (window.Pager && active === "All" && !view.q.trim() && groups.length > 1) {
+      Pager.show($("#menu"), { pages: groups.map((g) => ({ key: g.c, title: g.c, html: g.inCat.map((i) => itemHtml(i)).join("") })), current: pageCat, onChange: (k) => { pageCat = k; } });
+      return;
+    }
+    html = groups.map((g) => `<section class="cat"><h2>${esc(g.c)}</h2>${g.inCat.map((i) => itemHtml(i)).join("")}</section>`).join("");
   } else html = `<section class="cat"><h2>${SORTS[view.sort]}</h2>${items.map((i) => itemHtml(i)).join("")}</section>`;
   $("#menu").innerHTML = html;
 }
@@ -220,7 +226,7 @@ $("#gear-slot")?.addEventListener("click", (e) => {
 $("#fs").addEventListener("click", (e) => {
   const t = e.target.closest("[data-open],[data-f],[data-c]");
   if (!t) return;
-  if (t.dataset.c !== undefined) active = t.dataset.c;
+  if (t.dataset.c !== undefined) { if (t.dataset.c === "All" && active !== "All") pageCat = active; active = t.dataset.c; } // "All" lands back on the category you were viewing
   else if (t.dataset.open) view.open = view.open === t.dataset.open ? "" : t.dataset.open;
   else view[t.dataset.f] = !view[t.dataset.f];
   render();
