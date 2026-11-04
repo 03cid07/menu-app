@@ -33,7 +33,14 @@
     const mx = ax === "y" ? sc.scrollHeight - sc.clientHeight : sc.scrollWidth - sc.clientWidth;
     return { pos, mx, size: (ax === "y" ? sc.clientHeight : sc.clientWidth) || 1, start: pos <= 1, end: pos >= mx - 1, native: pos < -1 || pos > mx + 1 };
   };
-  const edgeOn = (sc, which) => { const e = sc.dataset.rbEdges || "both"; return e === "both" || e === which; };
+  // The page itself only stretches at its bottom: pulling down at the top must never move the header.
+  const edgeOn = (sc, which) => {
+    if (sc === pageEl() && which === "start") return false;
+    const e = sc.dataset.rbEdges || "both";
+    return e === "both" || e === which;
+  };
+  // true while the menu pager is turning a page with the finger: the page must stay perfectly still then
+  const pagerBusy = () => !!(window.Pager && Pager.dragging && Pager.dragging());
 
   // the nearest element under the finger that scrolls in this direction (like the browser's own chaining)
   function findScroller(target, ax) {
@@ -49,7 +56,7 @@
     // the page itself (not while something like an open card locks it)
     if (ax !== "y" || document.body.dataset.rb === "off" || getComputedStyle(document.body).overflowY === "hidden") return null;
     const p = pageEl();
-    return p.scrollHeight > p.clientHeight + 1 ? p : null;
+    return p.scrollHeight > p.clientHeight + 24 ? p : null; // a page that barely scrolls is not stretched
   }
 
   // ---- moving the content ----
@@ -93,32 +100,47 @@
     if (e.touches.length !== 1) { g = null; return; }
     const t = e.touches[0];
     g = { target: e.target, x: t.clientX, y: t.clientY, lx: t.clientX, ly: t.clientY, ax: null, sc: null, raw: 0, pts: [], caught: false, dead: false, touching: true };
-    // caught a bounce that is still moving: take over from where it is
+    // A bounce is still moving: remember it, but do NOT grab it yet. A plain tap (choosing a product, the +
+    // button) must not interrupt the animation; it is only taken over once the finger really drags.
     for (const [sc, r] of running) {
       if (sc !== pageEl() && !sc.contains(e.target)) continue;
-      const st = states.get(sc);
-      const v0 = r.anim.velocity();
-      r.anim.stop(); running.delete(sc);
-      g.ax = r.ax; g.sc = sc; g.caught = true; g.v0 = v0;
-      g.d = metrics(sc, r.ax).size;
-      g.raw = rawFor(st.offset, g.d);
+      g.catchInfo = { sc, r };
       break;
     }
   }, { passive: true });
 
   document.addEventListener("touchmove", (e) => {
     if (!g || g.dead || reduced() || e.touches.length !== 1) return;
+    if (pagerBusy()) { // turning a page sideways: nothing may spring up or down
+      if (g.sc && g.raw !== 0) { g.raw = 0; g.caught = false; setOffset(g.sc, g.ax, 0); }
+      g.catchInfo = null; g.dead = true; return;
+    }
     const t = e.touches[0];
     const dx = t.clientX - g.lx, dy = t.clientY - g.ly;
     g.lx = t.clientX; g.ly = t.clientY;
 
     if (!g.ax) {
       const tx = t.clientX - g.x, ty = t.clientY - g.y;
-      if (Math.abs(tx) < 6 && Math.abs(ty) < 6) return;
-      g.ax = Math.abs(tx) > Math.abs(ty) ? "x" : "y";
-      g.sc = findScroller(g.target, g.ax);
-      if (!g.sc) { g.dead = true; return; }
-      g.d = metrics(g.sc, g.ax).size;
+      if (Math.abs(tx) < 8 && Math.abs(ty) < 8) return;
+      const c = g.catchInfo;
+      if (c) { // the finger drags while a bounce is playing: take over from where it is
+        g.catchInfo = null;
+        const dominant = c.r.ax === "y" ? Math.abs(ty) > Math.abs(tx) * 1.2 : Math.abs(tx) > Math.abs(ty) * 1.2;
+        if (!dominant) { g.dead = true; return; } // dragging the other way: leave the bounce alone
+        const st = states.get(c.sc);
+        g.v0 = c.r.anim.velocity();
+        c.r.anim.stop(); running.delete(c.sc);
+        g.ax = c.r.ax; g.sc = c.sc; g.caught = true;
+        g.d = metrics(g.sc, g.ax).size;
+        g.raw = rawFor(st.offset, g.d);
+      } else {
+        // a clearly sideways or clearly vertical drag only; a diagonal one is left to the browser and the pager
+        g.ax = Math.abs(tx) > Math.abs(ty) * 1.5 ? "x" : Math.abs(ty) > Math.abs(tx) * 1.5 ? "y" : null;
+        if (!g.ax) { g.dead = true; return; }
+        g.sc = findScroller(g.target, g.ax);
+        if (!g.sc) { g.dead = true; return; }
+        g.d = metrics(g.sc, g.ax).size;
+      }
     }
     const sc = g.sc, ax = g.ax;
     const m = metrics(sc, ax);

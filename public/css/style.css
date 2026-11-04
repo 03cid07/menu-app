@@ -849,3 +849,9 @@ body.fs-stuck #fs { background: linear-gradient(color-mix(in srgb, var(--bg) 88%
 .item .sk-ov { position: absolute; inset: 0; box-sizing: border-box; padding: inherit; display: flex; align-items: center; gap: .75rem; pointer-events: none; }
 .item .sk-ov .thumb { flex: none; border-radius: 12px; }
 .item.sk-in > :not(.sk-ov) { opacity: var(--p, 1); }
+
+/* laptop: drag the menu pages with the mouse */
+@media (hover: hover) and (pointer: fine) { .pgr { cursor: grab; } .pgr button, .pgr a, .pgr .item-open { cursor: pointer; } }
+.pgr.dragging, .pgr.dragging * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
+.pgr img { -webkit-user-drag: none; user-drag: none; }
+html { overscroll-behavior-x: none; } /* a sideways trackpad swipe must not trigger browser back/forward */

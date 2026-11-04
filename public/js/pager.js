@@ -138,17 +138,21 @@
     const el = S.el;
     let g = null; // the finger on the screen
     el.addEventListener("pointerdown", (e) => {
-      if (e.pointerType === "mouse" || !e.isPrimary || animating(S)) return;
+      if (!e.isPrimary || animating(S)) return;
+      if (e.pointerType === "mouse" && e.button !== 0) return; // laptop: drag with the left button, like a finger
       S.suppress = false;
       g = { id: e.pointerId, x0: e.clientX, y0: e.clientY, locked: false, s: [[e.clientX, e.timeStamp]] };
     });
     el.addEventListener("pointermove", (e) => {
       if (!g || e.pointerId !== g.id) return;
+      if (e.pointerType === "mouse" && e.buttons === 0) { g = null; return; } // button was released outside the window
       const dx = e.clientX - g.x0, dy = e.clientY - g.y0;
       if (!g.locked) {
         if (Math.abs(dx) < LOCK && Math.abs(dy) < LOCK) return;
         if (Math.abs(dx) < Math.abs(dy) * 1.2) { g = null; return; } // mostly up/down: the page scrolls as usual
         g.locked = true; S.suppress = true;
+        el.classList.add("dragging"); // no text selection / grab cursor while dragging with a mouse
+        try { getSelection().removeAllRanges(); } catch { /* not important */ }
         g.x0 = e.clientX; g.s = [[e.clientX, e.timeStamp]]; // start from 0 so the page does not jump by the first few pixels
         prepare(S, [S.i - 1, S.i + 1]);
         try { el.setPointerCapture(e.pointerId); } catch { /* the drag still works without it */ }
@@ -164,6 +168,7 @@
       if (!g || e.pointerId !== g.id) return;
       const f = g; g = null;
       if (!f.locked) return;
+      el.classList.remove("dragging");
       setTimeout(() => { S.suppress = false; }, 60);
       const x = S.x, W = S.W, a = f.s[0], b = f.s[f.s.length - 1];
       const v = b[1] > a[1] ? (b[0] - a[0]) / (b[1] - a[1]) : 0; // px per ms
@@ -177,6 +182,25 @@
     };
     el.addEventListener("pointerup", (e) => end(e, false));
     el.addEventListener("pointercancel", (e) => end(e, true));
+    // Laptop trackpad: a two-finger sideways swipe (or shift + wheel) turns one page per swipe.
+    // The cooldown outlasts the trackpad's inertia, so one swipe never skips two pages.
+    let acc = 0, quiet = 0, lockedUntil = 0;
+    el.addEventListener("wheel", (e) => {
+      const ax = Math.abs(e.deltaX), ay = Math.abs(e.deltaY);
+      if (e.ctrlKey || ax < 1 || ax < ay * 1.2) return; // vertical scrolling and pinch-zoom stay normal
+      e.preventDefault(); // also stops the browser's own "swipe = back" gesture
+      const now = performance.now();
+      clearTimeout(quiet);
+      quiet = setTimeout(() => { acc = 0; }, 160);
+      if (now < lockedUntil || animating(S) || S.busy) { lockedUntil = now + 120; return; } // still the same swipe's inertia
+      acc += e.deltaX;
+      if (Math.abs(acc) < 50) return;
+      const j = S.i + (acc > 0 ? 1 : -1);
+      acc = 0;
+      if (j < 0 || j >= S.els.length) return;
+      lockedUntil = now + 450;
+      go(S, j);
+    }, { passive: false });
     // a drag must not also "tap" the dish or button under the finger
     el.addEventListener("click", (e) => { if (S.suppress) { e.preventDefault(); e.stopPropagation(); } }, true);
     el.addEventListener("click", (e) => {
@@ -193,5 +217,5 @@
     go(P, P.i + (e.key === "ArrowRight" ? 1 : -1));
   });
 
-  window.Pager = { show, clear, go: (j) => P && go(P, j), index: () => (P ? P.i : -1) };
+  window.Pager = { show, clear, go: (j) => P && go(P, j), index: () => (P ? P.i : -1), dragging: () => !!(P && (P.suppress || P.x !== 0)) };
 })();
