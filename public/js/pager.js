@@ -77,7 +77,7 @@
     const top = S.el.getBoundingClientRect().top + window.scrollY - barH;
     S.limit = Math.max(0, top);
     const Y = Math.max(0, window.scrollY - top);
-    S.el.style.minHeight = cur.offsetHeight + "px";
+    S.el.style.minHeight = Math.max(cur.offsetHeight, S.el.offsetHeight) + "px"; // never shrink below the room a short page was given (see settle)
     S.el.classList.add("live");
     S.peeks = targets.filter((j) => j >= 0 && j < S.els.length && j !== S.i).map((j) => {
       const n = S.els[j];
@@ -101,6 +101,7 @@
   function settle(S, j) {
     if (S !== P) return;
     const changed = j !== S.i;
+    const y0 = window.scrollY; // where the page is scrolled now, before the new page changes its height
     const hadFocus = S.els[S.i].contains(document.activeElement);
     for (const n of S.els) { n.style.transform = n.style.top = ""; n.classList.remove("pgr-peek"); }
     S.i = j;
@@ -110,7 +111,14 @@
     S.peeks = []; S.x = 0; S.anim = null;
     if (!changed) return;
     // turning a page starts at the top of the new page (when the person had scrolled past it)
-    if (window.scrollY > S.limit) window.scrollTo({ top: S.limit, left: 0, behavior: "instant" });
+    const keep = Number.isFinite(S.limit) ? Math.min(y0, S.limit) : y0;
+    // A short page (a few dishes) makes the whole document too short to stay scrolled this far, so the browser
+    // snaps the page back to the very top and the big CupView header pops up. Give the pager just enough height
+    // to hold the position, so the new page stays right under the pinned search bar like the long ones do.
+    const root = document.scrollingElement || document.documentElement;
+    const room = root.scrollHeight - root.clientHeight; // how far the page can scroll with the new page showing
+    if (room < keep) S.el.style.minHeight = Math.ceil(S.el.offsetHeight + (keep - room)) + "px";
+    if (Math.abs(window.scrollY - keep) > 0.5) window.scrollTo({ top: keep, left: 0, behavior: "instant" });
     if (hadFocus) S.els[j].focus({ preventScroll: true }); // keyboard users keep their place
     if (S.onChange) S.onChange(S.pages[j].key);
     warmNear(S);
