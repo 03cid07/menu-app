@@ -110,7 +110,7 @@ async function refresh() {
   const count = (c) => data.items.filter((i) => i.category === c).length;
   $("#cat-manage").innerHTML = data.categories.length
     ? data.categories.map((c, n) => `<div class="admin-item"><div><strong>${esc(c)}</strong> <small>${count(c)} dish${count(c) === 1 ? "" : "es"}</small></div>
-        <div><button class="btn ghost" data-crename="${n}">Rename / merge</button><button class="btn ghost danger" data-cdel="${n}">Delete</button></div></div>`).join("")
+        <div class="cat-actions"><span class="cat-move"><button class="btn ghost" data-ctop="${n}" title="Move to the first page" aria-label="Move ${esc(c)} to the first page"${n === 0 ? " disabled" : ""}>⤒ Top</button><button class="btn ghost" data-cup="${n}" title="Move up" aria-label="Move ${esc(c)} up"${n === 0 ? " disabled" : ""}>▲</button><button class="btn ghost" data-cdown="${n}" title="Move down" aria-label="Move ${esc(c)} down"${n === data.categories.length - 1 ? " disabled" : ""}>▼</button></span><button class="btn ghost" data-crename="${n}">Rename / merge</button><button class="btn ghost danger" data-cdel="${n}">Delete</button></div></div>`).join("")
     : "<p>No categories yet.</p>";
   $("#list").innerHTML = data.items.length
     ? data.items.map((i) => `<div class="admin-item">
@@ -215,6 +215,15 @@ $("#cat-manage").addEventListener("click", async (e) => {
       if (to === null || to.trim() === from) return;
       const r = await api("PUT", "/api/categories", { from, to });
       sayCat(r.merged ? `Merged into "${to.trim()}"` : "Category renamed");
+    } else if (t.dataset.cup !== undefined || t.dataset.cdown !== undefined || t.dataset.ctop !== undefined) {
+      const order = [...data.categories];
+      const from = Number(t.dataset.cup ?? t.dataset.cdown ?? t.dataset.ctop);
+      const to = t.dataset.ctop !== undefined ? 0 : t.dataset.cup !== undefined ? from - 1 : from + 1;
+      if (to < 0 || to >= order.length) return;
+      const [moved] = order.splice(from, 1);
+      order.splice(to, 0, moved);
+      await api("PUT", "/api/categories/order", { order });
+      sayCat(`"${moved}" moved${to === 0 ? " to the first page" : ""}`);
     } else if (t.dataset.cdel !== undefined) {
       const name = data.categories[t.dataset.cdel];
       if (!confirm(`Delete the category "${name}"?`)) return;

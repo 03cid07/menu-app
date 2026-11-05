@@ -2,13 +2,10 @@
   "restaurant": "CupView",
   "currency": "₱",
   "categories": [
-    "Mains",
     "ESPRESSO DRINKS",
     "NON-ESPRESSO DRINKS",
-    "pizza",
-    "water",
-    "Water Drink",
-    "desert"
+    "Mains",
+    "Dessert"
   ],
   "items": [
     {
@@ -241,6 +238,19 @@
       "name": "buunn",
       "price": 345,
       "category": "Mains",
+      "description": "",
+      "ingredients": "",
+      "image": "",
+      "images": [],
+      "model": "",
+      "label": "",
+      "available": true
+    },
+    {
+      "id": "mw37xpk2",
+      "name": "Ice Cream",
+      "price": 70,
+      "category": "Dessert",
       "description": "",
       "ingredients": "",
       "image": "",
