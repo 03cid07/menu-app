@@ -16,11 +16,10 @@
   const bar = () => document.getElementById("fs");
   let P = null;             // the pager on screen
 
-  const clear = () => { if (P && P.anim) P.anim.stop(); P = null; };
+  const clear = () => { if (P && P.anim) P.anim.stop(); if (P && P.float) P.float.remove(); P = null; };
 
   function pageHtml(pages, j) {
     const n = pages.length, p = pages[j];
-    const dots = pages.map((q, k) => `<button type="button" class="pgr-dot${k === j ? " on" : ""}" data-go="${k}" aria-label="${esc(q.title)}, page ${k + 1} of ${n}"${k === j ? ' aria-current="true"' : ""}></button>`).join("");
     const side = (k, cls, label) => (pages[k]
       ? `<button type="button" class="pgr-btn ${cls}" data-go="${k}">${cls === "prev" ? '<span class="pgr-arr" aria-hidden="true">\u2039</span>' : ""}<span class="pgr-lbl">${esc(pages[k].title)}</span>${cls === "next" ? '<span class="pgr-arr" aria-hidden="true">\u203a</span>' : ""}</button>`
       : `<span class="pgr-sp"></span>`);
@@ -28,12 +27,35 @@
       <h2><span class="pgr-title">${esc(p.title)}</span><span class="pgr-count" aria-hidden="true">${j + 1} / ${n}</span></h2>
       ${p.html}
       <nav class="pgr-nav" aria-label="Menu pages">
-        <div class="pgr-dots">${dots}</div>
         <div class="pgr-btns">${side(j - 1, "prev")}${side(j + 1, "next")}</div>
         <p class="pgr-hint">Swipe to turn the page</p>
       </nav>
     </section>`;
   }
+
+  // The page dots float: one pill fixed to the screen above the bottom nav, instead of one set per page that
+  // scrolls away and slides sideways with the page. It lives on <body> and goes away with the pager (see clear).
+  function floatDots(S) {
+    const n = S.pages.length;
+    const f = document.createElement("nav");
+    f.className = "pgr-float";
+    f.setAttribute("aria-label", "Menu pages");
+    f.innerHTML = S.pages.map((q, k) => `<button type="button" class="pgr-dot" data-go="${k}" aria-label="${esc(q.title)}, page ${k + 1} of ${n}"></button>`).join("");
+    f.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-go]");
+      if (b) go(S, Number(b.dataset.go));
+    });
+    document.body.appendChild(f);
+    S.float = f;
+    markDot(S, S.i);
+  }
+  const markDot = (S, j) => {
+    if (!S.float) return;
+    Array.from(S.float.children).forEach((b, k) => {
+      b.classList.toggle("on", k === j);
+      if (k === j) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current");
+    });
+  };
 
   function show(root, { pages, current, onChange }) {
     clear();
@@ -46,6 +68,7 @@
     els.forEach((n, j) => n.classList.toggle("pgr-off", j !== i));
     const S = (P = { el, els, pages, i, onChange, x: 0, W: 1, limit: 0, anim: null, peeks: [], suppress: false });
     bind(S);
+    floatDots(S);
     warmNear(S);
     if (onChange) onChange(pages[i].key); // remember the page even when the old one no longer exists
     return S;
@@ -142,6 +165,7 @@
 
   function animateTo(S, target, velocity, j) {
     if (S.anim) S.anim.stop();
+    markDot(S, j);
     S.anim = Springs.spring({ from: S.x, to: target, velocity, response: 0.42, damping: 1, onUpdate: (x) => setX(S, x), onDone: () => settle(S, j) });
   }
 

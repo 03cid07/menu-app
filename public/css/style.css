@@ -826,8 +826,7 @@ body.fs-stuck #fs { background: linear-gradient(color-mix(in srgb, var(--bg) 88%
 .pgr-page h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .pgr-count { flex: none; font-size: .8rem; font-weight: 600; letter-spacing: .06em; color: var(--muted); }
 .pgr-nav { margin: 1.4rem 0 .5rem; display: grid; gap: .55rem; justify-items: center; }
-.pgr-dots { display: flex; flex-wrap: wrap; justify-content: center; }
-.pgr-dot { width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; -webkit-tap-highlight-color: transparent; }
+.pgr-dot { flex: none; width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; -webkit-tap-highlight-color: transparent; }
 .pgr-dot::before { content: ""; width: 8px; height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 30%, transparent); transition: width .25s ease, background-color .25s ease; }
 .pgr-dot.on::before { width: 20px; background: var(--accent); }
 .pgr-btns { display: flex; gap: .6rem; width: 100%; }
@@ -859,3 +858,12 @@ html { overscroll-behavior-x: none; } /* a sideways trackpad swipe must not trig
 /* More breathing room at the bottom of the menu: the page-turn dots, buttons and swipe hint no longer sit right on top of the bottom nav */
 .pgr-nav { margin-bottom: 1.5rem; }
 body { padding-bottom: calc(var(--nav-h) + 5rem + env(safe-area-inset-bottom, 0px)); }
+
+/* ---- Floating page dots: fixed above the bottom nav (and above the My list bar when it is showing) ---- */
+.pgr-float { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-h) + 1.1rem + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; max-width: calc(100% - 2rem); padding: .15rem .45rem; border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent); -webkit-backdrop-filter: blur(var(--card-blur, 10px)); backdrop-filter: blur(var(--card-blur, 10px));
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); box-shadow: 0 6px 18px rgba(0,0,0,.3);
+  transition: bottom .3s ease; }
+body.has-list .pgr-float { bottom: calc(var(--nav-h) + 1.2rem + 3.6rem + env(safe-area-inset-bottom, 0px)); } /* clears the My list bar */
+body.no-scroll .pgr-float { visibility: hidden; } /* a card or the 3D viewer is open */
