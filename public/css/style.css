@@ -867,3 +867,10 @@ body { padding-bottom: calc(var(--nav-h) + 5rem + env(safe-area-inset-bottom, 0p
   transition: bottom .3s ease; }
 body.has-list .pgr-float { bottom: calc(var(--nav-h) + 1.2rem + 3.6rem + env(safe-area-inset-bottom, 0px)); } /* clears the My list bar */
 body.no-scroll .pgr-float { visibility: hidden; } /* a card or the 3D viewer is open */
+
+/* ---- Category order buttons (admin > Categories) ---- */
+#cat-manage .admin-item > :last-child { flex: none; display: flex; flex-wrap: wrap; gap: .4rem; justify-content: flex-end; align-items: center; }
+#cat-manage .admin-item .btn.ghost { margin: 0; white-space: nowrap; }
+#cat-manage .cat-move { display: inline-flex; gap: .3rem; margin-right: .4rem; }
+#cat-manage .btn.ghost:disabled { opacity: .35; }
+@media (max-width: 520px) { #cat-manage .admin-item > :last-child { justify-content: flex-start; } }

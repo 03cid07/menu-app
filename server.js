@@ -161,6 +161,18 @@ app.put("/api/categories", requirePin, (req, res) => {
   res.json({ categories: data.categories, merged: !!other });
 });
 
+// Admin: set the order of the categories (customers see the menu pages in this order).
+// The list must contain exactly the existing categories, each once.
+app.put("/api/categories/order", requirePin, (req, res) => {
+  const data = load(), order = req.body.order;
+  const same = Array.isArray(order) && order.length === data.categories.length
+    && new Set(order).size === order.length && order.every((c) => data.categories.includes(c));
+  if (!same) return res.status(400).json({ error: "The new order must list every category exactly once" });
+  data.categories = order;
+  save(data);
+  res.json({ categories: data.categories });
+});
+
 // Admin: delete a category, only when no dish uses it
 app.delete("/api/categories", requirePin, (req, res) => {
   const data = load(), name = String(req.query.name ?? "");
