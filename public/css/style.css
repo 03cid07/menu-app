@@ -817,7 +817,13 @@ body.fs-stuck #fs { background: linear-gradient(color-mix(in srgb, var(--bg) 88%
 /* ---- Book-style menu: one category per page, swipe to turn (see pager.js) ---- */
 .pgr { position: relative; touch-action: pan-y pinch-zoom; overflow-x: clip; margin-inline: -1.25rem; } /* bleeds to the screen edge (main has 1.25rem padding) so pages slide off the edge, not off a window */
 @supports not (overflow: clip) { .pgr { overflow: hidden; } }
-.pgr-page { display: flow-root; outline: none; padding-inline: 1.25rem; } /* flow-root keeps the title's top margin inside the page, so every page lines up */
+.pgr-page { display: flex; flex-direction: column; outline: none; padding-inline: 1.25rem; }
+/* The dishes of a page sit in a window that shows 6 dishes (height set in pager.js) and scrolls inside when there are more.
+   Scrolling past either end carries on with the page itself. No rubber band here. */
+.pgr-list { position: relative; flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.pgr-list::-webkit-scrollbar { display: none; }
+.pgr-list.more { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 34px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 34px), transparent); } /* flow-root keeps the title's top margin inside the page, so every page lines up */
+/* Each page is a box of the same height (set in pager.js) with its buttons pinned to the bottom: the menu never stretches. */
 /* A page that is not showing stays laid out (just invisible and zero height) instead of display:none, so its photos
    and moving names are already set up and nothing replays its fade-in when the page slides in. */
 .pgr-page.pgr-off { position: absolute; left: 0; right: 0; top: 0; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; }
@@ -825,7 +831,7 @@ body.fs-stuck #fs { background: linear-gradient(color-mix(in srgb, var(--bg) 88%
 .pgr.live .pgr-page { will-change: transform; }
 .pgr-page h2 { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 .pgr-count { flex: none; font-size: .8rem; font-weight: 600; letter-spacing: .06em; color: var(--muted); }
-.pgr-nav { margin: 1.4rem 0 .5rem; display: grid; gap: .55rem; justify-items: center; }
+.pgr-nav { margin: auto 0 .5rem; padding-top: 1.4rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: .55rem; justify-items: center; }
 .pgr-dot { flex: none; width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; display: grid; place-items: center; -webkit-tap-highlight-color: transparent; }
 .pgr-dot::before { content: ""; width: 8px; height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 30%, transparent); transition: width .25s ease, background-color .25s ease; }
 .pgr-dot.on::before { width: 20px; background: var(--accent); }
