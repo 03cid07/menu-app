@@ -134,6 +134,12 @@
     return Math.max(lvh || root.clientHeight + 80, root.clientHeight, window.innerHeight);
   }
 
+  // Jump the window to y without animation. Older Android WebViews throw on behavior: "instant", so fall back.
+  function scrollToNow(y) {
+    try { window.scrollTo({ top: y, left: 0, behavior: "instant" }); }
+    catch { window.scrollTo(0, y); }
+  }
+
   // Everything has stopped moving: make page j the one on screen
   function settle(S, j) {
     if (S !== P) return;
@@ -143,24 +149,29 @@
     for (const n of S.els) { n.style.transform = n.style.top = ""; n.classList.remove("pgr-peek"); }
     S.i = j;
     S.els.forEach((n, k) => n.classList.toggle("pgr-off", k !== j));
-    S.el.style.minHeight = "";
     S.el.classList.remove("live");
     S.peeks = []; S.x = 0; S.anim = null;
-    if (!changed) return;
+    const rest0 = S.restY;
+    S.restY = null; // never leak into the next turn
+    // The pager keeps the min-height it was given in prepare() until the new position is safe, so the document
+    // never gets shorter than the scroll position (that clamp is what made the CupView header snap into view).
+    if (!changed) return; // snapped back (rubber band): the held height stays, nothing can shrink
     // turning a page starts at the top of the new page (when the person had scrolled past it)
     // ...but if the person scrolled down while the slide was still animating, their scroll wins
-    const rest = Number.isFinite(S.restY) ? S.restY : y0;
+    const rest = Number.isFinite(rest0) ? rest0 : y0;
     const tookOver = window.scrollY > rest + 0.5;
     const keep = tookOver ? y0 : Number.isFinite(S.limit) ? Math.min(y0, S.limit) : y0;
-    // A short page (a few dishes) makes the whole document too short to stay scrolled this far, so the browser
-    // snaps the page back to the very top and the big CupView header pops up. Give the pager just enough height
-    // to hold the position, so the new page stays right under the pinned search bar like the long ones do.
+    // Jump first, while the pager is still held tall, so the browser has nothing to clamp.
+    if (Math.abs(window.scrollY - keep) > 0.5) scrollToNow(keep);
+    // Then work out how much height a short page (a few dishes) needs to keep that position, and release the rest.
+    // Measure against the TALLEST the window can get (phone address bar tucked away).
     const root = document.scrollingElement || document.documentElement;
-    // Measure against the TALLEST the window can get: Chrome on a phone hides its address bar while you scroll,
-    // which makes the window taller and the page's scroll range shorter, and would snap the page up again.
-    const room = root.scrollHeight - tallestView(root); // how far the page can scroll with the new page showing
-    if (room < keep) S.el.style.minHeight = Math.ceil(S.el.offsetHeight + (keep - room)) + "px";
-    if (Math.abs(window.scrollY - keep) > 0.5) window.scrollTo({ top: keep, left: 0, behavior: "instant" });
+    const natural = S.els[j].offsetHeight;
+    const extra = Math.max(0, S.el.offsetHeight - natural);
+    const roomNow = root.scrollHeight - tallestView(root);
+    const roomNatural = roomNow - extra;
+    S.el.style.minHeight = roomNatural < keep ? Math.ceil(natural + (keep - roomNatural)) + "px" : "";
+    if (Math.abs(window.scrollY - keep) > 0.5) scrollToNow(keep);
     if (hadFocus) S.els[j].focus({ preventScroll: true }); // keyboard users keep their place
     if (S.onChange) S.onChange(S.pages[j].key);
     warmNear(S);
