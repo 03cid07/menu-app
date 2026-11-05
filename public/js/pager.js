@@ -66,7 +66,7 @@
     root.replaceChildren(el);
     const els = Array.from(el.children);
     els.forEach((n, j) => n.classList.toggle("pgr-off", j !== i));
-    const S = (P = { el, els, pages, i, onChange, x: 0, W: 1, limit: 0, anim: null, peeks: [], suppress: false });
+    const S = (P = { el, els, pages, i, onChange, x: 0, W: 1, limit: 0, restY: null, anim: null, peeks: [], suppress: false });
     bind(S);
     floatDots(S);
     warmNear(S);
@@ -148,7 +148,10 @@
     S.peeks = []; S.x = 0; S.anim = null;
     if (!changed) return;
     // turning a page starts at the top of the new page (when the person had scrolled past it)
-    const keep = Number.isFinite(S.limit) ? Math.min(y0, S.limit) : y0;
+    // ...but if the person scrolled down while the slide was still animating, their scroll wins
+    const rest = Number.isFinite(S.restY) ? S.restY : y0;
+    const tookOver = window.scrollY > rest + 0.5;
+    const keep = tookOver ? y0 : Number.isFinite(S.limit) ? Math.min(y0, S.limit) : y0;
     // A short page (a few dishes) makes the whole document too short to stay scrolled this far, so the browser
     // snaps the page back to the very top and the big CupView header pops up. Give the pager just enough height
     // to hold the position, so the new page stays right under the pinned search bar like the long ones do.
@@ -165,6 +168,7 @@
 
   function animateTo(S, target, velocity, j) {
     if (S.anim) S.anim.stop();
+    S.restY = window.scrollY; // where the page was when the turn started
     markDot(S, j);
     S.anim = Springs.spring({ from: S.x, to: target, velocity, response: 0.42, damping: 1, onUpdate: (x) => setX(S, x), onDone: () => settle(S, j) });
   }
