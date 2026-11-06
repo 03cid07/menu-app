@@ -963,3 +963,8 @@ header.top { position: relative; z-index: 8; }
    Page turning listens on .pgr (see pager.js), which has touch-action: pan-y. A scrolling child (the list inside the box) is its own
    scroller, so it needs the same rule, or the browser may claim a sideways swipe that starts on a dish and the page never turns. */
 .pgr-page, .pgr-box, .pgr-list { touch-action: pan-y pinch-zoom; }
+
+/* ---- Header hides while the dishes scroll (see setHeader in pager.js): the box stretches into the room it leaves ---- */
+body.pgr-fixed header.top { transition: max-height .28s ease, padding .28s ease, opacity .2s ease; }
+body.pgr-fixed header.top.hdr-off { overflow: hidden; opacity: 0; pointer-events: none; padding-top: env(safe-area-inset-top, 0px); padding-bottom: 0; }
+@media (prefers-reduced-motion: reduce) { body.pgr-fixed header.top { transition: none; } }
