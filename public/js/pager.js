@@ -33,8 +33,8 @@
       ? `<button type="button" class="pgr-btn ${cls}" data-go="${k}">${cls === "prev" ? '<span class="pgr-arr" aria-hidden="true">\u2039</span>' : ""}<span class="pgr-lbl">${esc(pages[k].label || pages[k].title)}</span>${cls === "next" ? '<span class="pgr-arr" aria-hidden="true">\u203a</span>' : ""}</button>`
       : `<span class="pgr-sp"></span>`);
     return `<section class="cat pgr-page" data-key="${esc(p.key)}" tabindex="-1" aria-label="${esc(p.title)}, page ${j + 1} of ${n}">
-      <h2><span class="pgr-title">${esc(p.title)}</span><span class="pgr-count" aria-hidden="true">${j + 1} / ${n}</span></h2>
-      <div class="pgr-list" data-rb="off">${p.html}</div>
+      <h2><span class="pgr-title">${esc(p.title)}</span>${n > 1 ? `<span class="pgr-count" aria-hidden="true">${j + 1} / ${n}</span>` : ""}</h2>
+      <div class="pgr-box"><div class="pgr-list">${p.html}</div></div>
       <nav class="pgr-nav" aria-label="Menu pages">
         <div class="pgr-btns">${side(j - 1, "prev")}${side(j + 1, "next")}</div>
         <p class="pgr-hint">Swipe to turn the page</p>
@@ -84,7 +84,7 @@
     measure(S);
     el.addEventListener("scroll", (e) => { if (e.target.classList && e.target.classList.contains("pgr-list")) markMore(e.target); }, true);
     bind(S);
-    floatDots(S);
+    if (pages.length > 1) floatDots(S); // one page (a search that matches one category, a sort): nothing to turn to
     warmNear(S);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (S === P && !S.peeks.length && !S.anim) measure(S); });
     if (onChange) onChange(pages[i].key); // remember the page even when the old one no longer exists
@@ -106,6 +106,45 @@
   // dishes on any page) and scrolls inside when there are more; the page box is as tall as the tallest page.
   // A page with fewer dishes just has empty room under its list (its buttons stay at the bottom), so the
   // document keeps the same height on every page and nothing can stretch or snap.
+  // ---- Fitting the dishes into the room there is (used by the Full menu here and by the Quick menu results) ----
+  // The window shows k whole dishes and half of the next one, and it fills the room exactly: to make that work out, every
+  // row grows or shrinks a few pixels (its top and bottom padding), so no space is wasted under the box.
+  window.DishFit = {
+    reset(items) { items.forEach((i) => { i.style.paddingTop = i.style.paddingBottom = ""; }); },
+    // items: laid out with their padding reset. free: the room in px. Returns the window height, or 0 when every dish fits.
+    apply(items, free) {
+      const a = items[0], z = items[items.length - 1];
+      const geo = () => ({ rowH: a.offsetHeight, pitch: items[1] ? items[1].offsetTop - a.offsetTop : a.offsetHeight + 10 });
+      let { rowH, pitch } = geo();
+      if (z.offsetTop + z.offsetHeight - a.offsetTop <= free) return 0;
+      let best = null; // the k that needs the smallest change to the rows: k * (pitch + d) + (rowH + d) / 2 = free
+      for (let k = 1; k <= items.length; k++) {
+        const d = (free - rowH / 2 - k * pitch) / (k + 0.5);
+        if (!best || Math.abs(d) < Math.abs(best.d)) best = { k, d };
+        if (k * pitch > free) break;
+      }
+      const d = Math.max(-12, Math.min(14, best.d));
+      if (d) items.forEach((i) => { const cs = getComputedStyle(i); i.style.paddingTop = parseFloat(cs.paddingTop) + d / 2 + "px"; i.style.paddingBottom = parseFloat(cs.paddingBottom) + d / 2 + "px"; });
+      ({ rowH, pitch } = geo());
+      return Math.floor(Math.min(free, best.k * pitch + rowH / 2));
+    },
+  };
+  function fit(S, lists) {
+    S.els.forEach((n, j) => {
+      const list = lists[j], it = Array.from(list.querySelectorAll(".item"));
+      if (!it.length) return;
+      laidOut(n, () => {
+        DishFit.reset(it);
+        const box = list.parentElement, nav = n.querySelector(".pgr-nav");
+        list.style.maxHeight = "0px";
+        const free = nav.getBoundingClientRect().top - box.getBoundingClientRect().bottom; // room the window may use
+        list.style.maxHeight = "";
+        const h = DishFit.apply(it, free);
+        list.style.maxHeight = h ? h + "px" : "";
+      });
+    });
+  }
+
   function measure(S) {
     const lists = S.els.map((n) => n.querySelector(".pgr-list"));
     S.els.forEach((n, k) => { n.style.minHeight = ""; lists[k].style.maxHeight = ""; });
@@ -119,13 +158,14 @@
       }));
     });
     if (L) lists.forEach((l) => { l.style.maxHeight = Math.ceil(L) + "px"; });
+    fit(S, lists);
     let H = 0;
     S.els.forEach((n) => { H = Math.max(H, laidOut(n, () => n.offsetHeight)); });
-    S.H = H; S.Wm = S.el.clientWidth;
+    S.H = H; S.Wm = S.el.clientWidth; S.Hm = S.el.clientHeight;
     if (H) S.els.forEach((n) => { n.style.minHeight = H + "px"; });
     S.els.forEach((n, k) => laidOut(n, () => markMore(lists[k])));
   }
-  window.addEventListener("resize", () => { if (P && !P.peeks.length && !P.anim && P.el.clientWidth !== P.Wm) measure(P); });
+  window.addEventListener("resize", () => { if (P && !P.peeks.length && !P.anim && (P.el.clientWidth !== P.Wm || P.el.clientHeight !== P.Hm)) measure(P); });
 
   // The photos are lazy: on a page that is not on screen they would only start loading when it slides in
   // (grey placeholder, then a fade from transparent = the "blink"). So load and decode the neighbouring pages early.
