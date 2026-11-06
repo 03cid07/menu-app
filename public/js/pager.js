@@ -9,6 +9,7 @@
 // see measure), so turning a page never makes the document taller or shorter and nothing can stretch or snap.
 // The whole menu sits in a box that is fixed on the screen (body.pgr-fixed): the header and search bar stay on top,
 // the page buttons and dots stay at the bottom, and only the dishes in between scroll.
+// Scrolling the dishes down hides the header and stretches the box to show more dishes (see setHeader); pulling down at the first dish brings it back.
 // A page shows at most ROWS dishes at a time: a category with more dishes scrolls inside its list (the first
 // ones slide out of the top as you scroll, the next ones come in at the bottom).
 // It uses pointer events with `touch-action: pan-y`, so up and down still scroll the page normally and only a
@@ -25,7 +26,77 @@
   const bar = () => document.getElementById("fs");
   let P = null;             // the pager on screen
 
-  const clear = () => { if (P && P.anim) P.anim.stop(); if (P && P.float) P.float.remove(); P = null; document.body.classList.remove("pgr-fixed"); };
+  // ---- Hide the header while the dishes scroll, so the box can grow and show more of them ----
+  // Scroll the list down: the title/note collapse away and the box stretches into the room they leave.
+  // Reaching the top again does not bring it back: you have to pull down at the first dish (a rubber band: it follows your finger
+  // with growing resistance and snaps back up when you let go).
+  const HDR_MS = 280;
+  const hdr = () => document.querySelector("header.top");
+  const resetHeader = () => { const h = hdr(); if (h) { h.classList.remove("hdr-off"); h.style.maxHeight = ""; } };
+  const pageLists = (S) => S.els.map((n) => n.querySelector(".pgr-list")).filter(Boolean);
+  // Stretch (delta > 0) or shrink (delta < 0) every page's list window by delta px, with the same easing as the header
+  function growLists(S, delta) {
+    const anim = !reduced();
+    pageLists(S).forEach((l) => {
+      const cur = parseFloat(l.style.maxHeight);
+      if (!Number.isFinite(cur)) return; // that page shows every dish already: nothing to stretch
+      if (anim) l.style.transition = `max-height ${HDR_MS}ms ease`;
+      l.style.maxHeight = Math.max(0, cur + delta) + "px";
+    });
+    if (anim) setTimeout(() => pageLists(S).forEach((l) => { l.style.transition = ""; }), HDR_MS + 40);
+  }
+  function setHeader(S, hide) {
+    const h = hdr();
+    if (!h || S !== P || S.hid === hide || S.peeks.length) return;
+    S.hid = hide;
+    S.hdrLock = performance.now() + HDR_MS + 200; // the box changes size now: ignore the scroll events that causes
+    const dur = reduced() ? 0 : HDR_MS;
+    if (hide) {
+      // How tall is the header open, and how tall does it stay when collapsed (the phone's notch space is kept)?
+      const prev = h.style.transition;
+      h.style.transition = "none"; h.style.maxHeight = "";
+      const open = h.offsetHeight;
+      h.classList.add("hdr-off"); h.style.maxHeight = "0px";
+      const shut = h.offsetHeight;
+      h.classList.remove("hdr-off"); h.style.maxHeight = open + "px";
+      void h.offsetHeight; h.style.transition = prev;
+      S.hdrDelta = Math.max(0, open - shut); S.hdrShut = shut; S.pull = 0;
+      h.classList.add("hdr-off"); h.style.maxHeight = "0px";
+      growLists(S, S.hdrDelta);
+    } else {
+      h.style.transition = ""; h.style.opacity = "";
+      h.classList.remove("hdr-off"); h.style.maxHeight = h.scrollHeight + "px";
+      setTimeout(() => { if (S.hid === false) h.style.maxHeight = ""; }, dur + 40);
+      growLists(S, -((S.hdrDelta || 0) - (S.pull || 0))); // a pull already took some of the room back
+      S.hdrDelta = 0; S.pull = 0;
+    }
+  }
+
+  // ---- Rubber band: with the header hidden, pulling down at the first dish drags it out a little, with growing resistance ----
+  // It is only a peek: let go and it always snaps back up, and the box stretches again. Reaching the top by scrolling does not show it.
+  function pullTo(S, dy) {
+    const h = hdr(), D = S.hdrDelta;
+    if (!h || !S.hid || !D) return;
+    const p = D * (1 - Math.exp(-Math.max(0, dy) / (D * 1.3))); // resistance: the further you pull, the less it moves
+    const diff = p - (S.pull || 0);
+    S.pull = p; S.hdrLock = performance.now() + 400;
+    h.style.transition = "none"; h.style.maxHeight = (S.hdrShut + p) + "px"; h.style.opacity = String(Math.min(1, p / D));
+    pageLists(S).forEach((l) => {
+      const cur = parseFloat(l.style.maxHeight);
+      if (!Number.isFinite(cur)) return;
+      l.style.transition = "none"; l.style.maxHeight = Math.max(0, cur - diff) + "px";
+    });
+  }
+  function releasePull(S) {
+    const h = hdr();
+    if (!h || !S.hid || !(S.pull > 0)) return;
+    // the header snaps back up and the box stretches again
+    const back = S.pull; S.pull = 0; S.hdrLock = performance.now() + HDR_MS + 200;
+    h.style.transition = ""; h.style.opacity = ""; h.style.maxHeight = "0px";
+    growLists(S, back);
+  }
+
+  const clear = () => { if (P && P.anim) P.anim.stop(); if (P && P.float) P.float.remove(); P = null; resetHeader(); document.body.classList.remove("pgr-fixed"); };
 
   function pageHtml(pages, j) {
     const n = pages.length, p = pages[j];
@@ -80,9 +151,17 @@
     window.scrollTo(0, 0);
     const els = Array.from(el.children);
     els.forEach((n, j) => n.classList.toggle("pgr-off", j !== i));
-    const S = (P = { el, els, pages, i, onChange, x: 0, W: 1, limit: 0, restY: null, anim: null, peeks: [], suppress: false });
+    const S = (P = { el, els, pages, i, onChange, x: 0, W: 1, limit: 0, restY: null, anim: null, peeks: [], suppress: false, hid: false, hdrDelta: 0, hdrShut: 0, pull: 0, hdrLock: 0, noHdr: false });
     measure(S);
-    el.addEventListener("scroll", (e) => { if (e.target.classList && e.target.classList.contains("pgr-list")) markMore(e.target); }, true);
+    el.addEventListener("scroll", (e) => {
+      const l = e.target;
+      if (!l.classList || !l.classList.contains("pgr-list")) return;
+      markMore(l);
+      const t = l.scrollTop, prev = l._lt || 0;
+      l._lt = t;
+      if (S !== P || S.noHdr || performance.now() < S.hdrLock || l !== S.els[S.i].querySelector(".pgr-list")) return;
+      if (!S.hid && t > prev && t > 6) setHeader(S, true); // scrolling down: hide the header, stretch the box (it comes back by pulling down at the top)
+    }, true);
     bind(S);
     if (pages.length > 1) floatDots(S); // one page (a search that matches one category, a sort): nothing to turn to
     warmNear(S);
@@ -225,7 +304,7 @@
     const y0 = window.scrollY; // where the page is scrolled now
     const hadFocus = S.els[S.i].contains(document.activeElement);
     for (const n of S.els) { n.style.transform = n.style.top = ""; n.classList.remove("pgr-peek"); }
-    if (changed) { const l = S.els[S.i].querySelector(".pgr-list"); if (l) { l.scrollTop = 0; markMore(l); } } // the page we leave starts from its first dish next time
+    if (changed) { const l = S.els[S.i].querySelector(".pgr-list"); if (l) { S.noHdr = true; setTimeout(() => { S.noHdr = false; }, 150); l._lt = 0; l.scrollTop = 0; markMore(l); } } // the page we leave starts from its first dish next time
     S.i = j;
     S.els.forEach((n, k) => n.classList.toggle("pgr-off", k !== j));
     S.el.classList.remove("live");
@@ -345,6 +424,28 @@
       lockedUntil = now + 450;
       go(S, j);
     }, { passive: false });
+    // Header hidden and the list at its first dish: pull down (touch) or keep wheeling up (mouse / trackpad) to drag it back out
+    const atTop = () => { const l = S.els[S.i].querySelector(".pgr-list"); return !l || l.scrollTop <= 1; };
+    let ty = null;
+    el.addEventListener("touchstart", (e) => { ty = e.touches.length === 1 ? e.touches[0].clientY : null; }, { passive: true });
+    el.addEventListener("touchmove", (e) => {
+      if (ty == null || !S.hid) return;
+      const y = e.touches[0].clientY;
+      if (!atTop() || S.suppress) { ty = y; return; } // still scrolling the list (or turning a page): the pull starts from where we reach the top
+      pullTo(S, y - ty);
+    }, { passive: true });
+    const letGo = () => { ty = null; releasePull(S); };
+    el.addEventListener("touchend", letGo, { passive: true });
+    el.addEventListener("touchcancel", letGo, { passive: true });
+    let wd = 0, wt = 0;
+    el.addEventListener("wheel", (e) => {
+      if (!S.hid || !atTop() || Math.abs(e.deltaY) < Math.abs(e.deltaX)) return;
+      if (e.deltaY >= 0 && !(S.pull > 0)) return;
+      wd = Math.max(0, wd - e.deltaY); // wheeling up pulls, wheeling down eases it back
+      pullTo(S, wd);
+      clearTimeout(wt);
+      wt = setTimeout(() => { wd = 0; releasePull(S); }, 160);
+    }, { passive: true });
     // a drag must not also "tap" the dish or button under the finger
     el.addEventListener("click", (e) => { if (S.suppress) { e.preventDefault(); e.stopPropagation(); } }, true);
     el.addEventListener("click", (e) => {
