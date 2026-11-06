@@ -891,7 +891,7 @@ body.pgr-fixed header.top { padding: calc(.7rem + env(safe-area-inset-top, 0px))
 body.pgr-fixed header.top h1 { font-size: 1.7rem; margin: 0; }
 body.pgr-fixed header.top .top-row { margin: 0 0 .1rem; }
 body.pgr-fixed header.top p { font-size: .74rem; line-height: 1.3; }
-body.pgr-fixed #fs { position: relative; top: auto; z-index: 9; padding-top: .35rem; padding-bottom: .5rem; margin-bottom: 0; }
+body.pgr-fixed #fs { position: relative; top: auto; z-index: 7; padding-top: .35rem; padding-bottom: .5rem; margin-bottom: 0; }
 /* Filter and sort opens over the box (instead of pushing it) */
 body.pgr-fixed #fs .fs-panel:not([hidden]) { position: absolute; left: 1.25rem; right: 1.25rem; top: calc(100% - .2rem); max-height: calc(100dvh - 14rem); z-index: 9; }
 /* The box: as tall as the room left; the bottom keeps clear of the dots and the bottom bar */
@@ -904,3 +904,49 @@ body.pgr-fixed .pgr-nav { flex: none; margin: auto 0 0; padding-top: .6rem; gap:
 body.pgr-fixed .pgr-hint { display: none; }
 body.pgr-fixed.has-list .pgr-float { bottom: calc(var(--nav-h) + 1.1rem + env(safe-area-inset-bottom, 0px)); }
 
+
+/* ---- Layering fixes ----
+   The search bar (#fs) must sit under the start / quick screens (.home, z 8) and under the settings popup, which opens from the header.
+   Before, #fs was z 9 in the book-style menu, so it floated over the start screen and covered the popup. */
+header.top { position: relative; z-index: 8; }
+
+/* ---- Quick menu results: compact rows in a framed box, sized so "See full menu" / "Start over" stay on screen above the bottom bar ----
+   The box scrolls only when there are more dishes than fit, and overscroll-behavior: auto hands the swipe to the page once the list hits an end,
+   so you never get stuck inside it. */
+.home-box.results { padding-top: calc(1.25rem + env(safe-area-inset-top, 0px)); }
+.results .home-q { margin: .6rem 0 .3rem; }
+.results .home-sub { margin: 0 0 .7rem; }
+.results .home-note { margin: 0 0 .6rem; font-size: .8rem; line-height: 1.3; }
+.home-results {
+  margin: 0; padding: .55rem .55rem .55rem;
+  background: color-mix(in srgb, var(--surface) calc(var(--card-alpha) * .55), transparent);
+  -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 18px;
+}
+/* The frame does not scroll, this inner part does: so the fade at the bottom only touches the dishes, never the frame */
+.home-results-in {
+  max-height: calc(100vh - 23.4rem - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 23.4rem - env(safe-area-inset-bottom, 0px)); min-height: 8rem;
+  overflow-y: auto; overscroll-behavior-y: auto; scrollbar-width: none;
+}
+.home-results-in::-webkit-scrollbar { display: none; }
+.home-results section.cat { margin: 0; }
+/* Dish rows: the same size in the Quick menu box and the Full menu box */
+.home-results .item .thumb, .pgr-list .item .thumb { width: 60px; height: 60px; }
+.home-results .item h3, .pgr-list .item h3 { font-size: 1.05rem; }
+.results .home-actions { margin-top: .8rem; }
+
+/* ---- Full menu: the dishes of each page sit in the same framed box as the Quick menu results ----
+   .pgr-box is the frame, .pgr-list inside it is the part that scrolls (pager.js sizes it to 6 dishes). */
+.pgr-box {
+  flex: 0 0 auto; padding: .55rem;
+  background: color-mix(in srgb, var(--surface) calc(var(--card-alpha) * .55), transparent);
+  -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 18px;
+}
+
+/* ---- Soft fade at the bottom of the dishes while there is more below (.more is set by pager.js / quick.js) ----
+   A mask on the scrolling part only, so the dishes melt into the frame instead of being cut off, with no gap or hard edge. */
+.pgr-list.more, .home-results-in.more {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
+}
