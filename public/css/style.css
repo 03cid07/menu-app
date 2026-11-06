@@ -880,3 +880,27 @@ body.no-scroll .pgr-float { visibility: hidden; } /* a card or the 3D viewer is 
 #cat-manage .cat-move { display: inline-flex; gap: .3rem; margin-right: .4rem; }
 #cat-manage .btn.ghost:disabled { opacity: .35; }
 @media (max-width: 520px) { #cat-manage .admin-item > :last-child { justify-content: flex-start; } }
+
+/* ---- The book-style menu is a box fixed on the screen: only the dishes inside it scroll ----
+   body.pgr-fixed is on only while the page-turning menu is showing (set in pager.js). The page itself cannot scroll, so there is
+   no empty space below it: header + search bar on top, the box in between, dots and the bottom bar under it. */
+body.pgr-fixed { height: 100vh; height: 100dvh; overflow: hidden; overscroll-behavior: none; padding-bottom: 0; display: flex; flex-direction: column; }
+body.pgr-fixed header.top, body.pgr-fixed #fs, body.pgr-fixed main#menu { width: 100%; box-sizing: border-box; flex: none; }
+/* A smaller header so the search bar and as many dishes as possible fit: name + settings on one row, the note in small print */
+body.pgr-fixed header.top { padding: calc(.7rem + env(safe-area-inset-top, 0px)) 1.25rem .1rem; }
+body.pgr-fixed header.top h1 { font-size: 1.7rem; margin: 0; }
+body.pgr-fixed header.top .top-row { margin: 0 0 .1rem; }
+body.pgr-fixed header.top p { font-size: .74rem; line-height: 1.3; }
+body.pgr-fixed #fs { position: relative; top: auto; z-index: 9; padding-top: .35rem; padding-bottom: .5rem; margin-bottom: 0; }
+/* Filter and sort opens over the box (instead of pushing it) */
+body.pgr-fixed #fs .fs-panel:not([hidden]) { position: absolute; left: 1.25rem; right: 1.25rem; top: calc(100% - .2rem); max-height: calc(100dvh - 14rem); z-index: 9; }
+/* The box: as tall as the room left; the bottom keeps clear of the dots and the bottom bar */
+body.pgr-fixed main#menu, body.pgr-fixed.has-list main#menu { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; padding: .2rem 1.25rem calc(var(--nav-h) + 3.5rem + env(safe-area-inset-bottom, 0px)); }
+body.pgr-fixed .pgr { flex: 1 1 0; min-height: 0; }
+body.pgr-fixed .pgr-page { position: absolute; inset: 0; min-height: 0 !important; }
+body.pgr-fixed .pgr-page h2 { margin: .25rem 0 .55rem; flex: none; }
+body.pgr-fixed .pgr-list { flex: 0 1 auto; overscroll-behavior-y: none; } /* no stretch at the ends of the list */
+body.pgr-fixed .pgr-nav { flex: none; margin: auto 0 0; padding-top: .6rem; gap: 0; }
+body.pgr-fixed .pgr-hint { display: none; }
+body.pgr-fixed.has-list .pgr-float { bottom: calc(var(--nav-h) + 1.1rem + env(safe-area-inset-bottom, 0px)); }
+

@@ -7,6 +7,8 @@
 // The page follows the finger and turns with a short, plain ease-out slide: no spring, no bounce, no rubber band
 // (at the first and last page it simply stays put). Every page is a box of the SAME height (the tallest page,
 // see measure), so turning a page never makes the document taller or shorter and nothing can stretch or snap.
+// The whole menu sits in a box that is fixed on the screen (body.pgr-fixed): the header and search bar stay on top,
+// the page buttons and dots stay at the bottom, and only the dishes in between scroll.
 // A page shows at most ROWS dishes at a time: a category with more dishes scrolls inside its list (the first
 // ones slide out of the top as you scroll, the next ones come in at the bottom).
 // It uses pointer events with `touch-action: pan-y`, so up and down still scroll the page normally and only a
@@ -23,7 +25,7 @@
   const bar = () => document.getElementById("fs");
   let P = null;             // the pager on screen
 
-  const clear = () => { if (P && P.anim) P.anim.stop(); if (P && P.float) P.float.remove(); P = null; };
+  const clear = () => { if (P && P.anim) P.anim.stop(); if (P && P.float) P.float.remove(); P = null; document.body.classList.remove("pgr-fixed"); };
 
   function pageHtml(pages, j) {
     const n = pages.length, p = pages[j];
@@ -72,6 +74,10 @@
     el.dataset.rb = "off"; // no rubber band here (see rubber.js): this area only scrolls
     el.innerHTML = pages.map((_, j) => pageHtml(pages, j)).join("");
     root.replaceChildren(el);
+    // The book-style menu is a fixed box that fills the screen between the search bar and the bottom bar:
+    // the page itself does not scroll, only the dishes inside the box do (see body.pgr-fixed in the CSS)
+    document.body.classList.add("pgr-fixed");
+    window.scrollTo(0, 0);
     const els = Array.from(el.children);
     els.forEach((n, j) => n.classList.toggle("pgr-off", j !== i));
     const S = (P = { el, els, pages, i, onChange, x: 0, W: 1, limit: 0, restY: null, anim: null, peeks: [], suppress: false });
