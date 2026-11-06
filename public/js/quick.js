@@ -97,13 +97,20 @@
     const items = QuickGen.filter(data.items, c, answers).sort(PICK_SORT);
     const noted = answers.some((a) => !a.auto && a.opts.length && (c.questions.find((q) => q.id === a.q) || {}).note);
     openHome(); setNav("quick");
-    home.innerHTML = `<div class="home-box"><button type="button" class="home-back" data-back>\u2039 Back</button>
+    home.innerHTML = `<div class="home-box results"><button type="button" class="home-back" data-back>\u2039 Back</button>
       <h2 class="home-q">${items.length ? "Here's what we picked for you" : "Nothing matched that"}</h2>
       <p class="home-sub">${items.length ? "Tap a dish for details." : "Try different answers or browse the full menu."}</p>
       ${items.length && noted ? '<p class="home-note">Based on the ingredients and descriptions listed. Please tell our staff about any allergies.</p>' : ""}
-      <section class="cat">${items.map((i) => itemHtml(i)).join("")}</section>
+      ${items.length ? `<div class="home-results"><div class="home-results-in"><section class="cat">${items.map((i) => itemHtml(i)).join("")}</section></div></div>` : ""}
       <div class="home-actions"><button type="button" class="btn" data-go="full">See full menu</button><button type="button" class="btn ghost" data-restart>Start over</button></div></div>`;
     home.scrollTop = 0; rise();
+    // Soft blur at the bottom of the box while there are more dishes below (see .home-results.more in the CSS)
+    const hr = home.querySelector(".home-results-in");
+    if (hr) {
+      const more = () => hr.classList.toggle("more", hr.scrollTop + hr.clientHeight < hr.scrollHeight - 2);
+      hr.addEventListener("scroll", more, { passive: true });
+      requestAnimationFrame(more); setTimeout(more, 400);
+    }
     cur = { answers, q: null };
   }
 
