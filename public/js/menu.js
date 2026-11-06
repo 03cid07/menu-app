@@ -246,16 +246,17 @@ function renderList() {
   let html;
   if (!data.items.length) html = '<p class="empty">No items yet. Add some on the admin page.</p>';
   else if (!items.length) html = '<p class="empty">No dishes match these filters. <button type="button" class="linkbtn" data-clear>Clear filters</button></p>';
-  else if (view.sort === "featured") {
+  else {
+    // Every view is split by category: one page per category that has a match. A sort (price, A to Z) orders the dishes
+    // inside each category, it does not mix the categories together. Only plain browsing remembers which page you were on.
     const groups = data.categories.map((c) => ({ c, inCat: items.filter((i) => i.category === c) })).filter((g) => g.inCat.length);
-    // Book style: with nothing picked and nothing searched, each category is a page you swipe through.
-    // A search, a sort or one chosen category shows a plain list instead (nothing to turn to).
-    if (window.Pager && active === "All" && !view.q.trim() && groups.length > 1) {
-      Pager.show($("#menu"), { pages: groups.map((g) => ({ key: g.c, title: g.c, html: g.inCat.map((i) => itemHtml(i)).join("") })), current: pageCat, onChange: (k) => { pageCat = k; } });
+    if (window.Pager) {
+      const browse = active === "All" && !view.q.trim();
+      Pager.show($("#menu"), { pages: groups.map((g) => ({ key: g.c, title: g.c, html: g.inCat.map((i) => itemHtml(i)).join("") })), current: pageCat, onChange: browse ? (k) => { pageCat = k; } : null });
       return;
     }
     html = groups.map((g) => `<section class="cat"><h2>${esc(g.c)}</h2>${g.inCat.map((i) => itemHtml(i)).join("")}</section>`).join("");
-  } else html = `<section class="cat"><h2>${SORTS[view.sort]}</h2>${items.map((i) => itemHtml(i)).join("")}</section>`;
+  }
   $("#menu").innerHTML = html;
 }
 
@@ -311,7 +312,7 @@ function runSearchLoad(ms = SEARCH_LOAD_MS) {
     // the bar is pinned, so you can search from far down the page: bring the list top into view so the skeleton is seen
     const barH = $("#fs").offsetHeight, top = menu.getBoundingClientRect().top + window.scrollY - barH - 8;
     if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
-    menu.innerHTML = `<section class="cat sk-cat">${SK_ROW.repeat(3)}</section>`;
+    menu.innerHTML = `<section class="cat sk-cat"><div class="pgr-box"><div class="pgr-list">${SK_ROW.repeat(3)}</div></div></section>`;
   }
   searchTimer = setTimeout(() => {
     cancelSearchLoad();

@@ -109,11 +109,27 @@
     if (hr) {
       const more = () => hr.classList.toggle("more", hr.scrollTop + hr.clientHeight < hr.scrollHeight - 2);
       hr.addEventListener("scroll", more, { passive: true });
-      requestAnimationFrame(more); setTimeout(more, 400);
-    }
+      // Fill the room with whole dishes and cut the last one at about half way, so the list clearly goes on
+      // The box takes all the room between the text above it and the buttons under it (the buttons end just above the bottom
+      // bar), measured from the real layout instead of a fixed guess, so no space is wasted. Then the last dish is cut at half.
+      fitResults = () => {
+        const it = Array.from(hr.querySelectorAll(".item"));
+        DishFit.reset(it); hr.style.maxHeight = "none";
+        const box = hr.parentElement, actions = home.querySelector(".home-actions");
+        const frameBelow = box.offsetHeight - (hr.offsetTop - box.offsetTop) - hr.offsetHeight; // padding + border under the list
+        const actionsH = actions ? actions.offsetHeight + (parseFloat(getComputedStyle(actions).marginTop) || 0) : 0;
+        const navTop = home.clientHeight - nav.offsetHeight;
+        const budget = Math.floor(navTop - 16 - actionsH - hr.offsetTop - frameBelow);
+        if (it.length && budget > 60) { const h = DishFit.apply(it, budget); hr.style.maxHeight = (h || budget) + "px"; } else hr.style.maxHeight = "";
+        more();
+      };
+      requestAnimationFrame(fitResults); setTimeout(fitResults, 400);
+    } else fitResults = null;
     cur = { answers, q: null };
   }
 
+  let fitResults = null;
+  window.addEventListener("resize", () => { if (fitResults) fitResults(); });
   const answer = (ids) => { hist.push(cur.answers); show(cur.answers.concat({ q: cur.q.id, opts: ids })); };
   home.addEventListener("click", (e) => {
     if (e.target.closest(".add-btn")) return; // + is handled by list.js

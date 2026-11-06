@@ -925,6 +925,7 @@ header.top { position: relative; z-index: 8; }
 }
 /* The frame does not scroll, this inner part does: so the fade at the bottom only touches the dishes, never the frame */
 .home-results-in {
+  position: relative;
   max-height: calc(100vh - 23.4rem - env(safe-area-inset-bottom, 0px)); max-height: calc(100dvh - 23.4rem - env(safe-area-inset-bottom, 0px)); min-height: 8rem;
   overflow-y: auto; overscroll-behavior-y: auto; scrollbar-width: none;
 }
@@ -938,7 +939,7 @@ header.top { position: relative; z-index: 8; }
 /* ---- Full menu: the dishes of each page sit in the same framed box as the Quick menu results ----
    .pgr-box is the frame, .pgr-list inside it is the part that scrolls (pager.js sizes it to 6 dishes). */
 .pgr-box {
-  flex: 0 0 auto; padding: .55rem;
+  flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; padding: .55rem;
   background: color-mix(in srgb, var(--surface) calc(var(--card-alpha) * .55), transparent);
   -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
   border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 18px;
@@ -950,3 +951,15 @@ header.top { position: relative; z-index: 8; }
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
   mask-image: linear-gradient(to bottom, #000 calc(100% - 44px), transparent);
 }
+
+/* Short screens (a laptop window, a small phone): smaller photos and tighter rows, so more dishes fit in the box */
+@media (max-height: 760px) {
+  .home-results .item .thumb, .pgr-list .item .thumb { width: 48px; height: 48px; }
+  :is(#menu, .home) :is(.home-results, .pgr-list) .item { padding: .45rem .6rem; margin-bottom: .5rem; }
+  .home-results .item h3, .pgr-list .item h3 { font-size: 1rem; }
+}
+
+/* ---- Swiping the Full menu box left / right (mobile) ----
+   Page turning listens on .pgr (see pager.js), which has touch-action: pan-y. A scrolling child (the list inside the box) is its own
+   scroller, so it needs the same rule, or the browser may claim a sideways swipe that starts on a dish and the page never turns. */
+.pgr-page, .pgr-box, .pgr-list { touch-action: pan-y pinch-zoom; }
