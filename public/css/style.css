@@ -964,7 +964,39 @@ header.top { position: relative; z-index: 8; }
    scroller, so it needs the same rule, or the browser may claim a sideways swipe that starts on a dish and the page never turns. */
 .pgr-page, .pgr-box, .pgr-list { touch-action: pan-y pinch-zoom; }
 
-/* ---- Header hides while the dishes scroll (see setHeader in pager.js): the box stretches into the room it leaves ---- */
-body.pgr-fixed header.top { transition: max-height .28s ease, padding .28s ease, opacity .2s ease; }
-body.pgr-fixed header.top.hdr-off { overflow: hidden; opacity: 0; pointer-events: none; padding-top: env(safe-area-inset-top, 0px); padding-bottom: 0; }
-@media (prefers-reduced-motion: reduce) { body.pgr-fixed header.top { transition: none; } }
+/* ---- Header hides while the dishes scroll and comes back with a pull-down (see paintHdr in pager.js) ----
+   pager.js sets max-height, padding and opacity on every frame, together with the height of the dish window, so the two always
+   move in step. No CSS transition here on purpose: a separate transition on the header would run out of step with the box. */
+body.pgr-fixed header.top { transition: none; }
+body.pgr-fixed header.top.hdr-off { overflow: hidden; pointer-events: none; }
+/* only used for measuring how much room the collapsed header still takes (the phone's notch space) */
+body.pgr-fixed header.top.hdr-probe { overflow: hidden; max-height: 0; padding-top: env(safe-area-inset-top, 0px); padding-bottom: 0; }
+
+/* ---- The dish box is its own framed card: clear space between it and the search bar so the two never look joined ---- */
+body.pgr-fixed #fs { padding-bottom: .75rem; }
+body.pgr-fixed main#menu, body.pgr-fixed.has-list main#menu { padding-top: .5rem; }
+body.pgr-fixed .pgr-page h2 { margin: .3rem 0 .65rem; }
+body.pgr-fixed .pgr-box {
+  border-color: color-mix(in srgb, var(--ink) 16%, var(--line));
+  box-shadow: 0 10px 28px rgba(0,0,0,.28), inset 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent);
+}
+/* Glow while the box stretches or shrinks (pager.js adds .growing to .pgr for the length of the move): quick to light up, slow to fade */
+body.pgr-fixed .pgr-box { transition: box-shadow .7s ease, border-color .7s ease; }
+body.pgr-fixed .pgr.growing .pgr-box {
+  border-color: color-mix(in srgb, var(--accent) 85%, transparent); /* only the frame line lights up: no halo around it */
+  box-shadow: 0 0 6px 0 color-mix(in srgb, var(--accent) 35%, transparent),
+              0 10px 28px rgba(0,0,0,.28);
+  transition-duration: .2s;
+}
+/* Light mode: a thin pale glow disappears on cream, so the line gets full colour and an extra 1px ring (2px in all), with a stronger shine */
+html[data-theme="light"] body.pgr-fixed .pgr.growing .pgr-box {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent),
+              0 0 9px 1px color-mix(in srgb, var(--accent) 60%, transparent),
+              0 10px 28px rgba(0,0,0,.14);
+}
+@media (prefers-reduced-motion: reduce) { body.pgr-fixed .pgr-box { transition: none; } }
+
+/* ---- Header colour: only the background takes the accent (matcha green), a tint that fades out downwards. The text keeps its own colour. ---- */
+header.top { background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 38%, transparent), color-mix(in srgb, var(--accent) 16%, transparent) 70%, transparent); }
+html[data-theme="light"] header.top { background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 32%, transparent), color-mix(in srgb, var(--accent) 12%, transparent) 70%, transparent); }
