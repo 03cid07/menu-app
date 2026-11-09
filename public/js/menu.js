@@ -345,14 +345,10 @@ const sheetBox = sheet.querySelector(".sheet-box");
 let sheetItem = null, sheetOpener = null;
 // The card slides in and out with springs and follows a finger (see spring.js)
 const sheetCard = Springs.bottomCard({ root: sheet, box: sheetBox, finish: finishSheet });
-let sheetIds = []; // the dishes you can swipe through (the ones on the page it was opened from)
-function openSheet(id, opener, ids) {
+function openSheet(id, opener) {
   sheetItem = data.items.find((x) => x.id === id);
   if (!sheetItem) return;
   sheetOpener = opener || null;
-  sheetIds = ids && ids.length ? ids : data.items.filter((x) => x.category === sheetItem.category).map((x) => x.id);
-  if (slideAnim) { slideAnim.stop(); slideAnim = null; }
-  sheetX(0);
   sheetBox.innerHTML = sheetHtml(sheetItem);
   sheetBox.scrollTop = 0;
   sheet.hidden = false;
@@ -365,8 +361,6 @@ function closeSheet() {
   sheetCard.dismiss();
 }
 function finishSheet() {
-  if (slideAnim) { slideAnim.stop(); slideAnim = null; }
-  sheetX(0);
   sheet.hidden = true;
   document.body.classList.remove("no-scroll");
   const back = sheetItem && document.querySelector(`.item[data-id="${CSS.escape(sheetItem.id)}"] .item-open`);
@@ -378,9 +372,7 @@ document.addEventListener("click", (e) => {
   if (!card) return;
   const inner = e.target.closest("button, a");
   if (inner && !inner.classList.contains("item-open")) return; // e.g. the 3D / AR button keeps its own job
-  const page = card.closest(".pgr-page, section.cat");
-  const ids = page ? Array.from(page.querySelectorAll(".item[data-id]")).map((n) => n.dataset.id) : null;
-  openSheet(card.dataset.id, card.querySelector(".item-open"), ids);
+  openSheet(card.dataset.id, card.querySelector(".item-open"));
 });
 sheet.addEventListener("click", (e) => {
   if (e.target === sheet || e.target.closest(".sheet-close")) return closeSheet();
@@ -414,96 +406,6 @@ sheetBox.addEventListener("scroll", (e) => {
   if (!t.classList || !t.classList.contains("gal-track") || galRaf) return;
   galRaf = requestAnimationFrame(() => { galRaf = 0; galSync(t); });
 }, true);
-// ---- Swipe the dish card left / right to see the neighbouring dishes ----
-// Swipe left for the next dish, right for the previous one (the dishes of the page it was opened from). The card follows the finger,
-// then slides out and the next dish slides in. At the first / last dish it stretches a little and springs back.
-// A dish with several photos keeps swiping on its photo for the photos; swipe anywhere else on the card for the next dish.
-// Computers: the left / right arrow keys, or a sideways two-finger swipe on the trackpad.
-let slideAnim = null;
-function sheetX(x) {
-  sheetBox.style.translate = x ? `${x.toFixed(1)}px 0` : "";
-  sheetBox.style.opacity = x ? Math.max(0.3, 1 - Math.abs(x) / ((sheetBox.offsetWidth || 1) * 1.3)).toFixed(3) : "";
-}
-function slide(from, to, velocity, response, done) {
-  if (slideAnim) slideAnim.stop();
-  slideAnim = null;
-  const a = Springs.spring({ from, to, velocity, response, damping: 1, onUpdate: sheetX, onDone: () => { if (slideAnim === a) slideAnim = null; if (done) done(); } });
-  if (a.running()) slideAnim = a;
-}
-function neighbour(dir) {
-  const k = sheetItem ? sheetIds.indexOf(sheetItem.id) : -1;
-  const id = k < 0 ? null : sheetIds[k + dir];
-  return id ? data.items.find((x) => x.id === id) : null;
-}
-function swapSheet(item) {
-  sheetItem = item;
-  sheetBox.innerHTML = sheetHtml(item);
-  sheetBox.scrollTop = 0;
-  sheetBox.querySelector(".sheet-close").focus({ preventScroll: true });
-}
-// dir: +1 = next dish (swipe left), -1 = previous (swipe right); x / v = where the finger left the card and how fast
-function sheetStep(dir, x = 0, v = 0) {
-  const item = neighbour(dir), W = sheetBox.offsetWidth || 1, away = W * 0.7;
-  if (!item) return slide(x, 0, v, 0.45); // nothing further that way: spring back
-  slide(x, -dir * away, v, 0.28, () => { if (sheet.hidden) return; swapSheet(item); slide(dir * away, 0, 0, 0.42); });
-}
-let sw = null;
-sheetBox.addEventListener("touchstart", (e) => {
-  sw = null;
-  if (e.touches.length !== 1 || sheet.hidden || sheetCard.isClosing() || slideAnim || e.target.closest(".gal-track")) return;
-  const t = e.touches[0];
-  sw = { x: t.clientX, y: t.clientY, on: false, cur: 0, pts: [] };
-}, { passive: true });
-sheetBox.addEventListener("touchmove", (e) => {
-  if (!sw) return;
-  const t = e.touches[0];
-  if (!sw.on) {
-    const dx = t.clientX - sw.x, dy = t.clientY - sw.y;
-    if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-    if (Math.abs(dx) < Math.abs(dy) * 1.3) { sw = null; return; } // mostly up / down: it scrolls, or pulls the card down
-    sw.on = true; sw.x = t.clientX; sw.pts = [[performance.now(), 0]];
-  }
-  if (e.cancelable) e.preventDefault();
-  const dx = t.clientX - sw.x, W = sheetBox.offsetWidth || 1;
-  sw.cur = neighbour(dx < 0 ? 1 : -1) ? dx : Math.sign(dx) * Springs.rubber(Math.abs(dx), W) * 0.6; // no dish that way: it stretches instead
-  sheetX(sw.cur);
-  sw.pts.push([performance.now(), sw.cur]);
-}, { passive: false });
-const swEnd = () => {
-  const f = sw; sw = null;
-  if (!f || !f.on) return;
-  const now = performance.now(), recent = f.pts.filter((p) => now - p[0] < 120), a = recent[0], z = recent[recent.length - 1];
-  const v = recent.length > 1 && z[0] > a[0] ? ((z[1] - a[1]) / (z[0] - a[0])) * 1000 : 0; // px per second
-  const dir = f.cur < 0 ? 1 : -1, W = sheetBox.offsetWidth || 1;
-  const go = neighbour(dir) && (Math.abs(f.cur) > W * 0.25 || (Math.abs(v) > 600 && Math.sign(v) === Math.sign(f.cur)));
-  if (go) sheetStep(dir, f.cur, v); else slide(f.cur, 0, v, 0.45);
-};
-sheetBox.addEventListener("touchend", swEnd);
-sheetBox.addEventListener("touchcancel", swEnd);
-document.addEventListener("keydown", (e) => {
-  if (sheet.hidden || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
-  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-  if (!qrBox.hidden || !viewer.hidden || slideAnim || sheetCard.isClosing()) return;
-  if (e.target.closest && e.target.closest("input, textarea, select, .gal-track, .rate-stars, model-viewer")) return;
-  e.preventDefault();
-  sheetStep(e.key === "ArrowRight" ? 1 : -1);
-});
-let wAcc = 0, wQuiet = 0, wLock = 0;
-sheetBox.addEventListener("wheel", (e) => {
-  const ax = Math.abs(e.deltaX), ay = Math.abs(e.deltaY);
-  if (e.ctrlKey || ax < 1 || ax < ay * 1.2 || e.target.closest(".gal-track")) return; // vertical scrolling stays normal
-  e.preventDefault();
-  const now = performance.now();
-  clearTimeout(wQuiet);
-  wQuiet = setTimeout(() => { wAcc = 0; }, 160);
-  if (now < wLock || slideAnim) { wLock = now + 120; return; } // still the same swipe's inertia
-  wAcc += e.deltaX;
-  if (Math.abs(wAcc) < 50) return;
-  const dir = wAcc > 0 ? 1 : -1;
-  wAcc = 0; wLock = now + 450;
-  sheetStep(dir);
-}, { passive: false });
-
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   if (!qrBox.hidden) closeQr(); else if (!viewer.hidden) closeViewer(); else closeSheet();
@@ -609,11 +511,12 @@ viewer.hidden = true;
 viewer.innerHTML = `<div class="viewer-box" role="dialog" aria-modal="true" aria-label="3D view">
   <div class="viewer-top"><strong id="viewer-title"></strong><button type="button" class="btn ghost" id="viewer-close">Close</button></div>
   <div id="viewer-stage"></div>
-  <p class="viewer-hint">Drag to rotate. Tap "View on your table" to see it at real size through your camera. If that button is missing, this phone or browser does not support AR.</p>
+  <p class="viewer-hint">Drag to rotate. Tap "View on your table" to see it at real size through your camera. The dish appears once your phone has found your table; until then you will see a scanner. If that button is missing, this phone or browser does not support AR.</p>
   <details class="ar-guide"><summary>Tips for placing it on your table</summary>
     <ol>
       <li>Tap <strong>View on your table (AR)</strong> and allow camera access.</li>
       <li>Hold the phone about an arm's length from the table and move it slowly side to side for a few seconds.</li>
+      <li>Keep the camera on the table top, not the floor. While the scanner shows, the dish stays hidden on purpose.</li>
       <li>When the dish appears, drag it to move it and turn it with two fingers.</li>
     </ol>
     <p>Works best in good light. Plain, shiny or dark tables are hard to detect, so try placing a napkin, menu or coaster with a pattern on the table and aim at it.</p>
@@ -667,7 +570,9 @@ document.addEventListener("click", (e) => {
     const r = T.stripEffects(T.parseGlb(await (await fetch(src)).arrayBuffer()));
     return r.had ? URL.createObjectURL(new Blob([T.buildGlb(r.gltf, r.bin)], { type: "model/gltf-binary" })) : null;
   })().catch((e) => { plainErr = e; console.error("Effects: could not prepare the model without effects", e); return null; }));
-  viewerCleanup = () => { swap++; document.removeEventListener("visibilitychange", comeBack); if (plainP) plainP.then((u) => u && URL.revokeObjectURL(u)); };
+  // Table finder for AR: hides the dish until a table-like surface is found and shows a scanner with live status (js/ar-guide.js)
+  const guide = window.ArGuide ? ArGuide.attach(mv) : null;
+  viewerCleanup = () => { swap++; document.removeEventListener("visibilitychange", comeBack); if (guide) guide.detach(); if (plainP) plainP.then((u) => u && URL.revokeObjectURL(u)); };
   const showFx = async (on) => {
     const my = ++swap;
     fxBtn.disabled = true;

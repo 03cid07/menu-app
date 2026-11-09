@@ -964,39 +964,51 @@ header.top { position: relative; z-index: 8; }
    scroller, so it needs the same rule, or the browser may claim a sideways swipe that starts on a dish and the page never turns. */
 .pgr-page, .pgr-box, .pgr-list { touch-action: pan-y pinch-zoom; }
 
-/* ---- Header hides while the dishes scroll and comes back with a pull-down (see paintHdr in pager.js) ----
-   pager.js sets max-height, padding and opacity on every frame, together with the height of the dish window, so the two always
-   move in step. No CSS transition here on purpose: a separate transition on the header would run out of step with the box. */
-body.pgr-fixed header.top { transition: none; }
-body.pgr-fixed header.top.hdr-off { overflow: hidden; pointer-events: none; }
-/* only used for measuring how much room the collapsed header still takes (the phone's notch space) */
-body.pgr-fixed header.top.hdr-probe { overflow: hidden; max-height: 0; padding-top: env(safe-area-inset-top, 0px); padding-bottom: 0; }
+/* ---- Header hides while the dishes scroll (see setHeader in pager.js): the box stretches into the room it leaves ---- */
+body.pgr-fixed header.top { transition: max-height .28s ease, padding .28s ease, opacity .2s ease; }
+body.pgr-fixed header.top.hdr-off { overflow: hidden; opacity: 0; pointer-events: none; padding-top: env(safe-area-inset-top, 0px); padding-bottom: 0; }
+@media (prefers-reduced-motion: reduce) { body.pgr-fixed header.top { transition: none; } }
 
-/* ---- The dish box is its own framed card: clear space between it and the search bar so the two never look joined ---- */
-body.pgr-fixed #fs { padding-bottom: .75rem; }
-body.pgr-fixed main#menu, body.pgr-fixed.has-list main#menu { padding-top: .5rem; }
-body.pgr-fixed .pgr-page h2 { margin: .3rem 0 .65rem; }
-body.pgr-fixed .pgr-box {
-  border-color: color-mix(in srgb, var(--ink) 16%, var(--line));
-  box-shadow: 0 10px 28px rgba(0,0,0,.28), inset 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent);
-}
-/* Glow while the box stretches or shrinks (pager.js adds .growing to .pgr for the length of the move): quick to light up, slow to fade */
-body.pgr-fixed .pgr-box { transition: box-shadow .7s ease, border-color .7s ease; }
-body.pgr-fixed .pgr.growing .pgr-box {
-  border-color: color-mix(in srgb, var(--accent) 85%, transparent); /* only the frame line lights up: no halo around it */
-  box-shadow: 0 0 6px 0 color-mix(in srgb, var(--accent) 35%, transparent),
-              0 10px 28px rgba(0,0,0,.28);
-  transition-duration: .2s;
-}
-/* Light mode: a thin pale glow disappears on cream, so the line gets full colour and an extra 1px ring (2px in all), with a stronger shine */
-html[data-theme="light"] body.pgr-fixed .pgr.growing .pgr-box {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent),
-              0 0 9px 1px color-mix(in srgb, var(--accent) 60%, transparent),
-              0 10px 28px rgba(0,0,0,.14);
-}
-@media (prefers-reduced-motion: reduce) { body.pgr-fixed .pgr-box { transition: none; } }
+/* ---- AR scanner: shown over the camera while the phone looks for a table (js/ar-guide.js) ----
+   Fixed bright colours on purpose: this sits on top of the live camera picture, not on the cream/charcoal page. */
+.ar-scan { position: absolute; inset: 0; z-index: 12; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .7rem;
+  padding: env(safe-area-inset-top, 0px) 1.2rem calc(env(safe-area-inset-bottom, 0px) + 84px); color: #fff; text-align: center; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 20%, rgba(0,0,0,.42) 100%); --ar-c: #fff; --ar-glow: rgba(255,255,255,.35); }
+.ar-scan[hidden] { display: none; }
+.ar-scan[data-state="floor"], .ar-scan[data-state="none"], .ar-scan[data-state="lost"] { --ar-c: #ffb74d; --ar-glow: rgba(255,183,77,.45); }
+.ar-scan[data-state="found"] { --ar-c: #a3c45f; --ar-glow: rgba(163,196,95,.55); }
+model-viewer[data-ar-scan] .mv-label { visibility: hidden; }
 
-/* ---- Header colour: only the background takes the accent (matcha green), a tint that fades out downwards. The text keeps its own colour. ---- */
-header.top { background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 38%, transparent), color-mix(in srgb, var(--accent) 16%, transparent) 70%, transparent); }
-html[data-theme="light"] header.top { background: linear-gradient(to bottom, color-mix(in srgb, var(--accent) 32%, transparent), color-mix(in srgb, var(--accent) 12%, transparent) 70%, transparent); }
+.ar-stage { position: relative; width: 250px; height: 175px; perspective: 560px; perspective-origin: 50% 12%; }
+.ar-plane { position: absolute; left: 8%; right: 8%; top: 26%; bottom: 0; transform: rotateX(62deg); transform-style: preserve-3d; overflow: hidden;
+  border: 2px solid var(--ar-c); border-radius: 14px; box-shadow: 0 0 22px var(--ar-glow), inset 0 0 22px var(--ar-glow); background-color: rgba(0,0,0,.18);
+  background-image: linear-gradient(var(--ar-glow) 1px, transparent 1px), linear-gradient(90deg, var(--ar-glow) 1px, transparent 1px); background-size: 26px 26px;
+  animation: arGrid 1.6s linear infinite; }
+.ar-sweep { position: absolute; left: 0; right: 0; top: 0; height: 26%; background: linear-gradient(to bottom, transparent, var(--ar-glow) 70%, var(--ar-c)); opacity: .9; animation: arSweep 1.9s ease-in-out infinite; }
+.ar-ring { position: absolute; left: 50%; top: 50%; width: 46%; aspect-ratio: 1; margin: -23% 0 0 -23%; border: 3px dashed var(--ar-c); border-radius: 50%; animation: arPulse 1.9s ease-out infinite; }
+.ar-ring.r2 { animation-delay: .95s; }
+.ar-x, .ar-ok { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scaleY(2.13); font-size: 1.7rem;   /* the plane is tilted 62deg, so stretch by 1/cos(62deg) to look upright */ line-height: 1; color: var(--ar-c); text-shadow: 0 0 10px var(--ar-glow); display: none; }
+.ar-scan[data-state="floor"] .ar-x, .ar-scan[data-state="none"] .ar-x { display: block; }
+.ar-scan[data-state="found"] .ar-ok { display: block; }
+.ar-scan[data-state="found"] .ar-plane { animation: none; }
+.ar-scan[data-state="found"] .ar-sweep, .ar-scan[data-state="found"] .ar-ring { animation: none; opacity: 0; }
+.ar-scan[data-state="found"] .ar-stage { animation: arPop .5s ease-out; }
+.ar-phone { position: absolute; left: 50%; top: 0; width: 30px; height: 54px; margin-left: -15px; border: 3px solid var(--ar-c); border-radius: 8px; background: rgba(0,0,0,.35);
+  box-shadow: 0 0 14px var(--ar-glow); animation: arPhone 2.4s ease-in-out infinite; }
+.ar-phone::after { content: ""; position: absolute; left: 50%; bottom: 4px; width: 8px; height: 3px; margin-left: -4px; border-radius: 2px; background: var(--ar-c); }
+.ar-scan[data-state="lost"] .ar-phone { animation: arShake .5s ease-in-out infinite; }
+.ar-scan[data-state="found"] .ar-phone { display: none; }
+
+.ar-msg { max-width: 320px; padding: .6rem .95rem; border-radius: 14px; background: rgba(0,0,0,.6); }
+.ar-title { font-weight: 700; font-size: 1.05rem; color: var(--ar-c); }
+.ar-sub { margin-top: .15rem; font-size: .9rem; line-height: 1.35; }
+.ar-override { pointer-events: auto; font: inherit; font-size: .9rem; font-weight: 600; padding: .5rem 1rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,.8); background: rgba(0,0,0,.6); color: #fff; }
+
+@keyframes arGrid { to { background-position: 0 26px, 26px 0; } }
+@keyframes arSweep { 0% { transform: translateY(-100%); } 100% { transform: translateY(400%); } }
+@keyframes arPulse { 0% { transform: scale(.4); opacity: .95; } 100% { transform: scale(1.5); opacity: 0; } }
+@keyframes arPhone { 0%, 100% { transform: translateX(-62px) rotateY(-28deg) rotateZ(-6deg); } 50% { transform: translateX(62px) rotateY(28deg) rotateZ(6deg); } }
+@keyframes arShake { 0%, 100% { transform: translateX(-8px); } 50% { transform: translateX(8px); } }
+@keyframes arPop { 0% { transform: scale(.85); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .ar-plane, .ar-sweep, .ar-ring, .ar-phone { animation-duration: 6s; } .ar-scan[data-state="found"] .ar-stage { animation: none; } }
