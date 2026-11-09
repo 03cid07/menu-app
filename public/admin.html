@@ -6,7 +6,7 @@
   <title>Manage menu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=22">
+  <link rel="stylesheet" href="css/style.css?v=23">
 </head>
 <body class="admin-page">
   <nav class="adminnav" aria-label="Admin sections">
@@ -49,7 +49,7 @@
       <div id="photo-grid" class="photo-grid"></div>
       <label for="modelFile">3D model <small>(.glb, plus its texture images if it has any)</small></label>
       <input id="modelFile" type="file" accept=".glb,.jpg,.jpeg,.png,model/gltf-binary" multiple>
-      <p class="hint model-hint">Choosing a file opens the 3D fixer, where you can add textures, set the real size and add effects.</p>
+      <p class="hint model-hint">Choosing a file opens the 3D fixer, where you can add textures and set the real size. Customers pick their own effects in the 3D viewer.</p>
       <input type="hidden" id="model">
       <div id="model-current"></div>
       <div class="model-actions">
@@ -147,7 +147,6 @@
             <div class="gf-tabs" id="gf-tabs" role="group" aria-label="Fixer steps">
               <button type="button" class="chip" data-t="tex" aria-pressed="true">1 Textures</button>
               <button type="button" class="chip" data-t="size" aria-pressed="false">2 Size</button>
-              <button type="button" class="chip" data-t="fx" id="gf-fxtab" aria-pressed="false">3 Effects</button>
             </div>
             <div class="gf-card gf-pane gf-cur" data-pane="tex">
               <strong>1. Textures</strong>
@@ -182,11 +181,6 @@
               <label>Compare with real objects</label>
               <div id="gf-refs"></div>
             </div>
-            <div class="gf-card gf-pane" data-pane="fx">
-              <strong>3. Food &amp; drink effects <span class="gf-opt">(optional)</span></strong>
-              <p class="gf-was">Tick any effects you like and set how strong they are. They are built into the finished model, so customers see them in the menu viewer.</p>
-              <div id="gf-fxlist"></div>
-            </div>
           </div>
         </div>
       </div>
@@ -198,8 +192,8 @@
       </div>
     </div>
   </div>
-  <script src="js/glb-tools.js"></script>
-  <script src="js/glb-fixer.js"></script>
+  <script src="js/glb-tools.js?v=4"></script>
+  <script src="js/glb-fixer.js?v=2"></script>
   <script src="js/spring.js?v=2"></script>
   <script src="js/rubber.js?v=2"></script>
   <script src="js/marquee.js"></script>

@@ -120,13 +120,22 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 .fs-icon + .fs-tab { border-left: 1px solid var(--ink); padding-left: 1rem; }
 .fs-q { width: 100%; padding: .6rem .8rem; border-radius: 999px; }
 
-/* ---- Effects button in the 3D viewer ---- */
+/* ---- Effects picker in the 3D viewer (the customer chooses) ---- */
 .stage-wrap { position: relative; margin-top: .6rem; border-radius: 10px; background: var(--bg); overflow: hidden; }
 #viewer-stage model-viewer { position: relative; z-index: 1; margin-top: 0; background: transparent; --poster-color: transparent; --progress-bar-color: var(--accent); --progress-mask: rgba(255,255,255,.3); --progress-bar-height: 8px; }
 .fx-toggle { position: absolute; top: 8px; right: 8px; z-index: 3; font: inherit; font-size: .75rem; padding: .2rem .65rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
 
 .fx-toggle:disabled { opacity: .6; cursor: default; }
-.fx-toggle.in-ar { top: max(12px, env(safe-area-inset-top)); right: auto; left: 12px; z-index: 11; pointer-events: auto; font-size: .9rem; padding: .45rem .95rem; background: rgba(0,0,0,.6); color: #fff; border-color: rgba(255,255,255,.6); }
+.fx-ui.in-ar .fx-toggle { top: max(12px, env(safe-area-inset-top)); right: auto; left: 12px; z-index: 11; pointer-events: auto; font-size: .9rem; padding: .45rem .95rem; background: rgba(0,0,0,.6); color: #fff; border-color: rgba(255,255,255,.6); }
+.fx-ui { display: contents; }
+.fx-toggle[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.fx-tray { position: absolute; left: 8px; right: 8px; bottom: 60px; z-index: 3; display: flex; gap: .4rem; overflow-x: auto; padding: .4rem; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); scrollbar-width: thin; -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior: contain; }
+.fx-tray[hidden] { display: none; }
+.fx-chip { flex: none; font: inherit; font-size: .8rem; padding: .3rem .7rem; border-radius: 999px; border: 1.5px solid var(--outline); background: transparent; color: var(--ink); cursor: pointer; white-space: nowrap; }
+.fx-chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.fx-ui.in-ar .fx-tray { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 56px); z-index: 11; background: rgba(0,0,0,.65); border-color: rgba(255,255,255,.5); pointer-events: auto; }
+.fx-ui.in-ar .fx-chip { color: #fff; border-color: rgba(255,255,255,.5); }
+.fx-ui.in-ar .fx-chip[aria-pressed="true"] { background: #fff; color: #000; }
 
 /* ---- Ratings + product detail card ---- */
 :root { --star: #f5a623; --star-off: rgba(128,128,128,.35); }

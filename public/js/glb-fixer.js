@@ -1,7 +1,7 @@
 /* 3D model fixer: a popup on the admin page.
-   GlbFixer.open(files) shows the model (+ optional texture images), lets you embed textures, set the real size and add
-   food/drink effects, then resolves with the finished .glb as a File, or null if the popup was closed without using it.
-   The heavy lifting (reading/writing .glb, effects) lives in glb-tools.js. Nothing is uploaded from here. */
+   GlbFixer.open(files) shows the model (+ optional texture images), lets you embed textures, set the real size,
+   then resolves with the finished .glb as a File, or null if the popup was closed without using it.
+   The heavy lifting (reading/writing .glb) lives in glb-tools.js. Nothing is uploaded from here. */
 (function () {
   "use strict";
   const T = window.GlbTools, root = document.getElementById("gf");
@@ -15,11 +15,9 @@
   const NICE = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
   const STEPS = [[0.1, 0.02], [0.2, 0.05], [0.5, 0.1], [1, 0.1], [2, 0.5], [5, 1], [10, 1], [20, 5], [50, 10], [100, 10], [200, 50], [500, 100]];
 
-  let parsed = null, glbName = "model.glb", embedded = null, origCm = null, origCenter = null, fxResult = null;
+  let parsed = null, glbName = "model.glb", embedded = null, origCm = null, origCenter = null;
   let scaleF = 1, token = 0, spanCm = 0, userZoom = false, missingTex = 0, files = new Map();   // files: lowercase texture name -> File
   let resolver = null, lastFocus = null, viewerReady = null;
-  const fx = {};                                        // effect id -> strength 0..1 (missing = off)
-  const fxActive = () => Object.values(fx).some((v) => v > 0);
 
   const fmt = (n) => (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2));
   const mb = (n) => (n / 1048576).toFixed(2) + " MB";
@@ -175,7 +173,7 @@
       REFS.map(([n, cm]) => `<div class="gf-ref">${n} (${cm} cm)<div class="gf-bar" style="width:${(cm / max) * 100}%"></div></div>`).join("");
   }
 
-  /* ---------- model pipeline: embed textures -> (effects) -> preview ---------- */
+  /* ---------- model pipeline: embed textures -> preview ---------- */
   async function refresh() {                            // rebuild the embedded model and reload the preview
     if (!parsed) return;
     const my = ++token;
@@ -194,15 +192,9 @@
     } catch (e) { msg(e.message, true); }
   }
 
-  let fxTimer = 0;
-  const fxSoon = () => { clearTimeout(fxTimer); fxTimer = setTimeout(showPreview, 150); };
-
-  function showPreview() {                              // model + effects -> preview (and the file that will be saved)
+  function showPreview() {                              // embedded model -> preview (and the file that will be saved)
     if (!embedded) return;
-    try {
-      fxResult = origCm && origCenter && fxActive() ? T.applyEffects(embedded, origCm.map((v) => v / 100), origCenter, fx) : null;
-    } catch (e) { fxResult = null; msg("Could not add effects: " + e.message, true); }
-    const glb = fxResult ? fxResult.glb : embedded, mv = $("#gf-mv");
+    const glb = embedded, mv = $("#gf-mv");
     $("#gf-outsize").textContent = `Output size: ${mb(glb.length)}`;
     if (mv.dataset.url) URL.revokeObjectURL(mv.dataset.url);
     mv.dataset.url = URL.createObjectURL(new Blob([glb], { type: "model/gltf-binary" }));
@@ -219,18 +211,15 @@
     }
     $("#gf-use").disabled = false; $("#gf-dl").disabled = false;
     render();
-    if (first && fxActive()) showPreview();
   });
 
   async function load(list) {
     for (const f of list) {
       if (/\.glb$/i.test(f.name)) {
         try { parsed = T.parseGlb(await f.arrayBuffer()); } catch (e) { return msg(e.message, true); }
-        const old = T.stripEffects(parsed);              // a model saved with effects opens clean, with those effects ticked, so they can be changed or switched off
+        const old = T.stripEffects(parsed);              // a model an older version saved with effects baked in opens clean: customers now pick their own effects in the viewer
         parsed = { gltf: old.gltf, bin: old.bin };
-        for (const k in fx) delete fx[k];
-        Object.assign(fx, old.fx); syncFxUi();
-        glbName = f.name; origCm = null; origCenter = null; fxResult = null; scaleF = 1; spanCm = 0; userZoom = false;
+        glbName = f.name; origCm = null; origCenter = null; scaleF = 1; spanCm = 0; userZoom = false;
         $("#gf-mv").setAttribute("scale", "1 1 1");
         $("#gf-file").textContent = f.name;
       } else if (/\.(jpe?g|png)$/i.test(f.name)) files.set(f.name.toLowerCase(), f);
@@ -240,10 +229,10 @@
   }
 
   /* ---------- finishing ---------- */
-  function build() {                                    // finished file: textures embedded, effects baked in, real size applied
-    const out = T.resizeGlb(fxResult ? fxResult.glb : embedded, scaleF);
+  function build() {                                    // finished file: textures embedded, real size applied
+    const out = T.resizeGlb(embedded, scaleF);
     const base = glbName.replace(/\.glb$/i, "").replace(/_\d+(\.\d+)?cm(_fx)?$/i, "");   // re-fixing a fixed file should not stack suffixes
-    return { out, name: `${base}_${Math.round(Math.max(...origCm) * scaleF)}cm${fxActive() ? "_fx" : ""}.glb` };
+    return { out, name: `${base}_${Math.round(Math.max(...origCm) * scaleF)}cm.glb` };
   }
 
   function useModel() {
@@ -268,24 +257,24 @@
 
   function finish(result) {
     const done = resolver; resolver = null;
-    clearTimeout(fxTimer); token++;
+    token++;
     root.hidden = true; document.body.classList.remove("no-scroll");
     const mv = $("#gf-mv");
     if (mv.dataset.url) { URL.revokeObjectURL(mv.dataset.url); delete mv.dataset.url; }
     mv.removeAttribute("src");
-    parsed = embedded = fxResult = null; files = new Map();      // free the memory held by big models
+    parsed = embedded = null; files = new Map();      // free the memory held by big models
     if (lastFocus && lastFocus.focus) lastFocus.focus();
     if (done) done(result);
   }
 
   function requestClose() {
-    if ((scaleF !== 1 || fxActive()) && !confirm("Close without using this model? The size and effects you set will be lost.")) return;
+    if (scaleF !== 1 && !confirm("Close without using this model? The size you set will be lost.")) return;
     finish(null);
   }
 
   function reset() {                                    // a fresh start every time the fixer opens
-    parsed = embedded = fxResult = origCm = origCenter = null; glbName = "model.glb"; scaleF = 1; spanCm = 0; userZoom = false; missingTex = 0;
-    token++; files = new Map(); for (const k in fx) delete fx[k];
+    parsed = embedded = origCm = origCenter = null; glbName = "model.glb"; scaleF = 1; spanCm = 0; userZoom = false; missingTex = 0;
+    token++; files = new Map();
     const mv = $("#gf-mv");
     if (mv.dataset.url) { URL.revokeObjectURL(mv.dataset.url); delete mv.dataset.url; }
     mv.removeAttribute("src");
@@ -296,7 +285,7 @@
     for (const id of ["texlist", "refs"]) $("#gf-" + id).innerHTML = "";
     for (const id of ["outsize", "was", "viewlabel", "file"]) $("#gf-" + id).textContent = "";
     $("#gf-use").disabled = true; $("#gf-dl").disabled = true;
-    msg(""); syncFxUi(); setTab("tex"); drawStage();
+    msg(""); setTab("tex"); drawStage();
   }
 
   /**
@@ -364,64 +353,4 @@
     $$(".gf-pane").forEach((p) => p.classList.toggle("gf-cur", p.dataset.pane === t));
   }
   $("#gf-tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-t]"); if (b) setTab(b.dataset.t); });
-  function updateTabs() {
-    const n = Object.values(fx).filter((v) => v > 0).length;
-    $("#gf-fxtab").textContent = n ? `3 Effects (${n})` : "3 Effects";
-  }
-
-  /* ---------- effects panel ---------- */
-  const EFFECTS = [
-    { id: "steam", g: "Hot food", icon: "♨️", name: "Steam", note: "Wisps of steam rising off the dish" },
-    { id: "glow", g: "Hot food", icon: "🔥", name: "Hot glow", note: "Warm, fresh-off-the-grill glow" },
-    { id: "golden", g: "Hot food", icon: "🍞", name: "Golden toast", note: "Baked, golden-brown tint" },
-    { id: "fizz", g: "Cold drinks", icon: "🫧", name: "Fizz bubbles", note: "Bubbles popping above the drink" },
-    { id: "cold", g: "Cold drinks", icon: "🧊", name: "Ice cold", note: "Cool, frosty blue tint" },
-    { id: "sprinkles", g: "Sweets", icon: "🍬", name: "Sprinkles", note: "Candy sprinkles raining down" },
-    { id: "sparkle", g: "Sweets", icon: "✨", name: "Sparkle", note: "Twinkling stars for something special" },
-    { id: "jelly", g: "Sweets", icon: "🍮", name: "Jelly wobble", note: "Squishy pudding wiggle" },
-    { id: "gloss", g: "Shine & motion", icon: "🍯", name: "Juicy gloss", note: "Wet, glazed, shiny surface" },
-    { id: "float", g: "Shine & motion", icon: "🎈", name: "Float", note: "Gentle bobbing up and down" },
-    { id: "spin", g: "Shine & motion", icon: "🔄", name: "Turntable spin", note: "Slowly rotates like a display stand" },
-    { id: "munch", g: "Fun", icon: "⛏️", name: "Minecraft munch", note: "Shakes and crumbles like eating food in Minecraft" },
-    { id: "heaven", g: "Fun", icon: "😇", name: "Going to heaven", note: "Floats up off a cloud with a halo and a beam of light" },
-    { id: "bikini", g: "Fun", icon: "🧽", name: "Bikini Bottom", note: "Underwater: sandy floor, kelp, fish, jellyfish and bubbles" },
-  ];
-  const RECIPES = [
-    ["Hot dish", { steam: 0.6, glow: 0.5, gloss: 0.5 }], ["Cold drink", { fizz: 0.6, cold: 0.6, float: 0.4 }],
-    ["Dessert", { sprinkles: 0.6, sparkle: 0.5, jelly: 0.5 }], ["Fresh bake", { steam: 0.5, golden: 0.6, spin: 0.3 }], ["Clear all", {}],
-  ];
-
-  function syncFxUi() {
-    $$(".gf-fxrow").forEach((r) => {
-      const v = fx[r.dataset.id] || 0, sl = r.querySelector("input[type=range]");
-      r.querySelector("input[type=checkbox]").checked = v > 0;
-      sl.hidden = !(v > 0); if (v > 0) sl.value = Math.round(v * 100);
-    });
-    updateTabs();
-  }
-
-  (function buildFx() {
-    let html = '<div class="gf-presets">' + RECIPES.map(([n], i) => `<button type="button" class="chip" data-r="${i}">${n}</button>`).join("") + "</div>", last = "";
-    for (const e of EFFECTS) {
-      if (e.g !== last) { html += `<div class="gf-fxgroup">${e.g.replace("&", "&amp;")}</div>`; last = e.g; }
-      html += `<div class="gf-fxrow" data-id="${e.id}"><label class="gf-fxhead"><input type="checkbox"><span>${e.icon} <b>${e.name}</b><small>${e.note}</small></span></label>` +
-              `<input type="range" min="10" max="100" value="60" hidden aria-label="${e.name} strength"></div>`;
-    }
-    const box = $("#gf-fxlist"); box.innerHTML = html;
-    box.addEventListener("change", (e) => {
-      if (!e.target.matches("input[type=checkbox]")) return;
-      const id = e.target.closest(".gf-fxrow").dataset.id;
-      if (e.target.checked) fx[id] = 0.6; else delete fx[id];
-      syncFxUi(); fxSoon();
-    });
-    box.addEventListener("input", (e) => {
-      if (!e.target.matches("input[type=range]")) return;
-      fx[e.target.closest(".gf-fxrow").dataset.id] = Number(e.target.value) / 100; fxSoon();
-    });
-    box.addEventListener("click", (e) => {
-      const b = e.target.closest("[data-r]"); if (!b) return;
-      for (const k in fx) delete fx[k];
-      Object.assign(fx, RECIPES[b.dataset.r][1]); syncFxUi(); fxSoon();
-    });
-  })();
 })();

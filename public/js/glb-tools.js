@@ -1,4 +1,4 @@
-/* GLB tools: read/write .glb files, embed textures, resize, and bake in food & drink effects.
+/* GLB tools: read/write .glb files, embed textures, resize, and build food & drink effects (customers pick them in the viewer).
    No page or DOM code lives here except prepImage (texture shrinking), so it can also be tested in Node.
    Used by glb-fixer.js (the 3D model fixer that opens from the admin page). */
 (function (root) {
@@ -445,6 +445,56 @@ function applyEffects(buf, size, ctr, fxs) {
   return { glb: buildGlb(gltf, out), hasAnim: anim.channels.length > 0 };
 }
 
+/* ---------- the effects a customer can pick in the 3D viewer ---------- */
+const EFFECTS = [
+  { id: "steam", g: "hot", icon: "♨️", name: "Steam" },
+  { id: "glow", g: "hot", icon: "🔥", name: "Hot glow" },
+  { id: "golden", g: "hot", icon: "🍞", name: "Golden toast" },
+  { id: "fizz", g: "cold", icon: "🫧", name: "Fizz bubbles" },
+  { id: "cold", g: "cold", icon: "🧊", name: "Ice cold" },
+  { id: "sprinkles", g: "sweet", icon: "🍬", name: "Sprinkles" },
+  { id: "sparkle", g: "sweet", icon: "✨", name: "Sparkle" },
+  { id: "jelly", g: "sweet", icon: "🍮", name: "Jelly wobble" },
+  { id: "gloss", g: "motion", icon: "🍯", name: "Juicy gloss" },
+  { id: "float", g: "motion", icon: "🎈", name: "Float" },
+  { id: "spin", g: "motion", icon: "🔄", name: "Turntable spin" },
+  { id: "munch", g: "fun", icon: "⛏️", name: "Minecraft munch" },
+  { id: "heaven", g: "fun", icon: "😇", name: "Going to heaven" },
+  { id: "bikini", g: "fun", icon: "🧽", name: "Bikini Bottom" },
+];
+
+/* ---------- model size + centre in glTF units (meters), read straight from the file's data ----------
+   Same numbers <model-viewer> reports with getDimensions() / getBoundingBoxCenter(). Returns { size, ctr } or null. */
+function bounds(gltf) {
+  const nodes = gltf.nodes || [], acc = gltf.accessors || [], meshes = gltf.meshes || [];
+  const mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+  const mul = (a, b) => { const o = new Array(16).fill(0); for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++) for (let k = 0; k < 4; k++) o[c * 4 + r] += a[k * 4 + r] * b[c * 4 + k]; return o; };
+  const local = (n) => {
+    if (n.matrix) return n.matrix;
+    const [x, y, z, w] = n.rotation || [0, 0, 0, 1], [sx, sy, sz] = n.scale || [1, 1, 1], [tx, ty, tz] = n.translation || [0, 0, 0];
+    return [(1 - 2 * (y * y + z * z)) * sx, 2 * (x * y + z * w) * sx, 2 * (x * z - y * w) * sx, 0,
+            2 * (x * y - z * w) * sy, (1 - 2 * (x * x + z * z)) * sy, 2 * (y * z + x * w) * sy, 0,
+            2 * (x * z + y * w) * sz, 2 * (y * z - x * w) * sz, (1 - 2 * (x * x + y * y)) * sz, 0, tx, ty, tz, 1];
+  };
+  const walk = (i, pm, depth) => {
+    const n = nodes[i]; if (!n || depth > 64) return;
+    const m = mul(pm, local(n));
+    if (n.mesh !== undefined && meshes[n.mesh]) for (const p of meshes[n.mesh].primitives || []) {
+      const a = acc[p.attributes && p.attributes.POSITION]; if (!a || !a.min || !a.max) continue;
+      for (let c = 0; c < 8; c++) {
+        const v = [c & 1 ? a.max[0] : a.min[0], c & 2 ? a.max[1] : a.min[1], c & 4 ? a.max[2] : a.min[2]];
+        for (let j = 0; j < 3; j++) { const q = m[j] * v[0] + m[4 + j] * v[1] + m[8 + j] * v[2] + m[12 + j]; mn[j] = Math.min(mn[j], q); mx[j] = Math.max(mx[j], q); }
+      }
+    }
+    for (const c of n.children || []) walk(c, m, depth + 1);
+  };
+  const sc = (gltf.scenes || [])[gltf.scene || 0];
+  for (const i of (sc && sc.nodes) || []) walk(i, [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1], 0);
+  if (!isFinite(mn[0])) return null;
+  return { size: mx.map((v, i) => v - mn[i]), ctr: mx.map((v, i) => (v + mn[i]) / 2) };
+}
+
+
 /* ---------- undo: take baked effects back out of a .glb ----------
    Works on files made by applyEffects (also older ones that have no saved settings).
    parsed = { gltf, bin } from parseGlb. Returns { gltf, bin, fx, had }: the clean model, the effect settings that
@@ -549,6 +599,6 @@ function compact(gltf, bin) {                          // drop unreachable nodes
   return { gltf: g, bin: out };
 }
 
-const api = { parseGlb, buildGlb, embedTextures, resizeGlb, applyEffects, stripEffects, baseName };
+const api = { parseGlb, buildGlb, embedTextures, resizeGlb, applyEffects, stripEffects, bounds, EFFECTS, baseName };
 if (typeof module !== "undefined" && module.exports) module.exports = api; else root.GlbTools = api;
 })(typeof window !== "undefined" ? window : globalThis);
