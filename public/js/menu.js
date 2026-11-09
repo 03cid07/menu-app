@@ -9,6 +9,7 @@ document.querySelector("nav.cats")?.remove();
 // Make sure the filter bar has a place on the page, even if index.html is an older copy
 if (!$("#fs")) { const el = document.createElement("div"); el.id = "fs"; $("#menu").before(el); }
 const view = { avail: false, ar: false, photo: false, sort: "featured", open: "", q: "" };
+let searching = false, searchTimer = 0; // Enter-to-search loading state (see runSearchLoad)
 const SORTS = { featured: "Featured", low: "Price, low to high", high: "Price, high to low", az: "Name, A to Z" };
 const FILTERS = [["Availability", [["avail", "Available now"]]], ["Extras", [["ar", "3D / AR"], ["photo", "With photo"]]]];
 const filterCount = () => ["avail", "ar", "photo"].filter((k) => view[k]).length + (active !== "All" ? 1 : 0);
@@ -174,6 +175,7 @@ function renderBar() {
       </div>
     </div>`;
   if (key) { const el = $("#fs").querySelector(key); if (el) el.focus(); }
+  if (searching) $("#fs .fs-bar")?.classList.add("is-searching");
   if (window.fsFloatUpdate) window.fsFloatUpdate();
 }
 
@@ -219,8 +221,42 @@ document.addEventListener("keydown", (e) => {
 // Typing only refreshes the dish list, so the search box keeps focus
 $("#fs").addEventListener("input", (e) => {
   if (e.target.id !== "fs-q") return;
+  cancelSearchLoad();
   view.q = e.target.value;
   renderList();
+});
+
+// ---- Search loading: press Enter and the icon spins, skeleton rows shimmer, results fade in ----
+const SEARCH_LOAD_MS = 650;
+const SK_ROW = '<article class="item sk" aria-hidden="true"><div class="thumb"></div><div class="sk-body"><span class="sk-line"></span><span class="sk-line s"></span></div></article>';
+function cancelSearchLoad() {
+  if (!searching) return;
+  clearTimeout(searchTimer);
+  searching = false;
+  $("#fs .fs-bar")?.classList.remove("is-searching");
+  $("#menu").removeAttribute("aria-busy");
+}
+function runSearchLoad() {
+  cancelSearchLoad();
+  searching = true;
+  $("#fs .fs-bar")?.classList.add("is-searching");
+  const menu = $("#menu");
+  menu.setAttribute("aria-busy", "true");
+  menu.classList.remove("sk-results-in");
+  menu.innerHTML = `<section class="cat sk-cat">${SK_ROW.repeat(3)}</section>`;
+  searchTimer = setTimeout(() => {
+    cancelSearchLoad();
+    renderList();
+    menu.classList.add("sk-results-in");
+    menu.addEventListener("animationend", () => menu.classList.remove("sk-results-in"), { once: true });
+  }, SEARCH_LOAD_MS);
+}
+$("#fs").addEventListener("keydown", (e) => {
+  if (e.target.id !== "fs-q" || e.key !== "Enter" || e.isComposing) return;
+  e.preventDefault();
+  if (!view.q.trim()) return;
+  runSearchLoad();
+  e.target.blur(); // closes the phone keyboard so the results are visible
 });
 $("#fs").addEventListener("change", (e) => { if (e.target.name === "sort") { view.sort = e.target.value; render(); } });
 document.addEventListener("click", (e) => {
