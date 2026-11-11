@@ -135,16 +135,10 @@
 
   function pageHtml(pages, j) {
     const n = pages.length, p = pages[j];
-    const side = (k, cls, label) => (pages[k]
-      ? `<button type="button" class="pgr-btn ${cls}" data-go="${k}">${cls === "prev" ? '<span class="pgr-arr" aria-hidden="true">\u2039</span>' : ""}<span class="pgr-lbl">${esc(pages[k].label || pages[k].title)}</span>${cls === "next" ? '<span class="pgr-arr" aria-hidden="true">\u203a</span>' : ""}</button>`
-      : `<span class="pgr-sp"></span>`);
     return `<section class="cat pgr-page" data-key="${esc(p.key)}" tabindex="-1" aria-label="${esc(p.title)}, page ${j + 1} of ${n}">
-      <h2><span class="pgr-title">${esc(p.title)}</span>${n > 1 ? `<span class="pgr-count" aria-hidden="true">${j + 1} / ${n}</span>` : ""}</h2>
-      <div class="pgr-box"><div class="pgr-list">${p.html}</div></div>
-      <nav class="pgr-nav" aria-label="Menu pages">
-        <div class="pgr-btns">${side(j - 1, "prev")}${side(j + 1, "next")}</div>
-        <p class="pgr-hint">Swipe to turn the page</p>
-      </nav>
+      <h2><span class="pgr-title">${esc(p.title)}</span></h2>
+      <div class="pgr-box${pages[j - 1] ? " has-prev" : ""}${pages[j + 1] ? " has-next" : ""}"><div class="pgr-list">${p.html}</div></div>
+      <nav class="pgr-nav" aria-hidden="true"></nav>
     </section>`;
   }
 

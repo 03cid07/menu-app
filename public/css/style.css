@@ -932,6 +932,24 @@ header.top { position: relative; z-index: 8; }
   -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
   border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 18px;
 }
+
+/* ---- Bubble tabs: a box that has another page next to it grows a rounded bubble on that side ----
+   The bubble is the same glass as the box and sits over the box's own border, so the two read as ONE connected shape
+   (like a speech bubble). It tells the customer there is another page on the other side, and the chevron nudges that way. */
+.pgr-box { position: relative; }
+.pgr-box.has-prev::before, .pgr-box.has-next::after {
+  position: absolute; top: 50%; width: 17px; height: 64px; transform: translateY(-50%); box-sizing: border-box;
+  display: flex; align-items: center; justify-content: center; padding-bottom: 2px;
+  font-size: 1.35rem; font-weight: 700; line-height: 1; color: var(--accent); pointer-events: none;
+  background: color-mix(in srgb, var(--surface) calc(var(--card-alpha) * .85), transparent);
+  -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
+  border: 1px solid color-mix(in srgb, var(--outline) 60%, var(--line));
+}
+.pgr-box.has-next::after  { content: "\203A"; right: -16px; border-left: 0; border-radius: 0 32px 32px 0; padding-left: 1px; animation: pgr-nudge-r 2.4s ease-in-out infinite; }
+.pgr-box.has-prev::before { content: "\2039"; left: -16px;  border-right: 0; border-radius: 32px 0 0 32px; padding-right: 1px; animation: pgr-nudge-l 2.4s ease-in-out infinite; }
+@keyframes pgr-nudge-r { 0%, 60%, 100% { padding-left: 1px; } 80% { padding-left: 5px; } }
+@keyframes pgr-nudge-l { 0%, 60%, 100% { padding-right: 1px; } 80% { padding-right: 5px; } }
+@media (prefers-reduced-motion: reduce) { .pgr-box.has-next::after, .pgr-box.has-prev::before { animation: none; } }
 /* The frame does not scroll, this inner part does: so the fade at the bottom only touches the dishes, never the frame */
 .home-results-in {
   position: relative;
