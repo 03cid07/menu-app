@@ -45,6 +45,7 @@
   const NAV = [
     ["home", "Home", SVG('<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>')],
     ["full", "Full menu", SVG('<path d="M4 4h11a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4V4z"/><path d="M8 9h7"/><path d="M8 13h5"/>')],
+    ["viewer", "3D view", SVG('<path d="M12 2.5 20 7v10l-8 4.5L4 17V7z"/><path d="M4 7l8 4.5L20 7M12 11.5v10"/>')],
     ["quick", "Quick menu", SVG('<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/>')],
   ];
   const nav = document.createElement("nav");
@@ -71,9 +72,13 @@
   const cfg = () => (data.quick && Array.isArray(data.quick.questions) && data.quick.questions.length ? data.quick : { stopAt: 3, questions: QuickGen.generate(data) });
   const PICK_SORT = (x, y) => (y.label === "popular") - (x.label === "popular") || (y.rating?.avg || 0) - (x.rating?.avg || 0) || x.price - y.price;
 
+  // The 3D viewer has its own page (viewer.html). Its card sits between Full menu and Quick menu.
+  const viewerCard = () => data.items.some((x) => x.model) ? `<button type="button" class="home-card" data-go="viewer"><strong>3D view</strong><span>Spin a dish around or see it on your table</span></button>` : "";
+
   const landing = () => {
     home.innerHTML = `<div class="home-box"><h1>${esc(data.restaurant)}</h1><p class="home-sub">How would you like to order?</p>
       <button type="button" class="home-card" data-go="full"><strong>Full menu</strong><span>Browse every dish</span></button>
+      ${viewerCard()}
       <button type="button" class="home-card" data-go="quick"><strong>Quick menu</strong><span>Answer a few questions and we'll find what suits you</span></button></div>`;
     openHome(); home.scrollTop = 0; setNav("home"); rise();
   };
@@ -138,6 +143,7 @@
     const b = e.target.closest("button");
     if (!b) return;
     if (b.dataset.go === "full") enterFull();
+    else if (b.dataset.go === "viewer") location.href = "viewer.html";
     else if (b.dataset.go === "quick" || b.hasAttribute("data-restart")) { hist = []; show([]); }
     else if (b.dataset.multi !== undefined) { const k = cur.opts[b.dataset.multi].id; if (cur.sel.has(k)) cur.sel.delete(k); else cur.sel.add(k); b.setAttribute("aria-pressed", String(cur.sel.has(k))); }
     else if (b.hasAttribute("data-continue")) answer([...cur.sel]);
@@ -151,9 +157,10 @@
     if (!n) return;
     if (n.dataset.nav === "home") landing();
     else if (n.dataset.nav === "full") enterFull();
+    else if (n.dataset.nav === "viewer") location.href = "viewer.html";
     else { hist = []; show([]); }
   });
 
   // Wait for menu.js to finish loading the menu, then show the start screen
-  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); if (linkedItemId()) { home.hidden = true; setNav("full"); } else landing(); requestAnimationFrame(() => requestAnimationFrame(() => window.bootHide && window.bootHide())); } }, 50);
+  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); const to = location.hash.slice(1); if (linkedItemId() || to === "full") { home.hidden = true; setNav("full"); } else if (to === "quick") { hist = []; show([]); } else landing(); requestAnimationFrame(() => requestAnimationFrame(() => window.bootHide && window.bootHide())); } }, 50);
 })();

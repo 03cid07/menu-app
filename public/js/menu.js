@@ -528,6 +528,10 @@ const closeViewer = () => { viewerCleanup(); viewerCleanup = () => {}; viewer.hi
 document.addEventListener("click", (e) => {
   const b = e.target.closest(".ar-open");
   if (!b) return;
+  // "View in 3D / AR" opens the 3D view page for this dish (viewer.html). The hash makes Back return to the screen you came from.
+  history.replaceState(null, "", b.closest(".home") ? "#quick" : "#full");
+  location.href = `viewer.html?item=${encodeURIComponent(b.dataset.id)}`;
+  return;
   $("#viewer-title").textContent = b.dataset.name;
   const src = b.dataset.model;
   const it = data.items.find((x) => x.id === b.dataset.id) || { name: b.dataset.name, price: 0, category: "" };
