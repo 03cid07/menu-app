@@ -122,6 +122,8 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 
 /* ---- Effects picker in the 3D viewer (the customer chooses) ---- */
 .stage-wrap { position: relative; margin-top: .6rem; border-radius: 10px; background: var(--bg); overflow: hidden; }
+/* The floor grid is a canvas behind the (transparent) model-viewer, so the dish covers the lines behind it */
+.floor-grid { position: absolute; z-index: 0; pointer-events: none; }
 #viewer-stage model-viewer { position: relative; z-index: 1; margin-top: 0; background: transparent; --poster-color: transparent; --progress-bar-color: var(--accent); --progress-mask: rgba(255,255,255,.3); --progress-bar-height: 8px; }
 .fx-toggle { position: absolute; top: 8px; right: 8px; z-index: 3; font: inherit; font-size: .75rem; padding: .2rem .65rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
 

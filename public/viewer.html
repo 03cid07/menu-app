@@ -15,18 +15,20 @@
       document.documentElement.setAttribute("data-theme",t);
       var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t==="light"?"#eee6d4":"#15120e")})();
   </script>
-  <link rel="stylesheet" href="css/style.css?v=47">
+  <link rel="stylesheet" href="css/style.css?v=49">
   <style>
     .vw { max-width: 760px; margin: 0 auto; padding: 0 1.25rem; }
     .vw-pick { margin: 0 0 .7rem; }
     .vw-pick .btn { margin-top: 0; }
-    .vw-list { margin-top: .5rem; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; max-height: 14rem; overflow-y: auto; }
-    .vw-list[hidden] { display: none; }
-    .vw-opt { display: flex; justify-content: space-between; align-items: center; gap: 1rem; width: 100%; padding: .8rem 1rem; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--ink); font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
-    .vw-opt:last-child { border-bottom: 0; }
-    .vw-opt[aria-current="true"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); }
-    .vw-opt small { font-weight: 600; color: var(--muted); }
+    .vw-pick .btn { display: inline-block; text-decoration: none; padding: .5rem .9rem; }
+    .vw-pick [hidden] { display: none; }
+    .vw-dishes { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .7rem; }
+    .vw-dish { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); overflow: hidden; }
+    .vw-dish button { border: 0; background: none; color: var(--ink); font: inherit; font-size: .85rem; padding: .35rem .7rem; cursor: pointer; }
+    .vw-dish .vw-dish-x { padding: .35rem .65rem .35rem .2rem; color: var(--muted); font-size: 1.05rem; line-height: 1; }
+    .vw-dish .vw-dish-sel[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
     .vw-hint { color: var(--muted); font-size: .9rem; margin: .6rem 0 0; }
+    .vw-empty { position: absolute; left: 0; right: 0; top: 14px; z-index: 2; margin: 0; text-align: center; color: var(--muted); font-size: .9rem; pointer-events: none; }
     .vw-err { padding: 2rem 0; text-align: center; color: var(--muted); }
   </style>
 </head>
@@ -38,8 +40,8 @@
 
   <main class="vw" id="page" aria-live="polite">
     <div class="vw-pick">
-      <button type="button" class="btn ghost" id="pick-btn" aria-expanded="false" aria-controls="pick-list">Choose a 3D model</button>
-      <div class="vw-list" id="pick-list" role="group" aria-label="Dishes with a 3D model" hidden></div>
+      <a class="btn ghost" id="pick-btn" href="index.html?only3d=1#full">Choose a 3D model</a>
+      <a class="btn ghost" id="add-btn" href="index.html?only3d=1#full" hidden>Add another 3D model</a>
     </div>
     <div id="viewer-stage"></div>
     <p class="vw-hint">Drag to rotate. Tap "View on your table" to see it at real size through your camera. The dish appears once your phone has found your table; until then you will see a scanner. If that button is missing, this phone or browser does not support AR.</p>
@@ -66,8 +68,10 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
   <script src="js/spring.js?v=2"></script>
   <script src="js/rubber.js?v=3"></script>
-  <script src="js/glb-tools.js?v=4"></script>
+  <script src="js/glb-tools.js?v=5"></script>
   <script src="js/ar-guide.js?v=1"></script>
+  <script src="js/floor-grid.js?v=2"></script>
+  <script src="js/dish-drag.js?v=1"></script>
   <script src="js/quick-gen.js?v=6"></script>
   <script>
     const $ = (s) => document.querySelector(s);
@@ -83,110 +87,177 @@
       return r.json();
     }
 
-    // Same viewer as the popup on the menu: loading bar, effects picker, table finder
-    function openModel(it) {
+    // Nothing chosen yet: just the empty floor. The dish appears when the customer picks one.
+    function openEmpty() {
       cleanup(); cleanup = () => {};
-      const src = it.model;
-      $("#viewer-stage").innerHTML = `<div class="stage-wrap"><div class="mv-loader" role="status" aria-live="polite"><div class="mv-spin" aria-hidden="true"></div><div class="mv-ltext">Loading 3D model\u2026 <span class="mv-pct">0%</span></div><div class="mv-lbar" aria-hidden="true"><i></i></div></div><model-viewer src="${esc(src)}" alt="3D model of ${esc(it.name)}"
+      $("#viewer-stage").innerHTML = '<div class="stage-wrap"><model-viewer alt="Empty floor" camera-controls touch-action="pan-y" interaction-prompt="none" camera-target="0m 0m 0m" camera-orbit="30deg 72deg 0.7m" min-camera-orbit="auto 5deg 0.2m" max-camera-orbit="auto 88deg 4m"></model-viewer><p class="vw-empty">Choose a 3D model above to put it on the floor.</p></div>';
+      const mv = $("#viewer-stage model-viewer"), wrap = $("#viewer-stage .stage-wrap");
+      const floor = window.FloorGrid ? FloorGrid.attach(mv, wrap, { empty: true }) : null;
+      cleanup = () => { if (floor) floor.detach(); };
+      document.title = `3D view | ${data.restaurant}`;
+    }
+
+    const MAX_DISHES = 4;
+    const viewerUrl = (ids) => "viewer.html?" + ids.map((i) => "item=" + encodeURIComponent(i)).join("&");
+
+    // One or more dishes on the same floor. With several, the models are joined into one scene on the phone (js/glb-tools.js, mergeGlbs).
+    // Effects belong to one dish at a time: tap a dish below the viewer, then pick its effect.
+    function openModels(items) {
+      cleanup(); cleanup = () => {};
+      const multi = items.length > 1, src = items[0].model;
+      const stageHtml = `<div class="stage-wrap"><div class="mv-loader" role="status" aria-live="polite"><div class="mv-spin" aria-hidden="true"></div><div class="mv-ltext">${multi ? "Putting your dishes together\u2026" : "Loading 3D model\u2026"} <span class="mv-pct">0%</span></div><div class="mv-lbar" aria-hidden="true"><i></i></div></div><model-viewer ${multi ? "" : `src="${esc(src)}"`} alt="3D model of ${esc(items.map((i) => i.name.trim()).join(", "))}"
         ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
-        autoplay camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%">
+        autoplay camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%" max-camera-orbit="auto auto 600%">
         <div slot="progress-bar" aria-hidden="true"></div>
         <button slot="ar-button" type="button" class="btn ar-btn">View on your table (AR)</button>
       </model-viewer>
       <div class="fx-ui"><button type="button" class="fx-toggle" aria-expanded="false" hidden>\u2728 Effects</button><div class="fx-tray" role="group" aria-label="Choose an effect" hidden></div></div></div>`;
+      const dishesHtml = multi ? `<div class="vw-dishes" role="group" aria-label="Dishes in this view">${items.map((it, i) => `<span class="vw-dish"><button type="button" class="vw-dish-sel" data-i="${i}" aria-pressed="${i === 0}">${esc(it.name.trim())}</button><button type="button" class="vw-dish-x" data-i="${i}" aria-label="Remove ${esc(it.name.trim())}">\u00d7</button></span>`).join("")}</div><p class="vw-hint">Drag a dish to move it. Tap its name to give it effects; each dish has its own.</p>` : "";
+      $("#viewer-stage").innerHTML = stageHtml + dishesHtml;
       const mv = $("#viewer-stage model-viewer");
       const loader = $("#viewer-stage .mv-loader"), pct = loader.querySelector(".mv-pct"), lbar = loader.querySelector(".mv-lbar i");
       mv.addEventListener("progress", (e) => { const p = Math.round((e.detail.totalProgress || 0) * 100); pct.textContent = `${p}%`; lbar.style.width = `${p}%`; });
       mv.addEventListener("load", () => loader.remove());
-      mv.addEventListener("error", () => { loader.classList.add("failed"); loader.innerHTML = '<div class="mv-ltext">Could not load the 3D model. Please reload and try again.</div>'; });
+      const fail = (msg) => { loader.classList.add("failed"); loader.innerHTML = `<div class="mv-ltext">${msg}</div>`; };
+      mv.addEventListener("error", () => fail("Could not load the 3D model. Please reload and try again."));
 
-      // Effects picker (built into a copy of the model on the phone, see js/glb-tools.js)
+      // Effects picker (built into a copy of each dish on the phone, see js/glb-tools.js)
       const T = window.GlbTools;
       const wrap = $("#viewer-stage .stage-wrap"), fxUi = wrap.querySelector(".fx-ui"), fxBtn = fxUi.querySelector(".fx-toggle"), tray = fxUi.querySelector(".fx-tray");
       const FX_STRENGTH = 0.7;
-      let baseP = null, swap = 0, pick = "";
-      const made = new Map();
+      let swap = 0, sel = 0;
+      const pick = {};                                   // dish id -> effect id ("" = none)
+      const bases = new Map(), made = new Map();
+      const place = {}, info = {};                        // where each dish stands on the floor (centre x, z) and its size, so a moved dish stays where you put it
       const blobUrl = (u8) => URL.createObjectURL(new Blob([u8], { type: "model/gltf-binary" }));
-      const base = () => baseP || (baseP = (async () => {
-        if (!T) throw new Error("GlbTools is not loaded");
-        const buf = await (await fetch(src)).arrayBuffer();
-        const r = T.stripEffects(T.parseGlb(buf));
-        const bd = T.bounds(r.gltf);
-        if (!bd) throw new Error("the model has no shapes to measure");
-        return { u8: r.had ? T.buildGlb(r.gltf, r.bin) : new Uint8Array(buf), had: r.had, size: bd.size, ctr: bd.ctr };
-      })().catch((e) => { console.error("Effects: could not prepare the model", e); return null; }));
-      const urlFor = async (id) => {
-        const b = await base();
-        if (!b) return null;
-        if (made.has(id)) return made.get(id);
-        const url = id ? blobUrl(T.applyEffects(b.u8, b.size, b.ctr, { [id]: FX_STRENGTH }).glb) : (b.had ? blobUrl(b.u8) : src);
-        made.set(id, url);
+      const baseOf = (it) => {
+        if (!bases.has(it.id)) bases.set(it.id, (async () => {
+          if (!T) throw new Error("GlbTools is not loaded");
+          const buf = await (await fetch(it.model)).arrayBuffer();
+          const r = T.stripEffects(T.parseGlb(buf));
+          const bd = T.bounds(r.gltf);
+          if (!bd) throw new Error("the model has no shapes to measure");
+          return { u8: r.had ? T.buildGlb(r.gltf, r.bin) : new Uint8Array(buf), had: r.had, size: bd.size, ctr: bd.ctr };
+        })().catch((e) => { console.error("Effects: could not prepare the model", e); return null; }));
+        return bases.get(it.id);
+      };
+      const withFx = (b, id) => (id ? T.applyEffects(b.u8, b.size, b.ctr, { [id]: FX_STRENGTH }).glb : b.u8);
+      const urlFor = async () => {
+        const key = items.map((i) => pick[i.id] || "").join("|") + (multi ? JSON.stringify(place) : "");
+        if (made.has(key)) return made.get(key);
+        const bs = await Promise.all(items.map(baseOf));
+        if (bs.some((b) => !b)) return null;
+        let url;
+        if (!multi) {
+          const id = pick[items[0].id] || "", b = bs[0];
+          url = id ? blobUrl(withFx(b, id)) : (b.had ? blobUrl(b.u8) : src);
+        } else {
+          if (!Object.keys(place).length) {                // first time: side by side along the left-right line, a gap of about a third of the widest dish between them
+            const gap = Math.max(0.02, 0.3 * Math.max(...bs.map((b) => b.size[0])));
+            let x = -(bs.reduce((s, b) => s + b.size[0], 0) + gap * (bs.length - 1)) / 2;
+            bs.forEach((b, i) => { place[items[i].id] = { x: x + b.size[0] / 2, z: 0 }; info[items[i].id] = b; x += b.size[0] + gap; });
+            if (floor) floor.setStep(FloorGrid.niceStep(Math.max(...bs.map((b) => Math.max(b.size[0], b.size[2]))) / 4));
+          }
+          const parts = bs.map((b, i) => {
+            const pl = place[items[i].id];
+            return { index: i, u8: withFx(b, pick[items[i].id] || ""), pos: [pl.x - b.ctr[0], -(b.ctr[1] - b.size[1] / 2), pl.z - b.ctr[2]] };
+          });
+          url = blobUrl(T.mergeGlbs(parts));
+        }
+        made.set(key, url);
         return url;
       };
       const guide = window.ArGuide ? ArGuide.attach(mv) : null;
-      const comeBack = () => { if (document.visibilityState === "visible" && mv.isConnected && mv.src === src && baseP) showFx(pick); };
-      document.addEventListener("visibilitychange", comeBack);
-      cleanup = () => { swap++; document.removeEventListener("visibilitychange", comeBack); if (guide) guide.detach(); made.forEach((u) => { if (u !== src) URL.revokeObjectURL(u); }); made.clear(); };
-      const FX = T ? [{ id: "", icon: "\u{1F6AB}", name: "None" }, ...[...T.EFFECTS].sort((x, y) => (y.g === fxKind(it)) - (x.g === fxKind(it)))] : [];
-      tray.innerHTML = FX.map((f) => `<button type="button" class="fx-chip" data-id="${f.id}" aria-pressed="${f.id === pick}">${f.icon} ${esc(f.name)}</button>`).join("");
-      const syncFx = () => {
-        tray.querySelectorAll(".fx-chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.id === pick)));
-        const f = FX.find((x) => x.id === pick);
-        fxBtn.textContent = pick && f ? `${f.icon} ${f.name}` : "\u2728 Effects";
-      };
-      const showFx = async (id) => {
+      const floor = window.FloorGrid ? FloorGrid.attach(mv, wrap) : null;   // grid lines on the floor under the dishes
+      const drag = multi && window.DishDrag && floor ? DishDrag.attach(mv, {
+        floor,
+        dishes: () => items.map((it, i) => (place[it.id] && info[it.id] ? { i, cx: place[it.id].x, cz: place[it.id].z, hx: info[it.id].size[0] / 2, hz: info[it.id].size[2] / 2, ox: info[it.id].ctr[0], oz: info[it.id].ctr[2] } : null)).filter(Boolean),
+        onGrab: (i) => { sel = i; buildTray(); syncFx(); },
+        onMove: (i, x, z) => { place[items[i].id] = { x, z }; },
+        onDrop: () => floor.refresh(),
+      }) : null;
+      const showFx = async () => {
         const my = ++swap;
         let url = null;
-        try { url = await urlFor(id); } catch (e) {
-          console.error("Effects: could not add", id, e);
-          if (my === swap) { pick = ""; syncFx(); fxBtn.textContent = "Could not add that"; setTimeout(() => { if (mv.isConnected) syncFx(); }, 2000); }
+        try { url = await urlFor(); } catch (e) {
+          console.error("Could not build the 3D scene", e);
+          if (my === swap) {
+            if (!mv.loaded) fail(multi ? "Could not put these dishes together. Try removing one." : "Could not load the 3D model.");
+            else { pick[items[sel].id] = ""; syncFx(); fxBtn.textContent = "Could not add that"; setTimeout(() => { if (mv.isConnected) syncFx(); }, 2000); }
+          }
         }
         if (my !== swap || !mv.isConnected || !url || mv.src === url) return;
-        const o = mv.getCameraOrbit && mv.loaded ? mv.getCameraOrbit() : null;
-        mv.addEventListener("load", () => { if (o) { mv.cameraOrbit = `${o.theta}rad ${o.phi}rad auto`; if (mv.jumpCameraToGoal) mv.jumpCameraToGoal(); } }, { once: true });
+        const o = mv.getCameraOrbit && mv.loaded ? mv.getCameraOrbit() : null, tg = multi && o ? mv.getCameraTarget() : null;
+        mv.addEventListener("load", () => { if (o) { mv.cameraOrbit = `${o.theta}rad ${o.phi}rad ${o.radius}m`; if (tg) mv.cameraTarget = `${tg.x}m ${tg.y}m ${tg.z}m`; if (mv.jumpCameraToGoal) mv.jumpCameraToGoal(); } }, { once: true });
         mv.src = url;
       };
+      const comeBack = () => { if (document.visibilityState === "visible" && mv.isConnected && mv.src === src && bases.size) showFx(); };
+      document.addEventListener("visibilitychange", comeBack);
+      cleanup = () => { swap++; document.removeEventListener("visibilitychange", comeBack); if (guide) guide.detach(); if (floor) floor.detach(); if (drag) drag.detach(); made.forEach((u) => { if (u !== src) URL.revokeObjectURL(u); }); made.clear(); };
+
+      let FX = [];
+      const buildTray = () => {
+        FX = T ? [{ id: "", icon: "\u{1F6AB}", name: "None" }, ...[...T.EFFECTS].sort((x, y) => (y.g === fxKind(items[sel])) - (x.g === fxKind(items[sel])))] : [];
+        tray.innerHTML = FX.map((f) => `<button type="button" class="fx-chip" data-id="${f.id}" aria-pressed="false">${f.icon} ${esc(f.name)}</button>`).join("");
+      };
+      function syncFx() {
+        const cur = pick[items[sel].id] || "";
+        tray.querySelectorAll(".fx-chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.id === cur)));
+        const f = FX.find((x) => x.id === cur);
+        fxBtn.textContent = cur && f ? `${f.icon} ${f.name}` : "\u2728 Effects";
+        document.querySelectorAll(".vw-dish-sel").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.i) === sel)));
+      }
+      buildTray(); syncFx();
+
+      if (multi) {
+        showFx();                                        // the scene is built first, then shown
+        $("#viewer-stage").querySelector(".vw-dishes").addEventListener("click", (e) => {
+          const x = e.target.closest(".vw-dish-x"), s = e.target.closest(".vw-dish-sel");
+          if (x) { const ids = items.map((i) => i.id).filter((_, i) => i !== Number(x.dataset.i)); location.href = ids.length ? viewerUrl(ids) : "viewer.html"; }
+          else if (s) { sel = Number(s.dataset.i); buildTray(); syncFx(); }
+        });
+      }
       mv.addEventListener("load", () => {
-        base().then((b) => {
+        Promise.all(items.map(baseOf)).then((bs) => {
           if (!mv.isConnected) return;
           fxBtn.hidden = false;
-          if (!b) { fxBtn.disabled = true; fxBtn.textContent = "Effects unavailable"; return; }
-          if (b.had) showFx(pick);
+          if (bs.some((b) => !b)) { fxBtn.disabled = true; fxBtn.textContent = "Effects unavailable"; return; }
+          if (!multi && bs[0].had) showFx();
         });
       }, { once: true });
       tray.dataset.rb = "off";
       [fxUi, fxBtn, tray].forEach((el) => el.addEventListener("beforexrselect", (e) => e.preventDefault()));
       ["pointerdown", "pointermove", "pointerup", "mousedown", "touchstart", "touchmove", "touchend", "wheel"].forEach((t) => tray.addEventListener(t, (e) => e.stopPropagation(), { passive: true }));
       fxBtn.addEventListener("click", () => { const open = tray.hidden; tray.hidden = !open; fxBtn.setAttribute("aria-expanded", String(open)); });
-      tray.addEventListener("click", (e) => { const c = e.target.closest(".fx-chip"); if (!c) return; pick = c.dataset.id; syncFx(); showFx(pick); });
+      tray.addEventListener("click", (e) => { const c = e.target.closest(".fx-chip"); if (!c) return; pick[items[sel].id] = c.dataset.id; syncFx(); showFx(); });
       let xr = false;
       if (navigator.xr && navigator.xr.isSessionSupported) navigator.xr.isSessionSupported("immersive-ar").then((v) => { xr = v; }).catch(() => {});
+      // Android without WebXR opens Scene Viewer from the file's web address, so it gets the first dish's original file (it cannot read the combined scene)
       mv.querySelector(".ar-btn").addEventListener("click", () => { if (!xr && /Android/i.test(navigator.userAgent) && mv.src !== src) mv.src = src; }, true);
       mv.addEventListener("ar-status", (e) => {
         if (e.detail.status === "session-started") { fxUi.classList.add("in-ar"); mv.appendChild(fxUi); }
         else if (e.detail.status === "not-presenting") { fxUi.classList.remove("in-ar"); wrap.appendChild(fxUi); }
       });
-
     }
 
     loadMenu().then((d) => {
       data = d;
       const withModel = d.items.filter((x) => x.model);
       if (!withModel.length) { $("#page").innerHTML = '<p class="vw-err">No dishes have a 3D model yet. <a href="index.html#full">Go to the full menu</a></p>'; return; }
-      const btn = $("#pick-btn"), list = $("#pick-list");
-      list.innerHTML = withModel.map((x) => `<button type="button" class="vw-opt" data-id="${esc(x.id)}">${esc(x.name.trim())}<small>${esc(money(x.price))}</small></button>`).join("");
-      const show = (it) => {
-        list.querySelectorAll(".vw-opt").forEach((o) => { if (o.dataset.id === it.id) o.setAttribute("aria-current", "true"); else o.removeAttribute("aria-current"); });
-        history.replaceState(null, "", "?item=" + encodeURIComponent(it.id));
-        document.title = `${it.name.trim()} in 3D | ${d.restaurant}`;
-        openModel(it);
+      const show = (its) => {
+        const ids = its.map((x) => x.id);
+        history.replaceState(null, "", viewerUrl(ids));
+        document.title = `${its.map((x) => x.name.trim()).join(", ")} in 3D | ${d.restaurant}`;
+        const pickBtn = $("#pick-btn"), addBtn = $("#add-btn");
+        pickBtn.textContent = "Choose another 3D model"; pickBtn.hidden = its.length > 1;   // with several dishes, change them with the buttons under the viewer
+        addBtn.href = `index.html?only3d=1&add=${ids.map(encodeURIComponent).join(",")}#full`;
+        addBtn.hidden = its.length >= MAX_DISHES || withModel.length <= its.length;
+        openModels(its);
       };
-      const setOpen = (on) => { list.hidden = !on; btn.setAttribute("aria-expanded", String(on)); };
-      btn.addEventListener("click", () => setOpen(list.hidden));
-      list.addEventListener("click", (e) => { const o = e.target.closest(".vw-opt"); const it = o && withModel.find((x) => x.id === o.dataset.id); if (it) { setOpen(false); show(it); } });
-      // The dish comes from the link (viewer.html?item=ID, set by "View in 3D / AR" on a dish); with no link, show the first 3D dish
-      const want = new URLSearchParams(location.search).get("item");
-      show(withModel.find((x) => x.id === want) || withModel[0]);
+      // The dishes come from the link (viewer.html?item=ID&item=ID2, set by "View in 3D / AR" on a dish); with no link, start with an empty floor
+      const want = [...new Set(new URLSearchParams(location.search).getAll("item"))];
+      const chosen = want.map((id) => withModel.find((x) => x.id === id)).filter(Boolean).slice(0, MAX_DISHES);
+      if (chosen.length) show(chosen); else openEmpty();
     }).catch((e) => {
       console.error(e);
       $("#page").innerHTML = `<p class="vw-err">Could not load this page. <a href="index.html#full">Go to the full menu</a><br><small>${esc(String((e && e.message) || e))}</small></p>`;

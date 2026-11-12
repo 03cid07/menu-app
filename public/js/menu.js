@@ -15,6 +15,7 @@ if (!$("#gear-slot") && $("#name")) {
   h.before(row); row.append(slot, h);
 }
 const view = { avail: false, ar: false, photo: false, sort: "featured", open: "", q: "" };
+if (new URLSearchParams(location.search).get("only3d")) view.ar = true; // opened from the 3D view page: list only the dishes that have a 3D model
 let pageCat = null; // which category page the book-style menu is on (see pager.js)
 let searching = false, searchTimer = 0; // Enter-to-search loading state (see runSearchLoad)
 const SORTS = { featured: "Featured", low: "Price, low to high", high: "Price, high to low", az: "Name, A to Z" };
@@ -530,7 +531,9 @@ document.addEventListener("click", (e) => {
   if (!b) return;
   // "View in 3D / AR" opens the 3D view page for this dish (viewer.html). The hash makes Back return to the screen you came from.
   history.replaceState(null, "", b.closest(".home") ? "#quick" : "#full");
-  location.href = `viewer.html?item=${encodeURIComponent(b.dataset.id)}`;
+  // Opened from "Add another 3D model" on the 3D view page: keep the dishes that are already there and add this one
+  const had = (new URLSearchParams(location.search).get("add") || "").split(",").filter((x) => x && x !== b.dataset.id);
+  location.href = "viewer.html?" + [...had, b.dataset.id].map((id) => `item=${encodeURIComponent(id)}`).join("&");
   return;
   $("#viewer-title").textContent = b.dataset.name;
   const src = b.dataset.model;

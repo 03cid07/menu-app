@@ -494,6 +494,83 @@ function bounds(gltf) {
   return { size: mx.map((v, i) => v - mn[i]), ctr: mx.map((v, i) => (v + mn[i]) / 2) };
 }
 
+/* ---------- put several models in one scene (the 3D viewer shows more than one dish at a time) ----------
+   parts = [{ u8: the .glb bytes, pos: [x, y, z] }]. Each model keeps its own look and goes under a node at pos.
+   Every model's animation clips are joined into ONE clip, because <model-viewer> only plays one clip at a time.
+   Returns the new .glb bytes. Throws if a file is built in a way this cannot join (more than one buffer). */
+function mergeGlbs(parts) {
+  const out = { asset: { version: "2.0", generator: "CupView" }, scene: 0, scenes: [{ nodes: [] }], nodes: [], meshes: [], materials: [], accessors: [], bufferViews: [], buffers: [{}], images: [], textures: [], samplers: [], skins: [] };
+  const chunks = []; let len = 0;
+  const clip = { name: "All", samplers: [], channels: [] };
+  const ext = new Set(), extReq = new Set();
+  const N = (v, o) => (v === undefined ? v : v + o);
+  const retex = (o, off) => {                            // shift every texture reference ("...Texture": { index }) inside a material
+    if (!o || typeof o !== "object") return;
+    for (const k of Object.keys(o)) {
+      const v = o[k];
+      if (v && typeof v === "object") { if (/Texture$/.test(k) && typeof v.index === "number") v.index += off; retex(v, off); }
+    }
+  };
+  let pi = 0;
+  for (const part of parts) {
+    const { gltf: g, bin } = parseGlb(part.u8.buffer.slice(part.u8.byteOffset, part.u8.byteOffset + part.u8.byteLength));
+    if ((g.buffers || []).length > 1) throw new Error("This model is built from several buffers and cannot be combined");
+    const base = len, padded = new Uint8Array(bin.length + ((4 - (bin.length % 4)) % 4)); padded.set(bin); chunks.push(padded); len += padded.length;
+    const o = { bv: out.bufferViews.length, acc: out.accessors.length, mesh: out.meshes.length, mat: out.materials.length, img: out.images.length, tex: out.textures.length, smp: out.samplers.length, skin: out.skins.length };
+    const wrap = out.nodes.length; out.nodes.push({ name: "Dish", extras: { dish: part.index !== undefined ? part.index : pi }, translation: part.pos || [0, 0, 0], children: [] }); pi++;
+    const nOff = out.nodes.length;
+    (g.extensionsUsed || []).forEach((e) => ext.add(e)); (g.extensionsRequired || []).forEach((e) => extReq.add(e));
+    for (const v of g.bufferViews || []) {
+      const c = { ...v, buffer: 0, byteOffset: (v.byteOffset || 0) + base };
+      const me = v.extensions && v.extensions.EXT_meshopt_compression;
+      if (me) c.extensions = { ...v.extensions, EXT_meshopt_compression: { ...me, buffer: 0, byteOffset: (me.byteOffset || 0) + base } };
+      out.bufferViews.push(c);
+    }
+    for (const a of g.accessors || []) {
+      const c = { ...a }; if (c.bufferView !== undefined) c.bufferView += o.bv;
+      if (c.sparse) c.sparse = { ...c.sparse, indices: { ...c.sparse.indices, bufferView: c.sparse.indices.bufferView + o.bv }, values: { ...c.sparse.values, bufferView: c.sparse.values.bufferView + o.bv } };
+      out.accessors.push(c);
+    }
+    for (const im of g.images || []) out.images.push(im.bufferView !== undefined ? { ...im, bufferView: im.bufferView + o.bv } : { ...im });
+    for (const sm of g.samplers || []) out.samplers.push({ ...sm });
+    for (const t of g.textures || []) {
+      const c = { ...t }; c.sampler = N(c.sampler, o.smp); c.source = N(c.source, o.img);
+      if (c.extensions) { c.extensions = JSON.parse(JSON.stringify(c.extensions)); for (const k in c.extensions) if (typeof c.extensions[k].source === "number") c.extensions[k].source += o.img; }
+      out.textures.push(c);
+    }
+    for (const m of g.materials || []) { const c = JSON.parse(JSON.stringify(m)); retex(c, o.tex); out.materials.push(c); }
+    for (const me of g.meshes || []) out.meshes.push({ ...me, primitives: me.primitives.map((p) => {
+      const q = { ...p, attributes: Object.fromEntries(Object.entries(p.attributes).map(([k, v]) => [k, v + o.acc])) };
+      q.indices = N(p.indices, o.acc); q.material = N(p.material, o.mat);
+      if (p.targets) q.targets = p.targets.map((t) => Object.fromEntries(Object.entries(t).map(([k, v]) => [k, v + o.acc])));
+      if (p.extensions && p.extensions.KHR_draco_mesh_compression) q.extensions = { ...p.extensions, KHR_draco_mesh_compression: { ...p.extensions.KHR_draco_mesh_compression, bufferView: p.extensions.KHR_draco_mesh_compression.bufferView + o.bv } };
+      return q;
+    }) });
+    for (const n of g.nodes || []) {
+      const c = { ...n }; delete c.camera;
+      if (c.extensions) { c.extensions = { ...c.extensions }; delete c.extensions.KHR_lights_punctual; if (!Object.keys(c.extensions).length) delete c.extensions; }
+      if (c.children) c.children = c.children.map((i) => i + nOff);
+      c.mesh = N(c.mesh, o.mesh); c.skin = N(c.skin, o.skin);
+      out.nodes.push(c);
+    }
+    for (const sk of g.skins || []) out.skins.push({ ...sk, joints: sk.joints.map((i) => i + nOff), skeleton: N(sk.skeleton, nOff), inverseBindMatrices: N(sk.inverseBindMatrices, o.acc) });
+    for (const an of g.animations || []) {
+      const s0 = clip.samplers.length;
+      an.samplers.forEach((s) => clip.samplers.push({ ...s, input: s.input + o.acc, output: s.output + o.acc }));
+      an.channels.forEach((ch) => clip.channels.push({ sampler: ch.sampler + s0, target: { ...ch.target, node: ch.target.node + nOff } }));
+    }
+    const sc = (g.scenes || [])[g.scene || 0];
+    out.nodes[wrap].children = ((sc && sc.nodes) || []).map((i) => i + nOff);
+    out.scenes[0].nodes.push(wrap);
+  }
+  for (const k of ["images", "textures", "samplers", "skins", "materials", "meshes"]) if (!out[k].length) delete out[k];
+  if (clip.channels.length) out.animations = [clip];
+  if (ext.size) out.extensionsUsed = [...ext]; if (extReq.size) out.extensionsRequired = [...extReq];
+  const bin = new Uint8Array(len); let p = 0; for (const c of chunks) { bin.set(c, p); p += c.length; }
+  out.buffers[0] = { byteLength: len };
+  return buildGlb(out, bin);
+}
+
 
 /* ---------- undo: take baked effects back out of a .glb ----------
    Works on files made by applyEffects (also older ones that have no saved settings).
@@ -599,6 +676,6 @@ function compact(gltf, bin) {                          // drop unreachable nodes
   return { gltf: g, bin: out };
 }
 
-const api = { parseGlb, buildGlb, embedTextures, resizeGlb, applyEffects, stripEffects, bounds, EFFECTS, baseName };
+const api = { parseGlb, buildGlb, embedTextures, resizeGlb, applyEffects, stripEffects, mergeGlbs, bounds, EFFECTS, baseName };
 if (typeof module !== "undefined" && module.exports) module.exports = api; else root.GlbTools = api;
 })(typeof window !== "undefined" ? window : globalThis);
