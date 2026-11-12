@@ -30,9 +30,26 @@
     .vw-hint { color: var(--muted); font-size: .9rem; margin: .6rem 0 0; }
     .vw-empty { position: absolute; left: 0; right: 0; top: 14px; z-index: 2; margin: 0; text-align: center; color: var(--muted); font-size: .9rem; pointer-events: none; }
     .vw-err { padding: 2rem 0; text-align: center; color: var(--muted); }
+
+    /* Fit the page to the screen: header, viewer (takes all the spare height), hint text and tips, all above the floating nav. No dead space, nothing hidden behind the bar. */
+    body.vw-page { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; padding-bottom: calc(var(--nav-h) + .6rem + .5rem + env(safe-area-inset-bottom, 0px)); }
+    body.vw-page header.top { width: 100%; padding: calc(1rem + env(safe-area-inset-top, 0px)) 1.25rem .6rem; }
+    body.vw-page header.top h1 { font-size: clamp(1.7rem, 5vw, 2.4rem); }
+    body.vw-page header.top .top-row { margin: 0 0 .25rem; }
+    body.vw-page .vw { flex: 1 1 auto; width: 100%; display: flex; flex-direction: column; min-height: 0; padding-bottom: 0; }
+    body.vw-page #viewer-stage { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 200px; }
+    body.vw-page #viewer-stage .stage-wrap { flex: 1 1 auto; min-height: 200px; margin-top: 0; }
+    body.vw-page #viewer-stage model-viewer { position: absolute; inset: 0; width: 100%; height: 100%; }
+    body.vw-page .vw-dishes { margin-top: .5rem; }
+    body.vw-page .vw-hint { font-size: .85rem; line-height: 1.35; margin: .5rem 0 0; }
+    body.vw-page .ar-guide { margin: .35rem 0 0; }
+    /* Open tips scroll inside their own box, so the viewer keeps its size and the page does not grow */
+    body.vw-page .ar-guide { flex: none; }
+    body.vw-page .ar-guide[open] { max-height: min(14vh, 96px); max-height: min(14dvh, 96px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-right: .25rem; }
+    body.vw-page .ar-guide summary { position: sticky; top: 0; background: var(--bg); padding: .15rem 0; }
   </style>
 </head>
-<body>
+<body class="vw-page">
   <header class="top">
     <div class="top-row"><h1 id="name">3D view</h1></div>
     <p>Spin it around, or see it on your table.</p>

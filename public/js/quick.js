@@ -1,4 +1,6 @@
 // Start screen: "Full menu" or "Quick menu" (a few questions that narrow the dishes to the customer's mood).
+// When the questions end, the customer lands on the main menu filtered to their picks (view.picks, see menu.js).
+// "Show full menu" lives in the burger panel there; "Start over" is the floating button (.restart-fab) made below.
 // Questions come from quick-gen.js (saved in the admin, or made from the menu). Uses helpers from menu.js: data, esc, itemHtml, openSheet.
 (() => {
   const home = document.createElement("div");
@@ -21,6 +23,7 @@
   const snap = (el, name, to) => { const t = (el._tw = el._tw || {})[name] || (el._tw[name] = { v: 0 }); clearTimeout(t.timer); if (t.ctl) t.ctl.stop(); t.v = to * 100; el.style.setProperty(name, String(to)); };
   // Showing the start / quick screens fades them in; leaving them fades them out before they are hidden
   const openHome = () => {
+    setFab(false); // the floating Start over only belongs on the filtered main menu, never over these screens
     home.classList.remove("leaving");
     if (home.hidden) { home.hidden = false; snap(home, "--h", 0); tween(home, "--h", 1, { response: 0.4 }); }
     else tween(home, "--h", 1, { response: 0.3 });
@@ -32,11 +35,28 @@
   };
   // Going from the start screen to the Full menu: the dishes load in one after another (menuIntro in menu.js).
   // Tapping "Full menu" while already in it does nothing new, so only the start screen counts.
+  // If the menu was filtered to the quiz picks, this shows every dish again.
   const enterFull = () => {
     const fromHome = !home.hidden && !home.classList.contains("leaving");
+    const hadPicks = !!view.picks;
+    if (hadPicks) { view.picks = null; view.open = ""; pageCat = null; render(); }
+    setFab(false);
     leaveHome(); setNav("full"); window.scrollTo(0, 0);
-    if (fromHome && window.menuIntro) window.menuIntro();
+    if ((fromHome || hadPicks) && window.menuIntro) window.menuIntro();
   };
+  // Floating "Start over": fixed above the bottom bar, only while the menu is filtered to the quiz picks
+  const fab = document.createElement("button");
+  fab.type = "button"; fab.className = "restart-fab"; fab.inert = true; fab.hidden = true;
+  fab.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span>Start over</span>';
+  document.body.appendChild(fab);
+  let fabOn = false;
+  function setFab(on) {
+    if (on === fabOn && !fab.hidden === on) return;
+    fabOn = on; fab.inert = !on;
+    if (on) { if (fab.hidden) { snap(fab, "--away", 1); fab.hidden = false; } tween(fab, "--away", 0, { delay: 250, response: 0.5 }); }
+    else tween(fab, "--away", 1, { response: 0.35, done: () => { if (!fabOn) fab.hidden = true; } });
+  }
+  fab.addEventListener("click", () => { hist = []; show([]); });
   // Content of the current screen rises into place each time a new screen is drawn
   const rise = () => { const box = home.firstElementChild; if (box) { snap(box, "--r", 0); tween(box, "--r", 1, { response: 0.5 }); } };
 
@@ -100,41 +120,27 @@
   function results(answers) {
     const c = cfg();
     const items = QuickGen.filter(data.items, c, answers).sort(PICK_SORT);
-    const noted = answers.some((a) => !a.auto && a.opts.length && (c.questions.find((q) => q.id === a.q) || {}).note);
+    cur = { answers, q: null };
+    if (items.length) {
+      // Straight to the main menu, filtered to the picks (best match first). "Show full menu" is in the burger panel, "Start over" floats.
+      const noted = answers.some((a) => !a.auto && a.opts.length && (c.questions.find((q) => q.id === a.q) || {}).note);
+      Object.assign(view, { avail: false, ar: false, photo: false, q: "", sort: "featured", open: "",
+        picks: { rank: new Map(items.map((i, n) => [i.id, n])), noted, count: items.length } });
+      active = "All"; pageCat = null;
+      render();
+      leaveHome(); setNav("quick"); window.scrollTo(0, 0); setFab(true);
+      if (window.menuIntro) window.menuIntro();
+      return;
+    }
+    // Nothing matched: there is no menu to show, so this screen keeps its own two buttons
     openHome(); setNav("quick");
     home.innerHTML = `<div class="home-box results"><button type="button" class="home-back" data-back>\u2039 Back</button>
-      <h2 class="home-q">${items.length ? "Here's what we picked for you" : "Nothing matched that"}</h2>
-      <p class="home-sub">${items.length ? "Tap a dish for details." : "Try different answers or browse the full menu."}</p>
-      ${items.length && noted ? '<p class="home-note">Based on the ingredients and descriptions listed. Please tell our staff about any allergies.</p>' : ""}
-      ${items.length ? `<div class="home-results"><div class="home-results-in"><section class="cat">${items.map((i) => itemHtml(i)).join("")}</section></div></div>` : ""}
+      <h2 class="home-q">Nothing matched that</h2>
+      <p class="home-sub">Try different answers or browse the full menu.</p>
       <div class="home-actions"><button type="button" class="btn" data-go="full">See full menu</button><button type="button" class="btn ghost" data-restart>Start over</button></div></div>`;
     home.scrollTop = 0; rise();
-    // Soft blur at the bottom of the box while there are more dishes below (see .home-results.more in the CSS)
-    const hr = home.querySelector(".home-results-in");
-    if (hr) {
-      const more = () => hr.classList.toggle("more", hr.scrollTop + hr.clientHeight < hr.scrollHeight - 2);
-      hr.addEventListener("scroll", more, { passive: true });
-      // Fill the room with whole dishes and cut the last one at about half way, so the list clearly goes on
-      // The box takes all the room between the text above it and the buttons under it (the buttons end just above the bottom
-      // bar), measured from the real layout instead of a fixed guess, so no space is wasted. Then the last dish is cut at half.
-      fitResults = () => {
-        const it = Array.from(hr.querySelectorAll(".item"));
-        DishFit.reset(it); hr.style.maxHeight = "none";
-        const box = hr.parentElement, actions = home.querySelector(".home-actions");
-        const frameBelow = box.offsetHeight - (hr.offsetTop - box.offsetTop) - hr.offsetHeight; // padding + border under the list
-        const actionsH = actions ? actions.offsetHeight + (parseFloat(getComputedStyle(actions).marginTop) || 0) : 0;
-        const navTop = home.clientHeight - nav.offsetHeight;
-        const budget = Math.floor(navTop - 16 - actionsH - hr.offsetTop - frameBelow);
-        if (it.length && budget > 60) { const h = DishFit.apply(it, budget); hr.style.maxHeight = (h || budget) + "px"; } else hr.style.maxHeight = "";
-        more();
-      };
-      requestAnimationFrame(fitResults); setTimeout(fitResults, 400);
-    } else fitResults = null;
-    cur = { answers, q: null };
   }
 
-  let fitResults = null;
-  window.addEventListener("resize", () => { if (fitResults) fitResults(); });
   const answer = (ids) => { hist.push(cur.answers); show(cur.answers.concat({ q: cur.q.id, opts: ids })); };
   home.addEventListener("click", (e) => {
     if (e.target.closest(".add-btn")) return; // + is handled by list.js
@@ -153,6 +159,7 @@
 
   // The bottom nav is created once above and stays visible on every screen
   document.addEventListener("click", (e) => {
+    if (e.target.closest("[data-full-menu]")) return enterFull(); // burger panel button (menu.js draws it while the quiz picks are on)
     const n = e.target.closest("[data-nav]");
     if (!n) return;
     if (n.dataset.nav === "home") landing();

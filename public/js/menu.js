@@ -14,7 +14,9 @@ if (!$("#gear-slot") && $("#name")) {
   row.className = "top-row"; slot.className = "fs-actions"; slot.id = "gear-slot";
   h.before(row); row.append(slot, h);
 }
-const view = { avail: false, ar: false, photo: false, sort: "featured", open: "", q: "" };
+const view = { avail: false, ar: false, photo: false, sort: "featured", open: "", q: "", picks: null };
+// view.picks is set by quick.js when the Quick menu quiz ends: { rank: Map(dishId -> position), noted: bool, count }.
+// While it is set the main menu only lists those dishes (best match first), and the burger panel shows "Show full menu".
 if (new URLSearchParams(location.search).get("only3d")) view.ar = true; // opened from the 3D view page: list only the dishes that have a 3D model
 let pageCat = null; // which category page the book-style menu is on (see pager.js)
 let searching = false, searchTimer = 0; // Enter-to-search loading state (see runSearchLoad)
@@ -120,7 +122,9 @@ function visibleItems() {
   const q = view.q.trim().toLowerCase();
   const list = data.items.filter((i) => (active === "All" || i.category === active)
     && (!q || [i.name, i.description, i.ingredients, i.category].some((t) => String(t || "").toLowerCase().includes(q)))
+    && (!view.picks || view.picks.rank.has(i.id))
     && (!view.avail || i.available) && (!view.ar || i.model) && (!view.photo || i.image));
+  if (view.picks && view.sort === "featured") list.sort((x, y) => view.picks.rank.get(x.id) - view.picks.rank.get(y.id)); // best match first
   if (view.sort === "low") list.sort((x, y) => x.price - y.price);
   if (view.sort === "high") list.sort((x, y) => y.price - x.price);
   if (view.sort === "az") list.sort((x, y) => x.name.localeCompare(y.name));
@@ -155,14 +159,15 @@ function renderBar() {
   const focused = document.activeElement && document.activeElement.closest("#fs") ? document.activeElement : null;
   const key = focused && (focused.id === "fs-q" ? "#fs-q" : focused.dataset.openSettings !== undefined ? "[data-open-settings]" : focused.dataset.open ? `[data-open="${focused.dataset.open}"]` : focused.dataset.f ? `[data-f="${focused.dataset.f}"]` : focused.dataset.c ? `[data-c="${focused.dataset.c.replace(/"/g, "\\\"")}"]` : focused.name === "sort" ? `input[value="${focused.value}"]` : "");
   const themePref = (window.menuTheme && window.menuTheme.pref()) || "auto", themeNow = (window.menuTheme && window.menuTheme.eff()) || "dark";
-  const m = view.open === "menu", dot = n > 0 || view.sort !== "featured";
+  const m = view.open === "menu", pk = view.picks, dot = n > 0 || view.sort !== "featured" || !!pk;
   $("#fs").innerHTML = `<div class="fs-row-search"><div class="fs-bar">
-      <button type="button" class="fs-icon fs-burger${dot ? " has-active" : ""}" data-open="menu" aria-expanded="${m}" aria-controls="fs-menu" aria-label="Filter and sort${n ? ` (${n} filter${n === 1 ? "" : "s"} on)` : ""}">${BURGER}</button>
+      <button type="button" class="fs-icon fs-burger${dot ? " has-active" : ""}" data-open="menu" aria-expanded="${m}" aria-controls="fs-menu" aria-label="Filter and sort${n ? ` (${n} filter${n === 1 ? "" : "s"} on)` : ""}${pk ? ", showing your Quick menu picks" : ""}">${BURGER}</button>
       <input type="search" id="fs-q" class="fs-q" placeholder="Search dishes…" aria-label="Search dishes" autocomplete="off" value="${esc(view.q)}">
       <span class="fs-search-ic">${SEARCH}</span>
     </div>
     <button type="button" class="fs-icon fs-list" data-open-list aria-label="My list${lc ? ` (${lc} item${lc === 1 ? "" : "s"})` : ""}">${LIST_ICON}<span class="fs-list-t">My list</span><span class="fs-badge"${lc ? "" : " hidden"}>${lc}</span></button></div>
     <div class="fs-panel" id="fs-menu" ${m ? "" : "hidden"}>
+      ${pk ? `<div class="fs-picks"><div class="fs-picks-info"><strong>Picked for you</strong><span>${pk.count} dish${pk.count === 1 ? "" : "es"} from your answers</span></div><button type="button" class="btn fs-picks-btn" data-full-menu>Show full menu</button></div>${pk.noted ? '<p class="fs-picks-note">Based on the ingredients and descriptions listed. Please tell our staff about any allergies.</p>' : ""}` : ""}
       <div class="fs-row"><span class="fs-label">Category</span>${["All", ...data.categories].map((c) => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c === active}">${esc(c)}</button>`).join("")}</div>
       ${FILTERS.map(([label, chips]) => `<div class="fs-row"><span class="fs-label">${label}</span>${chips.map(([k, t]) => `<button type="button" class="chip" data-f="${k}" aria-pressed="${view[k]}">${t}</button>`).join("")}</div>`).join("")}
       ${n ? '<button type="button" class="linkbtn" data-clear>Clear all</button>' : ""}
@@ -246,7 +251,7 @@ function renderList() {
   const items = visibleItems();
   let html;
   if (!data.items.length) html = '<p class="empty">No items yet. Add some on the admin page.</p>';
-  else if (!items.length) html = '<p class="empty">No dishes match these filters. <button type="button" class="linkbtn" data-clear>Clear filters</button></p>';
+  else if (!items.length) html = `<p class="empty">No ${view.picks ? "picks" : "dishes"} match these filters. <button type="button" class="linkbtn" data-clear>Clear filters</button></p>`;
   else {
     // Every view is split by category: one page per category that has a match. A sort (price, A to Z) orders the dishes
     // inside each category, it does not mix the categories together. Only plain browsing remembers which page you were on.
