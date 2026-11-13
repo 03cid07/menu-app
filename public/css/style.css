@@ -647,15 +647,44 @@ html.boot-sk-home #boot { display: none !important; }
 .home-sk .sk-card .sk-line { margin: .2rem 0; }
 .home-sk .sk-card .sk-line.lg { height: 1.1rem; width: 42%; }
 .home-sk .sk-card .sk-line:not(.lg) { height: .85rem; width: 80%; }
-/* Full menu while loading: skeleton bars where the title, settings gear, search bar + My list and category title will be, so the page keeps its shape */
-h1.sk-name { width: 9rem; max-width: 60%; color: transparent; border-radius: 10px; user-select: none; background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
-#gear-slot:empty::before { content: ""; display: block; width: 44px; height: 44px; border-radius: 999px; background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
-#fs:empty { display: flex; align-items: center; gap: .6rem; }
-#fs:empty::before, #fs:empty::after { content: ""; height: 50px; border-radius: 999px; background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
-#fs:empty::before { flex: 1; min-width: 0; }
-#fs:empty::after { flex: none; width: 7rem; }
-.sk-cat h2 .sk-line.sk-h2 { display: block; width: 9rem; height: 1.4rem; margin: 0; border-radius: 8px; }
-@media (prefers-reduced-motion: reduce) { h1.sk-name, #gear-slot:empty::before, #fs:empty::before, #fs:empty::after { animation: none; } }
+/* ---- 3D view screen (js/viewer.js): sits on top of the page like the start screen, above it and below the bottom bar ---- */
+.vw-screen { position: fixed; inset: 0; z-index: 8; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; background: var(--bg);
+  padding-bottom: calc(var(--nav-h) + .6rem + .5rem + env(safe-area-inset-bottom, 0px)); animation: sk-in .25s ease; }
+.vw-screen[hidden] { display: none; }
+.vw-screen::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: linear-gradient(color-mix(in srgb, var(--bg) var(--wash-top), transparent), color-mix(in srgb, var(--bg) var(--wash-bot), transparent)), var(--bg-photo) center / cover no-repeat;
+  transform: translateZ(0); will-change: transform; backface-visibility: hidden; }
+.vw-head { width: 100%; box-sizing: border-box; max-width: 760px; margin: 0 auto; padding: calc(1rem + env(safe-area-inset-top, 0px)) 1.25rem .6rem; }
+.vw-head h1 { font-size: clamp(1.7rem, 5vw, 2.4rem); line-height: 1.05; margin: 0 0 .25rem; font-weight: 800; letter-spacing: -.02em; }
+.vw-head p { margin: 0; color: color-mix(in srgb, var(--ink) 78%, var(--muted)); }
+.vw-main { flex: 1 1 auto; width: 100%; box-sizing: border-box; max-width: 760px; margin: 0 auto; padding: 0 1.25rem; display: flex; flex-direction: column; min-height: 0; }
+.vw-pick { margin: 0 0 .7rem; }
+.vw-pick .btn { margin-top: 0; display: inline-block; text-decoration: none; padding: .5rem .9rem; }
+.vw-pick [hidden] { display: none; }
+.vw-dishes { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; }
+.vw-dish { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); overflow: hidden; }
+.vw-dish button { border: 0; background: none; color: var(--ink); font: inherit; font-size: .85rem; padding: .35rem .7rem; cursor: pointer; }
+.vw-dish .vw-dish-x { padding: .35rem .65rem .35rem .2rem; color: var(--muted); font-size: 1.05rem; line-height: 1; }
+.vw-dish .vw-dish-sel[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.vw-hint { color: var(--muted); font-size: .85rem; line-height: 1.35; margin: .5rem 0 0; }
+.vw-empty { position: absolute; left: 0; right: 0; top: 14px; z-index: 2; margin: 0; text-align: center; color: var(--muted); font-size: .9rem; pointer-events: none; }
+.vw-err { padding: 2rem 0; text-align: center; color: var(--muted); }
+/* the stage takes all the spare height; the hint and tips sit under it, all above the bottom bar */
+.vw-screen #viewer-stage { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 200px; }
+.vw-screen #viewer-stage .stage-wrap { flex: 1 1 auto; min-height: 200px; margin-top: 0; }
+.vw-screen #viewer-stage model-viewer { position: absolute; inset: 0; width: 100%; height: 100%; }
+.vw-screen .ar-guide { margin: .35rem 0 0; flex: none; }
+.vw-screen .ar-guide[open] { max-height: min(14vh, 96px); max-height: min(14dvh, 96px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-right: .25rem; }
+.vw-screen .ar-guide summary { position: sticky; top: 0; background: var(--bg); padding: .15rem 0; }
+body.vw-open .pgr-float, body.vw-open .restart-fab { visibility: hidden; }
+/* skeleton of this screen for when the page opens straight on it (index.html #vw-sk) */
+.vw-sk { display: none; pointer-events: none; animation: none; }
+html.boot-sk-viewer .vw-sk { display: flex; }
+html.boot-sk-viewer #boot { display: none !important; }
+.vw-sk .sk-line.xl { display: block; height: 2rem; width: 45%; margin: 0 0 .6rem; border-radius: 10px; }
+.vw-sk .sk-line.md { display: block; width: 70%; margin: 0; }
+@media (prefers-reduced-motion: reduce) { .vw-screen { animation: none; } }
+
 /* 3D view: the empty stage shimmers until the menu has loaded and the real viewer replaces it */
 .sk-stage { flex: 1 1 auto; min-height: 200px; background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
 /* a photo shimmers until it loads, then fades in */

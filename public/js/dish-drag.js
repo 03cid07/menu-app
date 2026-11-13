@@ -3,7 +3,7 @@
    Press on a dish and drag: that dish follows your finger or mouse across the floor, and the others stay put. Press on empty floor or
    background and drag: the camera turns as usual. The dish is moved by changing its position inside <model-viewer>'s scene (the same
    kind of internal access as js/ar-guide.js, with a check; if it is missing nothing breaks, the dishes just cannot be moved).
-   The positions are kept by the page (see viewer.html), so they survive an effect being switched. */
+   The positions are kept by the page (see viewer.js), so they survive an effect being switched. */
 (function (root) {
   "use strict";
 

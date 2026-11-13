@@ -7,6 +7,7 @@
   home.className = "home";
   home.hidden = true;
   document.body.appendChild(home);
+  if (window.Viewer) document.body.appendChild(Viewer.root); // the 3D view screen goes above the start screen (same layer, later in the page), and below the bottom bar made further down
 
   let hist = [], cur = null;
   // ---- Motion: Springs.spring from spring.js (README, "Motion and feel"), no CSS easing ----
@@ -76,9 +77,10 @@
   // The start screen has no bottom bar; it slides up once the customer picks Full menu or Quick menu
   // On the start screen the bar slides down out of sight (and back up later). The active tab opens into a pill with its label.
   let navReady = false;
+  let navNow = "home", navBeforeViewer = "home";
   const setNav = (on) => {
     const away = on === "home", first = !navReady;
-    navReady = true;
+    navReady = true; navNow = on;
     nav.inert = away;
     if (first) snap(nav, "--away", away ? 1 : 0); else tween(nav, "--away", away ? 1 : 0, { delay: away ? 150 : 0, response: 0.5 });
     nav.querySelectorAll(".navlink").forEach((b) => {
@@ -88,11 +90,15 @@
     });
   };
   setNav("home");
+  // The 3D view is a screen on top of this page (js/viewer.js): the bottom bar follows it, and goes back to the screen under it when it closes
+  document.addEventListener("viewer:open", () => { navBeforeViewer = navNow; setNav("viewer"); });
+  document.addEventListener("viewer:close", () => setNav(navBeforeViewer));
+  document.addEventListener("viewer:pick", () => enterFull()); // "Choose a 3D model": the Full menu, listing only dishes with a 3D model
   // Questions: the ones the owner reviewed in the admin (data.quick), or ones made live from the menu
   const cfg = () => (data.quick && Array.isArray(data.quick.questions) && data.quick.questions.length ? data.quick : { stopAt: 3, questions: QuickGen.generate(data) });
   const PICK_SORT = (x, y) => (y.label === "popular") - (x.label === "popular") || (y.rating?.avg || 0) - (x.rating?.avg || 0) || x.price - y.price;
 
-  // The 3D viewer has its own page (viewer.html). Its card sits between Full menu and Quick menu.
+  // The 3D view is a screen on top of this page (js/viewer.js). Its card sits between Full menu and Quick menu.
   const viewerCard = () => data.items.some((x) => x.model) ? `<button type="button" class="home-card" data-go="viewer"><strong>3D view</strong><span>Spin a dish around or see it on your table</span></button>` : "";
 
   const landing = () => {
@@ -149,7 +155,7 @@
     const b = e.target.closest("button");
     if (!b) return;
     if (b.dataset.go === "full") enterFull();
-    else if (b.dataset.go === "viewer") location.href = "viewer.html";
+    else if (b.dataset.go === "viewer") window.Viewer && Viewer.open([]);
     else if (b.dataset.go === "quick" || b.hasAttribute("data-restart")) { hist = []; show([]); }
     else if (b.dataset.multi !== undefined) { const k = cur.opts[b.dataset.multi].id; if (cur.sel.has(k)) cur.sel.delete(k); else cur.sel.add(k); b.setAttribute("aria-pressed", String(cur.sel.has(k))); }
     else if (b.hasAttribute("data-continue")) answer([...cur.sel]);
@@ -162,9 +168,10 @@
     if (e.target.closest("[data-full-menu]")) return enterFull(); // burger panel button (menu.js draws it while the quiz picks are on)
     const n = e.target.closest("[data-nav]");
     if (!n) return;
+    if (window.Viewer) { Viewer.endPick(); if (n.dataset.nav !== "viewer") Viewer.close({ quiet: true }); } // any tab ends "choose a 3D model"; leaving the 3D view closes it
     if (n.dataset.nav === "home") landing();
     else if (n.dataset.nav === "full") enterFull();
-    else if (n.dataset.nav === "viewer") location.href = "viewer.html";
+    else if (n.dataset.nav === "viewer") { if (window.Viewer && !Viewer.isOpen()) Viewer.open([]); }
     else { hist = []; show([]); }
   });
 
@@ -181,5 +188,5 @@
     go();
   };
   // Wait for menu.js to finish loading the menu, then show the start screen
-  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); const to = location.hash.slice(1); if (linkedItemId() || to === "full") { home.hidden = true; setNav("full"); if (!linkedItemId()) introAfterBoot(); } else if (to === "quick") { hist = []; show([]); } else landing(); requestAnimationFrame(() => requestAnimationFrame(() => window.bootHide && window.bootHide())); } }, 50);
+  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); const to = location.hash.slice(1), vwIds = window.Viewer && Viewer.hashIds(); if (vwIds) { home.hidden = true; setNav("full"); Viewer.open(vwIds, { noPush: true }); } else if (linkedItemId() || to === "full") { home.hidden = true; setNav("full"); if (!linkedItemId()) introAfterBoot(); } else if (to === "quick") { hist = []; show([]); } else landing(); requestAnimationFrame(() => requestAnimationFrame(() => window.bootHide && window.bootHide())); } }, 50);
 })();

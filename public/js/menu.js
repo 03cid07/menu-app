@@ -17,7 +17,6 @@ if (!$("#gear-slot") && $("#name")) {
 const view = { avail: false, ar: false, photo: false, sort: "featured", open: "", q: "", picks: null };
 // view.picks is set by quick.js when the Quick menu quiz ends: { rank: Map(dishId -> position), noted: bool, count }.
 // While it is set the main menu only lists those dishes (best match first), and the burger panel shows "Show full menu".
-if (new URLSearchParams(location.search).get("only3d")) view.ar = true; // opened from the 3D view page: list only the dishes that have a 3D model
 let pageCat = null; // which category page the book-style menu is on (see pager.js)
 let searching = false, searchTimer = 0; // Enter-to-search loading state (see runSearchLoad)
 const SORTS = { featured: "Featured", low: "Price, low to high", high: "Price, high to low", az: "Name, A to Z" };
@@ -197,7 +196,6 @@ function renderGear() {
 
 function render() {
   $("#name").textContent = data.restaurant;
-  $("#name").classList.remove("sk-name"); // the title was a skeleton bar until now
   document.title = `${data.restaurant} menu`;
   cancelSearchLoad();
   renderGear();
@@ -332,7 +330,7 @@ function runSearchLoad(ms = SEARCH_LOAD_MS) {
     // the bar is pinned, so you can search from far down the page: bring the list top into view so the skeleton is seen
     const barH = $("#fs").offsetHeight, top = menu.getBoundingClientRect().top + window.scrollY - barH - 8;
     if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
-    menu.innerHTML = `<section class="cat sk-cat"><h2><span class="sk-line sk-h2"></span></h2><div class="pgr-box"><div class="pgr-list">${Array.from({ length: 3 }, (_, k) => skRowHtml(k)).join("")}</div></div></section>`;
+    menu.innerHTML = `<section class="cat sk-cat"><div class="pgr-box"><div class="pgr-list">${Array.from({ length: 3 }, (_, k) => skRowHtml(k)).join("")}</div></div></section>`;
   }
   searchTimer = setTimeout(() => {
     cancelSearchLoad();
@@ -428,7 +426,7 @@ sheetBox.addEventListener("scroll", (e) => {
 }, true);
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  if (!qrBox.hidden) closeQr(); else if (!viewer.hidden) closeViewer(); else closeSheet();
+  if (!qrBox.hidden) closeQr(); else closeSheet();
 });
 
 // ---- QR codes: scan with a phone to open this menu, or one dish (the link is ?item=ID) ----
@@ -522,205 +520,14 @@ new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if 
 function fxKind(it) { return typeof QuickGen !== "undefined" ? QuickGen.tempOf(it) : "food"; }
 // ---- Effects: the customer picks one in the 3D viewer. It is added to the model on their phone (js/glb-tools.js), so the admin never has to place any. ----
 
-// ---- 3D / AR viewer (opens when a customer taps "View in 3D / AR") ----
-const viewer = document.createElement("div");
-viewer.className = "viewer";
-viewer.hidden = true;
-viewer.innerHTML = `<div class="viewer-box" role="dialog" aria-modal="true" aria-label="3D view">
-  <div class="viewer-top"><strong id="viewer-title"></strong><button type="button" class="btn ghost" id="viewer-close">Close</button></div>
-  <div id="viewer-stage"></div>
-  <p class="viewer-hint">Drag to rotate. Tap "View on your table" to see it at real size through your camera. The dish appears once your phone has found your table; until then you will see a scanner. If that button is missing, this phone or browser does not support AR.</p>
-  <details class="ar-guide"><summary>Tips for placing it on your table</summary>
-    <ol>
-      <li>Tap <strong>View on your table (AR)</strong> and allow camera access.</li>
-      <li>Hold the phone about an arm's length from the table and move it slowly side to side for a few seconds.</li>
-      <li>Keep the camera on the table top, not the floor. While the scanner shows, the dish stays hidden on purpose.</li>
-      <li>When the dish appears, drag it to move it and turn it with two fingers.</li>
-    </ol>
-    <p>Works best in good light. Plain, shiny or dark tables are hard to detect, so try placing a napkin, menu or coaster with a pattern on the table and aim at it.</p>
-  </details>
-</div>`;
-document.body.appendChild(viewer);
-
-let viewerCleanup = () => {};
-const closeViewer = () => { viewerCleanup(); viewerCleanup = () => {}; viewer.hidden = true; $("#viewer-stage").innerHTML = ""; };
-
+// ---- "View in 3D / AR" on a dish card: opens the 3D view screen (js/viewer.js) with this dish ----
+// (The old popup viewer that lived here was no longer reachable since the 3D view got its own screen, so it was removed.)
 document.addEventListener("click", (e) => {
   const b = e.target.closest(".ar-open");
-  if (!b) return;
-  // "View in 3D / AR" opens the 3D view page for this dish (viewer.html). The hash makes Back return to the screen you came from.
-  history.replaceState(null, "", b.closest(".home") ? "#quick" : "#full");
-  // Opened from "Add another 3D model" on the 3D view page: keep the dishes that are already there and add this one
-  const had = (new URLSearchParams(location.search).get("add") || "").split(",").filter((x) => x && x !== b.dataset.id);
-  location.href = "viewer.html?" + [...had, b.dataset.id].map((id) => `item=${encodeURIComponent(id)}`).join("&");
-  return;
-  $("#viewer-title").textContent = b.dataset.name;
-  const src = b.dataset.model;
-  const it = data.items.find((x) => x.id === b.dataset.id) || { name: b.dataset.name, price: 0, category: "" };
-  // Floating label: the name drops in letter by letter, the price pops, the description fades in
-  const label = `<div slot="hotspot-label" class="mv-label" data-position="0 1 0"><div class="mv-card">
-      <div class="mv-name">${[...it.name].map((ch, k) => `<span style="--d:${k * 45}ms">${ch === " " ? "&nbsp;" : esc(ch)}</span>`).join("")}</div>
-      <div class="mv-price">${money(it.price)}</div>
-      ${it.description ? `<div class="mv-desc">${esc(it.description)}</div>` : ""}
-    </div><button type="button" class="mv-toggle" aria-expanded="true" aria-label="Hide details">${CHEV}</button></div>`;
-  $("#viewer-stage").innerHTML = `<div class="stage-wrap"><div class="mv-loader" role="status" aria-live="polite"><div class="mv-spin" aria-hidden="true"></div><div class="mv-ltext">Loading 3D model\u2026 <span class="mv-pct">0%</span></div><div class="mv-lbar" aria-hidden="true"><i></i></div></div><model-viewer src="${esc(src)}" alt="3D model of ${esc(b.dataset.name)}"
-    ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
-    autoplay camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%">
-    <div slot="progress-bar" aria-hidden="true"></div>
-    ${label}
-    <button slot="ar-button" type="button" class="btn ar-btn">View on your table (AR)</button>
-  </model-viewer>
-  <div class="fx-ui"><button type="button" class="fx-toggle" aria-expanded="false" hidden>\u2728 Effects</button><div class="fx-tray" role="group" aria-label="Choose an effect" hidden></div></div></div>`;
-  // Once the model has loaded, float the label just above its top
-  const mv = $("#viewer-stage model-viewer");
-  // Visible loading indicator: spinner + percentage, removed once the model is ready (or shows an error)
-  const loader = $("#viewer-stage .mv-loader"), pct = loader.querySelector(".mv-pct"), lbar = loader.querySelector(".mv-lbar i");
-  mv.addEventListener("progress", (e) => {
-    const p = Math.round((e.detail.totalProgress || 0) * 100);
-    pct.textContent = `${p}%`; lbar.style.width = `${p}%`;
-  });
-  mv.addEventListener("load", () => { loader.remove(); });
-  mv.addEventListener("error", () => {
-    loader.classList.add("failed");
-    loader.innerHTML = '<div class="mv-ltext">Could not load the 3D model. Please close and try again.</div>';
-  });
-
-  // ---- Effects picker: the customer chooses one effect (or none); it is built into a copy of the model right here on the phone ----
-  const T = window.GlbTools;
-  const wrap = $("#viewer-stage .stage-wrap"), fxUi = wrap.querySelector(".fx-ui"), fxBtn = fxUi.querySelector(".fx-toggle"), tray = fxUi.querySelector(".fx-tray");
-  const FX_STRENGTH = 0.7;
-  let baseP = null, swap = 0, pick = "";                         // pick = id of the effect the customer chose ("" = none)
-  const made = new Map();                                       // effect id -> blob URL, so switching back is instant
-  const blobUrl = (u8) => URL.createObjectURL(new Blob([u8], { type: "model/gltf-binary" }));
-  const base = () => baseP || (baseP = (async () => {           // the model with no effects + its size and centre (null if it cannot be read)
-    if (!T) throw new Error("GlbTools is not loaded");
-    const buf = await (await fetch(src)).arrayBuffer();
-    const r = T.stripEffects(T.parseGlb(buf));                  // a file an older admin saved with effects baked in is cleaned first
-    const bd = T.bounds(r.gltf);
-    if (!bd) throw new Error("the model has no shapes to measure");
-    return { u8: r.had ? T.buildGlb(r.gltf, r.bin) : new Uint8Array(buf), had: r.had, size: bd.size, ctr: bd.ctr };
-  })().catch((e) => { console.error("Effects: could not prepare the model", e); return null; }));
-  const urlFor = async (id) => {
-    const b = await base();
-    if (!b) return null;
-    if (made.has(id)) return made.get(id);
-    const url = id ? blobUrl(T.applyEffects(b.u8, b.size, b.ctr, { [id]: FX_STRENGTH }).glb) : (b.had ? blobUrl(b.u8) : src);
-    made.set(id, url);
-    return url;
-  };
-  // Table finder for AR: hides the dish until a table-like surface is found and shows a scanner with live status (js/ar-guide.js)
-  const guide = window.ArGuide ? ArGuide.attach(mv) : null;
-  viewerCleanup = () => { swap++; document.removeEventListener("visibilitychange", comeBack); if (guide) guide.detach(); made.forEach((u) => { if (u !== src) URL.revokeObjectURL(u); }); made.clear(); };
-  const FX = T ? [{ id: "", icon: "\u{1F6AB}", name: "None" }, ...[...T.EFFECTS].sort((x, y) => (y.g === fxKind(it)) - (x.g === fxKind(it)))] : [];   // hot / cold dishes see their own effects first
-  tray.innerHTML = FX.map((f) => `<button type="button" class="fx-chip" data-id="${f.id}" aria-pressed="${f.id === pick}">${f.icon} ${esc(f.name)}</button>`).join("");
-  const syncFx = () => {
-    tray.querySelectorAll(".fx-chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.id === pick)));
-    const f = FX.find((x) => x.id === pick);
-    fxBtn.textContent = pick && f ? `${f.icon} ${f.name}` : "\u2728 Effects";
-  };
-  const showFx = async (id) => {
-    const my = ++swap;
-    let url = null;
-    try { url = await urlFor(id); } catch (e) {
-      console.error("Effects: could not add", id, e);
-      if (my === swap) { pick = ""; syncFx(); fxBtn.textContent = "Could not add that"; setTimeout(() => { if (mv.isConnected) syncFx(); }, 2000); }
-    }
-    if (my !== swap || !mv.isConnected || !url || mv.src === url) return;
-    const o = mv.getCameraOrbit && mv.loaded ? mv.getCameraOrbit() : null;     // keep the angle the customer was looking from
-    mv.addEventListener("load", () => {
-      if (o) { mv.cameraOrbit = `${o.theta}rad ${o.phi}rad auto`; if (mv.jumpCameraToGoal) mv.jumpCameraToGoal(); }
-    }, { once: true });
-    mv.src = url;
-  };
-  mv.addEventListener("load", () => {                           // once the model is on screen, measure it and offer the picker
-    base().then((b) => {
-      if (!mv.isConnected) return;
-      fxBtn.hidden = false;
-      if (!b) { fxBtn.disabled = true; fxBtn.textContent = "Effects unavailable"; return; }
-      if (b.had) showFx(pick);                                  // an old file with effects baked in: swap in the clean copy
-    });
-  }, { once: true });
-  // Swiping the effects row must only scroll the row: keep those touches away from the 3D model and the page-level swipe/bounce handlers
-  tray.dataset.rb = "off";
-  // In AR the camera view treats any touch as "move the dish" unless the element says it is a control: this stops the effects row and button from dragging the 3D model
-  [fxUi, fxBtn, tray].forEach((el) => el.addEventListener("beforexrselect", (e) => e.preventDefault()));
-  ["pointerdown", "pointermove", "pointerup", "mousedown", "touchstart", "touchmove", "touchend", "wheel"].forEach((t) => tray.addEventListener(t, (e) => e.stopPropagation(), { passive: true }));
-  fxBtn.addEventListener("click", () => { const open = tray.hidden; tray.hidden = !open; fxBtn.setAttribute("aria-expanded", String(open)); });
-  tray.addEventListener("click", (e) => {
-    const c = e.target.closest(".fx-chip");
-    if (!c) return;
-    pick = c.dataset.id; syncFx(); showFx(pick);
-  });
-  // Android phones without WebXR open Google's Scene Viewer for AR. It needs the real file address, so for that trip the model is shown as saved
-  // (without the picked effect); the picked effect comes back when the customer returns to the page.
-  let xr = false;
-  if (navigator.xr && navigator.xr.isSessionSupported) navigator.xr.isSessionSupported("immersive-ar").then((v) => { xr = v; }).catch(() => {});
-  mv.querySelector(".ar-btn").addEventListener("click", () => { if (!xr && /Android/i.test(navigator.userAgent) && mv.src !== src) mv.src = src; }, true);
-  const comeBack = () => { if (document.visibilityState === "visible" && mv.isConnected && mv.src === src && baseP) showFx(pick); };
-  document.addEventListener("visibilitychange", comeBack);
-  // In AR (WebXR camera view) the page itself is hidden, so the effects button and picker are moved inside <model-viewer>, which is what the browser shows over the camera.
-  mv.addEventListener("ar-status", (e) => {
-    if (e.detail.status === "session-started") { fxUi.classList.add("in-ar"); mv.appendChild(fxUi); }
-    else if (e.detail.status === "not-presenting") { fxUi.classList.remove("in-ar"); wrap.appendChild(fxUi); }
-  });
-  let relayout = () => {}, labelSched = null;
-  // Arrow button: hides the text (leaving just the arrow), tap again to show it
-  const toggle = mv.querySelector(".mv-toggle");
-  toggle.addEventListener("click", () => {
-    const hide = toggle.getAttribute("aria-expanded") === "true";
-    toggle.setAttribute("aria-expanded", String(!hide));
-    toggle.setAttribute("aria-label", hide ? "Show details" : "Hide details");
-    mv.querySelector(".mv-label").classList.toggle("collapsed", hide);
-    relayout();
-  });
-  mv.addEventListener("load", () => {
-    const d = mv.getDimensions(), c = mv.getBoundingBoxCenter();
-    mv.updateHotspot({ name: "hotspot-label", position: `${c.x} ${c.y + d.y / 2 + d.y * 0.06} ${c.z}` });
-    // Aim the camera a little above the model's middle so the model sits low and the label has headroom
-    mv.cameraTarget = `${c.x}m ${c.y + d.y * 0.22}m ${c.z}m`;
-    // Tall models: if the label still pokes out of the top, zoom out a bit and check again
-    const lab = mv.querySelector(".mv-label");
-    let pct = 150, tries = 0;
-    const fit = () => {
-      if (!mv.isConnected || tries++ > 3) return;
-      const r = lab.getBoundingClientRect(), s = mv.getBoundingClientRect();
-      if (r.height && r.top < s.top + 6) {
-        pct += 15;
-        mv.cameraOrbit = `auto auto ${pct}%`;
-        if (mv.jumpCameraToGoal) mv.jumpCameraToGoal();
-        setTimeout(fit, 120);
-      }
-    };
-    setTimeout(fit, 250);
-    // Safety net: whatever the camera does, slide the label down so it is never cut off by the top edge
-    if (!labelSched) {
-    let raf = 0;
-    const clamp = () => {
-      raf = 0;
-      if (!mv.isConnected) return;
-      const shift = parseFloat(lab.style.getPropertyValue("--shift")) || 0;
-      const shiftX = parseFloat(lab.style.getPropertyValue("--shiftx")) || 0;
-      const r = lab.getBoundingClientRect(), s = mv.getBoundingClientRect();
-      if (!r.height) return;
-      const next = Math.max(0, Math.round(s.top + 8 - (r.top - shift)));
-      if (next !== shift) lab.style.setProperty("--shift", next + "px");
-      // Keep the label centered over the model: the camera orbits the model's middle, which is always the viewer's center line
-      const nextX = Math.round(s.left + s.width / 2 - (r.left + r.width / 2 - shiftX));
-      if (nextX !== shiftX) lab.style.setProperty("--shiftx", nextX + "px");
-    };
-    const schedule = () => { if (!raf) raf = requestAnimationFrame(clamp); };
-    labelSched = relayout = schedule;
-    mv.addEventListener("camera-change", schedule);
-    window.addEventListener("resize", schedule);
-    }
-    setTimeout(labelSched, 300);
-    setTimeout(labelSched, 900);
-  });
-  viewer.hidden = false;
+  if (!b || !window.Viewer) return;
+  closeSheet();
+  Viewer.openDish(b.dataset.id);
 });
-$("#viewer-close").addEventListener("click", closeViewer);
-viewer.addEventListener("click", (e) => { if (e.target === viewer) closeViewer(); });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !viewer.hidden) closeViewer(); });
 
 // The search bar + My list row is sticky (CSS). This only adds a class while it is pinned so it can look a little
 // more solid and lift off the dishes scrolling underneath.

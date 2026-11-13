@@ -26,13 +26,15 @@
     if (/^#full/.test(location.hash)) { var bs = document.createElement("style"); bs.textContent = "#boot{display:none!important}"; document.head.appendChild(bs); }
     // Same for the Quick menu and the start screen (e.g. from the 3D view's bottom bar): a skeleton of that screen (#home-sk below) instead of the spinner.
     else if (/^#(quick|home)/.test(location.hash)) document.documentElement.classList.add("boot-sk-home");
+    // And the 3D view (#viewer, e.g. after a reload there): a skeleton of that screen (#vw-sk below)
+    else if (/^#viewer/.test(location.hash)) document.documentElement.classList.add("boot-sk-viewer");
   </script>
   <script>
     // Hides the loading screen once the menu, start screen and fonts are ready (8s failsafe)
     (function(){var t0=Date.now(),done=false;
       window.bootHide=function(){if(done)return;done=true;
         var f=document.fonts&&document.fonts.ready?Promise.race([document.fonts.ready,new Promise(function(r){setTimeout(r,1200)})]):Promise.resolve();
-        f.then(function(){setTimeout(function(){var s=document.getElementById("home-sk");if(s)setTimeout(function(){s.remove()},550);var b=document.getElementById("boot");if(!b)return;b.classList.add("out");setTimeout(function(){b.remove()},450)},Math.max(0,350-(Date.now()-t0)))})};
+        f.then(function(){setTimeout(function(){["home-sk","vw-sk"].forEach(function(id){var s=document.getElementById(id);if(s)setTimeout(function(){s.remove()},550)});var b=document.getElementById("boot");if(!b)return;b.classList.add("out");setTimeout(function(){b.remove()},450)},Math.max(0,350-(Date.now()-t0)))})};
       setTimeout(window.bootHide,8000)})();
   </script>
   <script>
@@ -50,22 +52,18 @@
       function tick(){if(pref()==="auto"&&eff("auto")!==root.getAttribute("data-theme")){apply(true);if(window.menuThemeChanged)window.menuThemeChanged()}}
       setInterval(tick,30000);document.addEventListener("visibilitychange",tick)})();
   </script>
-  <link rel="stylesheet" href="css/style.css?v=51">
+  <link rel="stylesheet" href="css/style.css?v=50">
 </head>
 <body>
-  <script>
-    // Arriving on the Full menu: use the same compact layout the menu has once loaded (body.pgr-fixed, set by pager.js), so nothing jumps when the dishes arrive.
-    // renderList() in menu.js clears and re-sets it, so it can't get stuck on.
-    if (/^#full/.test(location.hash)) document.body.classList.add("pgr-fixed");
-  </script>
   <div id="boot" role="status" aria-live="polite"><div class="ring" aria-hidden="true"></div><p>Loading menu…</p></div>
   <div class="home home-sk" id="home-sk" aria-hidden="true"><div class="home-box"><span class="sk-line xl"></span><span class="sk-line md"></span><div class="home-card sk-card"><span class="sk-line lg"></span><span class="sk-line"></span></div><div class="home-card sk-card"><span class="sk-line lg"></span><span class="sk-line"></span></div><div class="home-card sk-card"><span class="sk-line lg"></span><span class="sk-line"></span></div></div></div>
+  <div class="vw-screen vw-sk" id="vw-sk" aria-hidden="true"><div class="vw-head"><span class="sk-line xl"></span><span class="sk-line md"></span></div><div class="vw-main"><div class="stage-wrap sk-stage"></div></div></div>
   <header class="top">
-    <div class="top-row"><div class="fs-actions" id="gear-slot"></div><h1 id="name" class="sk-name">Menu</h1></div>
+    <div class="top-row"><div class="fs-actions" id="gear-slot"></div><h1 id="name">Menu</h1></div>
     <p>Prices are per serving. Ask staff about allergens.</p>
   </header>
   <div id="fs"></div>
-  <main id="menu" aria-live="polite"><section class="cat sk-cat" aria-hidden="true"><h2><span class="sk-line sk-h2"></span></h2><div class="pgr-box"><div class="pgr-list"><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:62%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:48%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:70%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:54%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:66%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:44%"></span></div><span class="sk-price"></span></div></div></div></section></main>
+  <main id="menu" aria-live="polite"><section class="cat sk-cat" aria-hidden="true"><div class="pgr-box"><div class="pgr-list"><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:62%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:48%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:70%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:54%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:66%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:44%"></span></div><span class="sk-price"></span></div></div></div></section></main>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
   <script src="js/glb-tools.js?v=5"></script>
   <script src="js/qrcode.min.js?v=1"></script>
@@ -74,9 +72,12 @@
   <script src="js/marquee.js?v=1"></script>
   <script src="js/pager.js?v=22"></script>
   <script src="js/ar-guide.js?v=1"></script>
-  <script src="js/menu.js?v=40"></script>
+  <script src="js/floor-grid.js?v=2"></script>
+  <script src="js/dish-drag.js?v=1"></script>
+  <script src="js/menu.js?v=39"></script>
   <script src="js/quick-gen.js?v=6"></script>
-  <script src="js/quick.js?v=20"></script>
+  <script src="js/viewer.js?v=1"></script>
+  <script src="js/quick.js?v=21"></script>
   <script src="js/list.js?v=4"></script>
 </body>
 </html>

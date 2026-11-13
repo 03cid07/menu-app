@@ -1,64 +1,24 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>3D view</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
-  <meta name="color-scheme" content="dark">
-  <meta name="theme-color" content="#15120e">
-  <script>
-    // Same theme choice as the menu (saved on the phone): auto = light 6 AM to 6 PM, dark at night
-    (function(){var p="auto";try{var v=localStorage.getItem("menuTheme");if(v==="light"||v==="dark")p=v}catch(e){}
-      var h=new Date().getHours(),t=p!=="auto"?p:(h>=6&&h<18?"light":"dark");
-      document.documentElement.setAttribute("data-theme",t);
-      var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t==="light"?"#eee6d4":"#15120e")})();
-  </script>
-  <link rel="stylesheet" href="css/style.css?v=51">
-  <style>
-    .vw { max-width: 760px; margin: 0 auto; padding: 0 1.25rem; }
-    .vw-pick { margin: 0 0 .7rem; }
-    .vw-pick .btn { margin-top: 0; }
-    .vw-pick .btn { display: inline-block; text-decoration: none; padding: .5rem .9rem; }
-    .vw-pick [hidden] { display: none; }
-    .vw-dishes { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .7rem; }
-    .vw-dish { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); overflow: hidden; }
-    .vw-dish button { border: 0; background: none; color: var(--ink); font: inherit; font-size: .85rem; padding: .35rem .7rem; cursor: pointer; }
-    .vw-dish .vw-dish-x { padding: .35rem .65rem .35rem .2rem; color: var(--muted); font-size: 1.05rem; line-height: 1; }
-    .vw-dish .vw-dish-sel[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
-    .vw-hint { color: var(--muted); font-size: .9rem; margin: .6rem 0 0; }
-    .vw-empty { position: absolute; left: 0; right: 0; top: 14px; z-index: 2; margin: 0; text-align: center; color: var(--muted); font-size: .9rem; pointer-events: none; }
-    .vw-err { padding: 2rem 0; text-align: center; color: var(--muted); }
+// 3D view: a screen inside index.html (it used to be its own page, viewer.html, so going to or from it reloaded the whole app).
+// It sits on top of whatever screen was showing, so closing it (Back, or any tab in the bottom bar) brings that screen straight back.
+//   Viewer.open(ids)       show the 3D view with these dishes ([] = the empty floor)
+//   Viewer.openDish(id)    same, for one dish; keeps the dishes chosen before when "Add another 3D model" was used
+//   Viewer.close()         hide it
+//   Viewer.beginPick(keep) go to the Full menu listing only dishes with a 3D model; the next "View in 3D / AR" comes back here
+// It tells quick.js what happened with the events viewer:open, viewer:close and viewer:pick (quick.js owns the bottom bar and the Full menu).
+// Uses helpers from menu.js: $, esc, data, view, render, fxKind.
+(() => {
+  const MAX_DISHES = 4;
+  const root = document.createElement("div");
+  root.className = "vw-screen";
+  root.id = "vw";
+  root.hidden = true;
+  root.innerHTML = `<header class="vw-head"><h1>3D view</h1><p>Spin it around, or see it on your table.</p></header><main class="vw-main" id="vw-page" aria-live="polite"></main>`;
+  document.body.appendChild(root); // quick.js moves it above the start screen (see Viewer.root there)
+  const page = root.querySelector("#vw-page");
 
-    /* Fit the page to the screen: header, viewer (takes all the spare height), hint text and tips, all above the floating nav. No dead space, nothing hidden behind the bar. */
-    body.vw-page { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; padding-bottom: calc(var(--nav-h) + .6rem + .5rem + env(safe-area-inset-bottom, 0px)); }
-    body.vw-page header.top { width: 100%; padding: calc(1rem + env(safe-area-inset-top, 0px)) 1.25rem .6rem; }
-    body.vw-page header.top h1 { font-size: clamp(1.7rem, 5vw, 2.4rem); }
-    body.vw-page header.top .top-row { margin: 0 0 .25rem; }
-    body.vw-page .vw { flex: 1 1 auto; width: 100%; display: flex; flex-direction: column; min-height: 0; padding-bottom: 0; }
-    body.vw-page #viewer-stage { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 200px; }
-    body.vw-page #viewer-stage .stage-wrap { flex: 1 1 auto; min-height: 200px; margin-top: 0; }
-    body.vw-page #viewer-stage model-viewer { position: absolute; inset: 0; width: 100%; height: 100%; }
-    body.vw-page .vw-dishes { margin-top: .5rem; }
-    body.vw-page .vw-hint { font-size: .85rem; line-height: 1.35; margin: .5rem 0 0; }
-    body.vw-page .ar-guide { margin: .35rem 0 0; }
-    /* Open tips scroll inside their own box, so the viewer keeps its size and the page does not grow */
-    body.vw-page .ar-guide { flex: none; }
-    body.vw-page .ar-guide[open] { max-height: min(14vh, 96px); max-height: min(14dvh, 96px); overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-right: .25rem; }
-    body.vw-page .ar-guide summary { position: sticky; top: 0; background: var(--bg); padding: .15rem 0; }
-  </style>
-</head>
-<body class="vw-page">
-  <header class="top">
-    <div class="top-row"><h1 id="name">3D view</h1></div>
-    <p>Spin it around, or see it on your table.</p>
-  </header>
-
-  <main class="vw" id="page" aria-live="polite">
-    <div class="vw-pick">
-      <a class="btn ghost" id="pick-btn" href="index.html?only3d=1#full">Choose a 3D model</a>
-      <a class="btn ghost" id="add-btn" href="index.html?only3d=1#full" hidden>Add another 3D model</a>
+  const MAIN_HTML = `<div class="vw-pick">
+      <button type="button" class="btn ghost" id="pick-btn">Choose a 3D model</button>
+      <button type="button" class="btn ghost" id="add-btn" hidden>Add another 3D model</button>
     </div>
     <div id="viewer-stage"><div class="stage-wrap sk-stage" aria-hidden="true"></div></div>
     <p class="vw-hint">Drag to rotate. Tap "View on your table" to see it at real size through your camera. The dish appears once your phone has found your table; until then you will see a scanner. If that button is missing, this phone or browser does not support AR.</p>
@@ -70,39 +30,13 @@
         <li>When the dish appears, drag it to move it and turn it with two fingers.</li>
       </ol>
       <p>Works best in good light. Plain, shiny or dark tables are hard to detect, so try placing a napkin, menu or coaster with a pattern on the table and aim at it.</p>
-    </details>
-  </main>
+    </details>`;
 
-  <nav class="bottomnav" aria-label="Main">
-    <div class="bottomnav-in">
-      <a class="navlink" href="index.html#home" aria-label="Home" title="Home" style="--p:0"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg><span class="nav-label" aria-hidden="true">Home</span></a>
-      <a class="navlink" href="index.html#full" aria-label="Full menu" title="Full menu" style="--p:0"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h11a4 4 0 0 1 4 4v12H8a4 4 0 0 1-4-4V4z"/><path d="M8 9h7"/><path d="M8 13h5"/></svg><span class="nav-label" aria-hidden="true">Full menu</span></a>
-      <a class="navlink" href="viewer.html" aria-label="3D view" aria-current="page" title="3D view" style="--p:1"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5 20 7v10l-8 4.5L4 17V7z"/><path d="M4 7l8 4.5L20 7M12 11.5v10"/></svg><span class="nav-label" aria-hidden="true">3D view</span></a>
-      <a class="navlink" href="index.html#quick" aria-label="Quick menu" title="Quick menu" style="--p:0"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8z"/></svg><span class="nav-label" aria-hidden="true">Quick menu</span></a>
-    </div>
-  </nav>
-
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
-  <script src="js/spring.js?v=2"></script>
-  <script src="js/rubber.js?v=3"></script>
-  <script src="js/glb-tools.js?v=5"></script>
-  <script src="js/ar-guide.js?v=1"></script>
-  <script src="js/floor-grid.js?v=2"></script>
-  <script src="js/dish-drag.js?v=1"></script>
-  <script src="js/quick-gen.js?v=6"></script>
-  <script>
-    const $ = (s) => document.querySelector(s);
-    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-    let data, cleanup = () => {};
-    const money = (n) => `${data.currency}${Number(n).toLocaleString()}`;
-    const fxKind = (it) => (window.QuickGen ? QuickGen.tempOf(it) : "food");
-
-    async function loadMenu() {
-      try { const r = await fetch("api/menu"); if (r.ok) return await r.json(); } catch (e) { /* published site: no server */ }
-      const r = await fetch("menu.json?t=" + Date.now(), { cache: "no-store" });
-      if (!r.ok) throw new Error("menu.json answered " + r.status);
-      return r.json();
-    }
+  let isOpen = false, cleanup = () => {}, prevTitle = "", currentIds = [], picking = null; // picking: { keep, prevAr } while the Full menu is listing dishes to choose from
+  const hashFor = (ids) => "#viewer" + (ids.length ? "=" + ids.map(encodeURIComponent).join(",") : "");
+  const hashIds = () => { const m = /^#viewer(?:=(.*))?$/.exec(location.hash); return m ? (m[1] || "").split(",").filter(Boolean).map(decodeURIComponent) : null; };
+  const modelDishes = () => data.items.filter((x) => x.model);
+  const backdrop = () => [document.querySelector("header.top"), document.getElementById("fs"), document.getElementById("menu"), document.querySelector(".home")].filter(Boolean);
 
     // Nothing chosen yet: just the empty floor. The dish appears when the customer picks one.
     function openEmpty() {
@@ -113,9 +47,6 @@
       cleanup = () => { if (floor) floor.detach(); };
       document.title = `3D view | ${data.restaurant}`;
     }
-
-    const MAX_DISHES = 4;
-    const viewerUrl = (ids) => "viewer.html?" + ids.map((i) => "item=" + encodeURIComponent(i)).join("&");
 
     // One or more dishes on the same floor. With several, the models are joined into one scene on the phone (js/glb-tools.js, mergeGlbs).
     // Effects belong to one dish at a time: tap a dish below the viewer, then pick its effect.
@@ -137,7 +68,7 @@
       mv.addEventListener("load", () => loader.remove());
       const fail = (msg) => { loader.classList.add("failed"); loader.innerHTML = `<div class="mv-ltext">${msg}</div>`; };
       mv.addEventListener("error", () => fail("Could not load the 3D model. Please reload and try again."));
-
+  
       // Effects picker (built into a copy of each dish on the phone, see js/glb-tools.js)
       const T = window.GlbTools;
       const wrap = $("#viewer-stage .stage-wrap"), fxUi = wrap.querySelector(".fx-ui"), fxBtn = fxUi.querySelector(".fx-toggle"), tray = fxUi.querySelector(".fx-tray");
@@ -211,7 +142,7 @@
       const comeBack = () => { if (document.visibilityState === "visible" && mv.isConnected && mv.src === src && bases.size) showFx(); };
       document.addEventListener("visibilitychange", comeBack);
       cleanup = () => { swap++; document.removeEventListener("visibilitychange", comeBack); if (guide) guide.detach(); if (floor) floor.detach(); if (drag) drag.detach(); made.forEach((u) => { if (u !== src) URL.revokeObjectURL(u); }); made.clear(); };
-
+  
       let FX = [];
       const buildTray = () => {
         FX = T ? [{ id: "", icon: "\u{1F6AB}", name: "None" }, ...[...T.EFFECTS].sort((x, y) => (y.g === fxKind(items[sel])) - (x.g === fxKind(items[sel])))] : [];
@@ -225,12 +156,12 @@
         document.querySelectorAll(".vw-dish-sel").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.i) === sel)));
       }
       buildTray(); syncFx();
-
+  
       if (multi) {
         showFx();                                        // the scene is built first, then shown
         $("#viewer-stage").querySelector(".vw-dishes").addEventListener("click", (e) => {
           const x = e.target.closest(".vw-dish-x"), s = e.target.closest(".vw-dish-sel");
-          if (x) { const ids = items.map((i) => i.id).filter((_, i) => i !== Number(x.dataset.i)); location.href = ids.length ? viewerUrl(ids) : "viewer.html"; }
+          if (x) { const ids = items.map((i) => i.id).filter((_, i) => i !== Number(x.dataset.i)); setDishes(ids); }
           else if (s) { sel = Number(s.dataset.i); buildTray(); syncFx(); }
         });
       }
@@ -257,28 +188,92 @@
       });
     }
 
-    loadMenu().then((d) => {
-      data = d;
-      const withModel = d.items.filter((x) => x.model);
-      if (!withModel.length) { $("#page").innerHTML = '<p class="vw-err">No dishes have a 3D model yet. <a href="index.html#full">Go to the full menu</a></p>'; return; }
-      const show = (its) => {
-        const ids = its.map((x) => x.id);
-        history.replaceState(null, "", viewerUrl(ids));
-        document.title = `${its.map((x) => x.name.trim()).join(", ")} in 3D | ${d.restaurant}`;
-        const pickBtn = $("#pick-btn"), addBtn = $("#add-btn");
-        pickBtn.textContent = "Choose another 3D model"; pickBtn.hidden = its.length > 1;   // with several dishes, change them with the buttons under the viewer
-        addBtn.href = `index.html?only3d=1&add=${ids.map(encodeURIComponent).join(",")}#full`;
-        addBtn.hidden = its.length >= MAX_DISHES || withModel.length <= its.length;
-        openModels(its);
-      };
-      // The dishes come from the link (viewer.html?item=ID&item=ID2, set by "View in 3D / AR" on a dish); with no link, start with an empty floor
-      const want = [...new Set(new URLSearchParams(location.search).getAll("item"))];
-      const chosen = want.map((id) => withModel.find((x) => x.id === id)).filter(Boolean).slice(0, MAX_DISHES);
-      if (chosen.length) show(chosen); else openEmpty();
-    }).catch((e) => {
+  // Draws the 3D view for these dishes (ids that have no 3D model are skipped)
+  function draw(ids) {
+    const withModel = modelDishes();
+    if (!withModel.length) { page.innerHTML = '<p class="vw-err">No dishes have a 3D model yet. <button type="button" class="linkbtn" data-vw-full>Go to the full menu</button></p>'; return; }
+    const its = [...new Set(ids)].map((id) => withModel.find((x) => x.id === id)).filter(Boolean).slice(0, MAX_DISHES);
+    currentIds = its.map((x) => x.id);
+    const pickBtn = $("#pick-btn"), addBtn = $("#add-btn");
+    if (!its.length) { pickBtn.textContent = "Choose a 3D model"; pickBtn.hidden = false; addBtn.hidden = true; openEmpty(); return; }
+    document.title = `${its.map((x) => x.name.trim()).join(", ")} in 3D | ${data.restaurant}`;
+    pickBtn.textContent = "Choose another 3D model"; pickBtn.hidden = its.length > 1;   // with several dishes, change them with the buttons under the viewer
+    addBtn.hidden = its.length >= MAX_DISHES || withModel.length <= its.length;
+    openModels(its);
+  }
+
+  function open(ids = [], opts = {}) {
+    if (typeof data === "undefined" || !data) return;
+    const was = isOpen;
+    if (!was) {
+      prevTitle = document.title;
+      page.innerHTML = MAIN_HTML;          // a fresh screen every time it opens
+      root.hidden = false;
+      root.style.animation = "none"; void root.offsetWidth; root.style.animation = ""; // plays the soft fade-in again
+      isOpen = true;
+      document.body.classList.add("no-scroll", "vw-open");
+      backdrop().forEach((el) => { el.inert = true; });
+    }
+    try { draw(ids); } catch (e) {
       console.error(e);
-      $("#page").innerHTML = `<p class="vw-err">Could not load this page. <a href="index.html#full">Go to the full menu</a><br><small>${esc(String((e && e.message) || e))}</small></p>`;
-    });
-  </script>
-</body>
-</html>
+      page.innerHTML = `<p class="vw-err">Could not load this page. <button type="button" class="linkbtn" data-vw-full>Go to the full menu</button><br><small>${esc(String((e && e.message) || e))}</small></p>`;
+    }
+    if (!opts.noPush) (was ? history.replaceState : history.pushState).call(history, { vw: 1 }, "", hashFor(currentIds));
+    if (!was) document.dispatchEvent(new CustomEvent("viewer:open"));
+  }
+  // Changing the dishes while it is open (the x on a dish) just redraws
+  const setDishes = (ids) => open(ids);
+
+  function close(opts = {}) {
+    if (!isOpen) return;
+    cleanup(); cleanup = () => {};
+    isOpen = false;
+    root.hidden = true;
+    page.innerHTML = "";
+    backdrop().forEach((el) => { el.inert = false; });
+    document.body.classList.remove("vw-open");
+    if (typeof sheet === "undefined" || sheet.hidden) document.body.classList.remove("no-scroll");
+    document.title = prevTitle || document.title;
+    if (!opts.fromPop && /^#viewer/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
+    if (!opts.quiet) document.dispatchEvent(new CustomEvent("viewer:close"));
+  }
+
+  // "Choose a 3D model" / "Add another 3D model": the Full menu, listing only dishes that have a model
+  function beginPick(keep) {
+    if (!picking) picking = { keep: [], prevAr: view.ar };
+    picking.keep = keep.slice();
+    view.ar = true;
+    close({ quiet: true });
+    render();
+    document.dispatchEvent(new CustomEvent("viewer:pick"));
+  }
+  // Leaves that mode: puts the 3D / AR filter back the way the customer had it
+  function endPick() {
+    if (!picking) return;
+    view.ar = picking.prevAr; picking = null;
+    render();
+  }
+  function openDish(id) {
+    const keep = picking ? picking.keep.filter((x) => x !== id) : [];
+    endPick();
+    open([...keep, id]);
+  }
+  function goFull() { close({ quiet: true }); document.dispatchEvent(new CustomEvent("viewer:pick")); }
+
+  root.addEventListener("click", (e) => {
+    if (e.target.closest("#pick-btn")) beginPick([]);
+    else if (e.target.closest("#add-btn")) beginPick(currentIds);
+    else if (e.target.closest("[data-vw-full]")) goFull();
+  });
+  // Browser Back / Forward
+  window.addEventListener("popstate", () => {
+    const ids = hashIds();
+    if (ids) open(ids, { noPush: true });
+    else if (isOpen) close({ fromPop: true });
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && isOpen && (typeof sheet === "undefined" || sheet.hidden)) close();
+  });
+
+  window.Viewer = { root, open, openDish, close, beginPick, endPick, hashIds, isOpen: () => isOpen, modelDishes };
+})();
