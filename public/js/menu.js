@@ -154,7 +154,6 @@ function syncSettings(open) {
 }
 function renderBar() {
   const n = filterCount();
-  const lc = typeof listCount === "function" ? listCount() : 0;
   const focused = document.activeElement && document.activeElement.closest("#fs") ? document.activeElement : null;
   const key = focused && (focused.id === "fs-q" ? "#fs-q" : focused.dataset.openSettings !== undefined ? "[data-open-settings]" : focused.dataset.open ? `[data-open="${focused.dataset.open}"]` : focused.dataset.f ? `[data-f="${focused.dataset.f}"]` : focused.dataset.c ? `[data-c="${focused.dataset.c.replace(/"/g, "\\\"")}"]` : focused.name === "sort" ? `input[value="${focused.value}"]` : "");
   const themePref = (window.menuTheme && window.menuTheme.pref()) || "auto", themeNow = (window.menuTheme && window.menuTheme.eff()) || "dark";
@@ -163,8 +162,7 @@ function renderBar() {
       <button type="button" class="fs-icon fs-burger${dot ? " has-active" : ""}" data-open="menu" aria-expanded="${m}" aria-controls="fs-menu" aria-label="Filter and sort${n ? ` (${n} filter${n === 1 ? "" : "s"} on)` : ""}${pk ? ", showing your Quick menu picks" : ""}">${BURGER}</button>
       <input type="search" id="fs-q" class="fs-q" placeholder="Search dishes…" aria-label="Search dishes" autocomplete="off" value="${esc(view.q)}">
       <span class="fs-search-ic">${SEARCH}</span>
-    </div>
-    <button type="button" class="fs-icon fs-list" data-open-list aria-label="My list${lc ? ` (${lc} item${lc === 1 ? "" : "s"})` : ""}">${LIST_ICON}<span class="fs-list-t">My list</span><span class="fs-badge"${lc ? "" : " hidden"}>${lc}</span></button></div>
+    </div></div>
     <div class="fs-panel" id="fs-menu" ${m ? "" : "hidden"}>
       ${pk ? `<div class="fs-picks"><div class="fs-picks-info"><strong>Picked for you</strong><span>${pk.count} dish${pk.count === 1 ? "" : "es"} from your answers</span></div><button type="button" class="btn fs-picks-btn" data-full-menu>Show full menu</button></div>${pk.noted ? '<p class="fs-picks-note">Based on the ingredients and descriptions listed. Please tell our staff about any allergies.</p>' : ""}` : ""}
       <div class="fs-row"><span class="fs-label">Category</span>${["All", ...data.categories].map((c) => `<button type="button" class="chip" data-c="${esc(c)}" aria-pressed="${c === active}">${esc(c)}</button>`).join("")}</div>

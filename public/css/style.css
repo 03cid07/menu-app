@@ -533,9 +533,10 @@ body.has-list .home-box { padding-bottom: calc(var(--nav-h) + 6rem + env(safe-ar
 .fs-list { border-left: 1px solid color-mix(in srgb, var(--ink) 22%, transparent); }
 .fs-badge { position: absolute; top: .45rem; right: .4rem; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: .72rem; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
 .fs-badge[hidden] { display: none; }
-/* The old floating "My list" bar is replaced by icons: one in the filter bar, one in the bottom nav on Home / Quick menu */
+/* The old floating "My list" bar is replaced by a My list button in the middle of the bottom nav (js/quick.js), with the item count as a badge */
 .list-bar { display: none !important; }
 .bottomnav .navlink { position: relative; }
+.bottomnav .nav-list .fs-badge { top: .4rem; right: auto; left: calc(50% + 3px); }
 body.has-list .home-box { padding-bottom: calc(var(--nav-h) + 2rem + env(safe-area-inset-bottom, 0px)); }
 body.has-list main { padding-bottom: 0; }
 

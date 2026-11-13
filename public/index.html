@@ -26,8 +26,9 @@
     if (/^#full/.test(location.hash)) { var bs = document.createElement("style"); bs.textContent = "#boot{display:none!important}"; document.head.appendChild(bs); }
     // Same for the Quick menu and the start screen (e.g. from the 3D view's bottom bar): a skeleton of that screen (#home-sk below) instead of the spinner.
     else if (/^#(quick|home)/.test(location.hash)) document.documentElement.classList.add("boot-sk-home");
-    // And the 3D view (#viewer, e.g. after a reload there): a skeleton of that screen (#vw-sk below)
-    else if (/^#viewer/.test(location.hash)) document.documentElement.classList.add("boot-sk-viewer");
+    // The 3D view (#viewer) is not restored on reload: like the Full menu and Quick menu, a refresh there goes back to the start screen.
+    // The hash is dropped before anything else reads it.
+    else if (/^#viewer/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
   </script>
   <script>
     // Hides the loading screen once the menu, start screen and fonts are ready (8s failsafe)
@@ -52,7 +53,7 @@
       function tick(){if(pref()==="auto"&&eff("auto")!==root.getAttribute("data-theme")){apply(true);if(window.menuThemeChanged)window.menuThemeChanged()}}
       setInterval(tick,30000);document.addEventListener("visibilitychange",tick)})();
   </script>
-  <link rel="stylesheet" href="css/style.css?v=50">
+  <link rel="stylesheet" href="css/style.css?v=51">
 </head>
 <body>
   <div id="boot" role="status" aria-live="polite"><div class="ring" aria-hidden="true"></div><p>Loading menu…</p></div>
@@ -74,10 +75,10 @@
   <script src="js/ar-guide.js?v=1"></script>
   <script src="js/floor-grid.js?v=2"></script>
   <script src="js/dish-drag.js?v=1"></script>
-  <script src="js/menu.js?v=39"></script>
+  <script src="js/menu.js?v=40"></script>
   <script src="js/quick-gen.js?v=6"></script>
   <script src="js/viewer.js?v=1"></script>
-  <script src="js/quick.js?v=21"></script>
+  <script src="js/quick.js?v=26"></script>
   <script src="js/list.js?v=4"></script>
 </body>
 </html>
