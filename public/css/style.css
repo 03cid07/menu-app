@@ -935,23 +935,38 @@ header.top { position: relative; z-index: 8; }
   border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 18px;
 }
 
-/* ---- Bubble tabs: a box that has another page next to it grows a rounded bubble on that side ----
-   The bubble is the same glass as the box and sits over the box's own border, so the two read as ONE connected shape
-   (like a speech bubble). It tells the customer there is another page on the other side, and the chevron nudges that way. */
+/* ---- Connector to the next / previous page: always shown ----
+   A box that has another page next to it grows a flat bridge on that side (32px wide, almost as tall as the box, runs to the screen edge) with a smooth concave neck
+   at both box edges, like two bubbles merging. While two pages slide past each other the two bridges meet in the middle, so the
+   boxes look connected. .pgr-tab is added in pager.js. It is the same glass as the box, shaped with a mask; its outline is drawn inside
+   the mask (::before) and the box's own outline is cut open where the bridge leaves the box (.pgr-box::before). */
 .pgr-box { position: relative; }
-.pgr-box.has-prev::before, .pgr-box.has-next::after {
-  position: absolute; top: 50%; width: 17px; height: 64px; transform: translateY(-50%); box-sizing: border-box;
-  display: flex; align-items: center; justify-content: center; padding-bottom: 2px;
-  font-size: 1.35rem; font-weight: 700; line-height: 1; color: var(--accent); pointer-events: none;
-  background: color-mix(in srgb, var(--surface) calc(var(--card-alpha) * .85), transparent);
+/* The bridges sit NEXT TO the box (not inside it): a box with a backdrop blur is a "backdrop root", so a bridge inside it could not
+   blur the page behind it and came out a different colour. As a sibling it gets the same blur and fill, so box and bridge match. */
+.pgr-bw { position: relative; flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.pgr-tab {
+  position: absolute; top: 20px; bottom: 20px; width: 32px; pointer-events: none; display: block;
+  background: color-mix(in srgb, var(--surface) calc(var(--card-alpha) * .55), transparent);
   -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
-  border: 1px solid color-mix(in srgb, var(--outline) 60%, var(--line));
 }
-.pgr-box.has-next::after  { content: "\203A"; right: -16px; border-left: 0; border-radius: 0 32px 32px 0; padding-left: 1px; animation: pgr-nudge-r 2.4s ease-in-out infinite; }
-.pgr-box.has-prev::before { content: "\2039"; left: -16px;  border-right: 0; border-radius: 32px 0 0 32px; padding-right: 1px; animation: pgr-nudge-l 2.4s ease-in-out infinite; }
-@keyframes pgr-nudge-r { 0%, 60%, 100% { padding-left: 1px; } 80% { padding-left: 5px; } }
-@keyframes pgr-nudge-l { 0%, 60%, 100% { padding-right: 1px; } 80% { padding-right: 5px; } }
-@media (prefers-reduced-motion: reduce) { .pgr-box.has-next::after, .pgr-box.has-prev::before { animation: none; } }
+.pgr-tab::before { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--line) 70%, transparent); }
+/* the bridge is nearly as tall as the box: the shape is drawn in three pieces (curved neck at the top, curved neck at the bottom,
+   a plain block between) so the curves keep their shape however tall the box is */
+.pgr-tab.r { right: -32px; }
+.pgr-tab.r { -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M0 0A16 16 0 0 0 16 16L0 16Z'/%3E%3C/svg%3E") 0 0 / 32px 18px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M0 18A16 16 0 0 1 16 2L0 2Z'/%3E%3C/svg%3E") 0 100% / 32px 18px no-repeat, linear-gradient(#000 0 0) 0 16px / 100% calc(100% - 32px) no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M0 0A16 16 0 0 0 16 16L0 16Z'/%3E%3C/svg%3E") 0 0 / 32px 18px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M0 18A16 16 0 0 1 16 2L0 2Z'/%3E%3C/svg%3E") 0 100% / 32px 18px no-repeat, linear-gradient(#000 0 0) 0 16px / 100% calc(100% - 32px) no-repeat; }
+.pgr-tab.r::before { -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M0 0A16 16 0 0 0 16 16L32 16' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 0 0 / 32px 18px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M0 18A16 16 0 0 1 16 2L32 2' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 0 100% / 32px 18px no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M0 0A16 16 0 0 0 16 16L32 16' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 0 0 / 32px 18px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M0 18A16 16 0 0 1 16 2L32 2' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 0 100% / 32px 18px no-repeat; }
+.pgr-tab.l { left: -32px; }
+.pgr-tab.l { -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M32 0A16 16 0 0 1 16 16L32 16Z'/%3E%3C/svg%3E") 0 0 / 32px 18px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M32 18A16 16 0 0 0 16 2L32 2Z'/%3E%3C/svg%3E") 0 100% / 32px 18px no-repeat, linear-gradient(#000 0 0) 0 16px / 100% calc(100% - 32px) no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M32 0A16 16 0 0 1 16 16L32 16Z'/%3E%3C/svg%3E") 0 0 / 32px 18px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M32 18A16 16 0 0 0 16 2L32 2Z'/%3E%3C/svg%3E") 0 100% / 32px 18px no-repeat, linear-gradient(#000 0 0) 0 16px / 100% calc(100% - 32px) no-repeat; }
+.pgr-tab.l::before { -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M32 0A16 16 0 0 1 16 16L0 16' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 0 0 / 32px 18px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M32 18A16 16 0 0 0 16 2L0 2' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 0 100% / 32px 18px no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M32 0A16 16 0 0 1 16 16L0 16' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 0 0 / 32px 18px no-repeat, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 18' preserveAspectRatio='none'%3E%3Cpath d='M32 18A16 16 0 0 0 16 2L0 2' fill='none' stroke='%23000' stroke-width='2'/%3E%3C/svg%3E") 0 100% / 32px 18px no-repeat; }
+/* the box's outline is drawn by ::before when a bridge is present, so it can have a gap where the bridge leaves the box */
+.pgr-box.has-prev, .pgr-box.has-next { border-color: transparent; }
+.pgr-box.has-prev::before, .pgr-box.has-next::before {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; box-sizing: border-box;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+.pgr-box.has-next::before { clip-path: polygon(0 0, 100% 0, 100% 21px, calc(100% - 10px) 21px, calc(100% - 10px) calc(100% - 21px), 100% calc(100% - 21px), 100% 100%, 0 100%); }
+.pgr-box.has-prev::before { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 calc(100% - 21px), 10px calc(100% - 21px), 10px 21px, 0 21px); }
+.pgr-box.has-prev.has-next::before { clip-path: polygon(0 0, 100% 0, 100% 21px, calc(100% - 10px) 21px, calc(100% - 10px) calc(100% - 21px), 100% calc(100% - 21px), 100% 100%, 0 100%, 0 calc(100% - 21px), 10px calc(100% - 21px), 10px 21px, 0 21px); }
 /* The frame does not scroll, this inner part does: so the fade at the bottom only touches the dishes, never the frame */
 .home-results-in {
   position: relative;

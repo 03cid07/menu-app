@@ -16,7 +16,7 @@
 // It uses pointer events with `touch-action: pan-y`, so up and down still scroll the page normally and only a
 // mostly sideways drag turns the page.
 (() => {
-  const GAP = 24;           // space between two pages while they slide past each other
+  const GAP = 24;           // space between two pages while they slide past each other (the two 32px bridges fill it, see .pgr-tab in the CSS)
   const LOCK = 8;           // how far the finger must move before we decide: sideways (turn) or up/down (scroll)
   const FAR = 0.28;         // dragged further than this share of the width: the page turns
   const FLING = 0.45;       // ... or flicked faster than this (px per ms)
@@ -74,7 +74,7 @@
       h.style.paddingBottom = (S.hdrPb * (1 - f)) + "px";
       h.style.opacity = String(clamp(1 - f * 1.3, 0, 1));
     }
-    for (const l of pageLists(S)) if (l._base != null) l.style.maxHeight = (l._base + c) + "px"; // a page that shows every dish has nothing to stretch
+    for (const l of pageLists(S)) if (l._base != null) { l.style.maxHeight = l.style.minHeight = (l._base + c) + "px"; } // every page's box is the same size, so they all stretch together
   }
 
   // The box glows while it is changing size (class .growing, see the CSS), so the stretch is easy to notice
@@ -137,7 +137,7 @@
     const n = pages.length, p = pages[j];
     return `<section class="cat pgr-page" data-key="${esc(p.key)}" tabindex="-1" aria-label="${esc(p.title)}, page ${j + 1} of ${n}">
       <h2><span class="pgr-title">${esc(p.title)}</span></h2>
-      <div class="pgr-box${pages[j - 1] ? " has-prev" : ""}${pages[j + 1] ? " has-next" : ""}"><div class="pgr-list">${p.html}</div></div>
+      <div class="pgr-bw"><div class="pgr-box${pages[j - 1] ? " has-prev" : ""}${pages[j + 1] ? " has-next" : ""}"><div class="pgr-list">${p.html}</div></div>${pages[j - 1] ? '<i class="pgr-tab l"></i>' : ""}${pages[j + 1] ? '<i class="pgr-tab r"></i>' : ""}</div>
       <nav class="pgr-nav" aria-hidden="true"></nav>
     </section>`;
   }
@@ -238,10 +238,12 @@
     },
   };
   function fit(S, lists) {
-    S.els.forEach((n, j) => {
+    // Pass 1: size each page's window on its own. h = window height when the page has more dishes than fit (it scrolls),
+    // nat = the list's natural height when every dish already fits (0 for a page with no dishes).
+    const info = S.els.map((n, j) => {
       const list = lists[j], it = Array.from(list.querySelectorAll(".item"));
-      if (!it.length) return;
-      laidOut(n, () => {
+      if (!it.length) return { h: 0, nat: 0 };
+      return laidOut(n, () => {
         DishFit.reset(it);
         const box = list.parentElement, nav = n.querySelector(".pgr-nav");
         list.style.maxHeight = "0px";
@@ -249,8 +251,17 @@
         list.style.maxHeight = "";
         const h = DishFit.apply(it, free);
         list.style.maxHeight = h ? h + "px" : "";
-        list._base = h || null; // the window height with the header shown (the header animation adds to this)
+        return { h, nat: h ? 0 : list.offsetHeight };
       });
+    });
+    // Pass 2: every page gets a box of the SAME size (the biggest one), so a page with only a few dishes
+    // (like "Ice Cream") is not a small box between big ones. Short pages just have empty room inside their box.
+    const common = Math.max(0, ...info.map((r) => r.h || r.nat));
+    lists.forEach((list, j) => {
+      if (!info[j].nat && !info[j].h) return; // a page with no dishes keeps its natural size
+      list._base = common || null; // the window height with the header shown (the header animation adds to this)
+      list.style.maxHeight = common ? common + "px" : "";
+      list.style.minHeight = common ? common + "px" : "";
     });
   }
 
@@ -263,7 +274,7 @@
   function measureCore(S) {
     const lists = S.els.map((n) => n.querySelector(".pgr-list"));
     lists.forEach((l) => { l._base = null; });
-    S.els.forEach((n, k) => { n.style.minHeight = ""; lists[k].style.maxHeight = ""; });
+    S.els.forEach((n, k) => { n.style.minHeight = ""; lists[k].style.maxHeight = ""; lists[k].style.minHeight = ""; });
     let L = 0;
     S.els.forEach((n, k) => {
       L = Math.max(L, laidOut(n, () => {
@@ -317,6 +328,12 @@
       n.style.top = Y + "px";
       return { n, j, side: Math.sign(j - S.i) };
     });
+    // The tabs facing each other (the current page's tab on that side, the incoming page's tab on the other) join into one bridge
+    for (const p of S.peeks) {
+      const a = S.els[S.i].querySelector(p.side > 0 ? ".pgr-tab.r" : ".pgr-tab.l"), b = p.n.querySelector(p.side > 0 ? ".pgr-tab.l" : ".pgr-tab.r");
+      if (a) a.classList.add("joined");
+      if (b) b.classList.add("joined");
+    }
     setX(S, S.x); // put the incoming pages beside the current one right now, not a frame later (that frame was a flash)
   }
 
@@ -341,6 +358,7 @@
     const y0 = window.scrollY; // where the page is scrolled now
     const hadFocus = S.els[S.i].contains(document.activeElement);
     for (const n of S.els) { n.style.transform = n.style.top = ""; n.classList.remove("pgr-peek"); }
+    S.el.querySelectorAll(".pgr-tab.joined").forEach((t) => t.classList.remove("joined"));
     if (changed) { const l = S.els[S.i].querySelector(".pgr-list"); if (l) { S.noHdr = true; setTimeout(() => { S.noHdr = false; }, 150); l._lt = 0; l.scrollTop = 0; markMore(l); } } // the page we leave starts from its first dish next time
     S.i = j;
     S.els.forEach((n, k) => n.classList.toggle("pgr-off", k !== j));

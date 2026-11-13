@@ -21,6 +21,11 @@
     @media (prefers-reduced-motion:reduce){#boot .ring{animation-duration:2.5s}#boot p{animation:none}}
   </style>
   <script>
+    // Opening straight on the Full menu (e.g. from the 3D view's bottom bar): no loading screen. The page already has skeleton rows in
+    // the menu area (see #menu below), and the dishes fill in one after another once the menu has loaded (menuIntro in menu.js).
+    if (/^#full/.test(location.hash)) { var bs = document.createElement("style"); bs.textContent = "#boot{display:none!important}"; document.head.appendChild(bs); }
+  </script>
+  <script>
     // Hides the loading screen once the menu, start screen and fonts are ready (8s failsafe)
     (function(){var t0=Date.now(),done=false;
       window.bootHide=function(){if(done)return;done=true;
@@ -63,7 +68,7 @@
   <script src="js/ar-guide.js?v=1"></script>
   <script src="js/menu.js?v=38"></script>
   <script src="js/quick-gen.js?v=6"></script>
-  <script src="js/quick.js?v=18"></script>
+  <script src="js/quick.js?v=19"></script>
   <script src="js/list.js?v=4"></script>
 </body>
 </html>

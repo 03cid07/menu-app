@@ -168,6 +168,18 @@
     else { hist = []; show([]); }
   });
 
+  // Arriving straight at the Full menu from another page (the 3D view's bottom bar links to index.html#full): the page loads from scratch,
+  // so the dishes get the same one-after-another entrance as when coming from the start screen. index.html hides the loading screen for
+  // #full (the skeleton rows in the page are enough), but if it is showing anyway this waits for it to go, or the animation would play behind it.
+  const introAfterBoot = () => {
+    let tries = 0;
+    const go = () => {
+      const b = document.getElementById("boot");
+      if (b && !b.classList.contains("out") && getComputedStyle(b).display !== "none" && tries++ < 80) return setTimeout(go, 50);
+      if (window.menuIntro) window.menuIntro();
+    };
+    go();
+  };
   // Wait for menu.js to finish loading the menu, then show the start screen
-  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); const to = location.hash.slice(1); if (linkedItemId() || to === "full") { home.hidden = true; setNav("full"); } else if (to === "quick") { hist = []; show([]); } else landing(); requestAnimationFrame(() => requestAnimationFrame(() => window.bootHide && window.bootHide())); } }, 50);
+  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); const to = location.hash.slice(1); if (linkedItemId() || to === "full") { home.hidden = true; setNav("full"); if (!linkedItemId()) introAfterBoot(); } else if (to === "quick") { hist = []; show([]); } else landing(); requestAnimationFrame(() => requestAnimationFrame(() => window.bootHide && window.bootHide())); } }, 50);
 })();
