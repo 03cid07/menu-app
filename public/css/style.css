@@ -647,6 +647,15 @@ html.boot-sk-home #boot { display: none !important; }
 .home-sk .sk-card .sk-line { margin: .2rem 0; }
 .home-sk .sk-card .sk-line.lg { height: 1.1rem; width: 42%; }
 .home-sk .sk-card .sk-line:not(.lg) { height: .85rem; width: 80%; }
+/* Full menu while loading: skeleton bars where the title, settings gear, search bar + My list and category title will be, so the page keeps its shape */
+h1.sk-name { width: 9rem; max-width: 60%; color: transparent; border-radius: 10px; user-select: none; background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
+#gear-slot:empty::before { content: ""; display: block; width: 44px; height: 44px; border-radius: 999px; background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
+#fs:empty { display: flex; align-items: center; gap: .6rem; }
+#fs:empty::before, #fs:empty::after { content: ""; height: 50px; border-radius: 999px; background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
+#fs:empty::before { flex: 1; min-width: 0; }
+#fs:empty::after { flex: none; width: 7rem; }
+.sk-cat h2 .sk-line.sk-h2 { display: block; width: 9rem; height: 1.4rem; margin: 0; border-radius: 8px; }
+@media (prefers-reduced-motion: reduce) { h1.sk-name, #gear-slot:empty::before, #fs:empty::before, #fs:empty::after { animation: none; } }
 /* 3D view: the empty stage shimmers until the menu has loaded and the real viewer replaces it */
 .sk-stage { flex: 1 1 auto; min-height: 200px; background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
 /* a photo shimmers until it loads, then fades in */

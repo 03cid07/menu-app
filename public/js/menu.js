@@ -197,6 +197,7 @@ function renderGear() {
 
 function render() {
   $("#name").textContent = data.restaurant;
+  $("#name").classList.remove("sk-name"); // the title was a skeleton bar until now
   document.title = `${data.restaurant} menu`;
   cancelSearchLoad();
   renderGear();
@@ -331,7 +332,7 @@ function runSearchLoad(ms = SEARCH_LOAD_MS) {
     // the bar is pinned, so you can search from far down the page: bring the list top into view so the skeleton is seen
     const barH = $("#fs").offsetHeight, top = menu.getBoundingClientRect().top + window.scrollY - barH - 8;
     if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
-    menu.innerHTML = `<section class="cat sk-cat"><div class="pgr-box"><div class="pgr-list">${Array.from({ length: 3 }, (_, k) => skRowHtml(k)).join("")}</div></div></section>`;
+    menu.innerHTML = `<section class="cat sk-cat"><h2><span class="sk-line sk-h2"></span></h2><div class="pgr-box"><div class="pgr-list">${Array.from({ length: 3 }, (_, k) => skRowHtml(k)).join("")}</div></div></section>`;
   }
   searchTimer = setTimeout(() => {
     cancelSearchLoad();
