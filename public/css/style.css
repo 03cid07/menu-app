@@ -633,15 +633,28 @@ body.has-list main { padding-bottom: 0; }
 :root { --sk-a: color-mix(in srgb, var(--ink) 7%, transparent); --sk-b: color-mix(in srgb, var(--ink) 16%, transparent); }
 .sk-cat { pointer-events: none; }
 .item.sk { display: flex; align-items: center; gap: .75rem; }
-.item.sk .thumb, .sk-line { background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
+.item.sk .thumb, .sk-line, .sk-price { background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
 .sk-line { display: block; height: .9rem; width: 70%; border-radius: 6px; margin: .3rem 0; }
 .sk-line.s { width: 40%; }
+.sk-price { flex: none; display: block; width: 3.2rem; height: .9rem; border-radius: 6px; }
+/* start screen / Quick menu skeleton (index.html #home-sk): shown instead of the spinner when arriving on #home or #quick, replaced by the real screen */
+.home-sk { display: none; pointer-events: none; }
+html.boot-sk-home .home-sk { display: block; }
+html.boot-sk-home #boot { display: none !important; }
+.home-sk .sk-line.xl { height: 2.4rem; width: 62%; margin: 0 0 .9rem; border-radius: 10px; }
+.home-sk .sk-line.md { width: 78%; margin: 0 0 1.5rem; }
+.home-sk .sk-card { cursor: default; }
+.home-sk .sk-card .sk-line { margin: .2rem 0; }
+.home-sk .sk-card .sk-line.lg { height: 1.1rem; width: 42%; }
+.home-sk .sk-card .sk-line:not(.lg) { height: .85rem; width: 80%; }
+/* 3D view: the empty stage shimmers until the menu has loaded and the real viewer replaces it */
+.sk-stage { flex: 1 1 auto; min-height: 200px; background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
 /* a photo shimmers until it loads, then fades in */
 :is(#menu, .home) .item .thumb:not(.ph):not(.ld), .gal-slide:not(.ld), img.sheet-hero:not(.ld) {
   background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; color: transparent;
 }
 img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: sk-in .3s ease; }
-@media (prefers-reduced-motion: reduce) { .item.sk .thumb, .sk-line, :is(#menu, .home) .item .thumb:not(.ph):not(.ld), .gal-slide:not(.ld), img.sheet-hero:not(.ld) { animation: none; } img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .item.sk .thumb, .sk-line, .sk-price, .sk-stage, :is(#menu, .home) .item .thumb:not(.ph):not(.ld), .gal-slide:not(.ld), img.sheet-hero:not(.ld) { animation: none; } img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: none; } }
 
 /* ---- Layout v2: settings gear (top right, holds QR) / [search bar | My list pill] ---- */
 .fs-actions { position: relative; flex: none; }
@@ -804,7 +817,7 @@ html.theme-anim body, html.theme-anim body * { transition: background-color .35s
 .fs-bar.is-searching .fs-search-ic svg { display: none; }
 .fs-bar.is-searching .fs-search-ic::before { content: ""; width: 20px; height: 20px; box-sizing: border-box; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color: var(--accent); animation: fs-spin .7s linear infinite; }
 @keyframes fs-spin { to { transform: rotate(360deg); } }
-.item.sk .thumb { flex: none; width: 56px; height: 56px; border-radius: 12px; }
+.item.sk .thumb { display: block; flex: none; border-radius: 12px; } /* size comes from the real .thumb rules, so the skeleton always matches the photo that replaces it */
 .sk-body { flex: 1; min-width: 0; }
 #menu.sk-results-in { animation: sk-in .35s ease both; }
 @media (prefers-reduced-motion: reduce) { .fs-bar.is-searching .fs-search-ic::before { animation-duration: 2s; } #menu.sk-results-in { animation: none; } }

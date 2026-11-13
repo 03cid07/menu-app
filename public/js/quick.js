@@ -176,7 +176,7 @@
     const go = () => {
       const b = document.getElementById("boot");
       if (b && !b.classList.contains("out") && getComputedStyle(b).display !== "none" && tries++ < 80) return setTimeout(go, 50);
-      if (window.menuIntro) window.menuIntro();
+      if (window.menuIntro) window.menuIntro({ skeleton: false }); // the page's own skeleton rows already played while it loaded
     };
     go();
   };

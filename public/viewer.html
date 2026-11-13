@@ -15,7 +15,7 @@
       document.documentElement.setAttribute("data-theme",t);
       var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t==="light"?"#eee6d4":"#15120e")})();
   </script>
-  <link rel="stylesheet" href="css/style.css?v=49">
+  <link rel="stylesheet" href="css/style.css?v=50">
   <style>
     .vw { max-width: 760px; margin: 0 auto; padding: 0 1.25rem; }
     .vw-pick { margin: 0 0 .7rem; }
@@ -60,7 +60,7 @@
       <a class="btn ghost" id="pick-btn" href="index.html?only3d=1#full">Choose a 3D model</a>
       <a class="btn ghost" id="add-btn" href="index.html?only3d=1#full" hidden>Add another 3D model</a>
     </div>
-    <div id="viewer-stage"></div>
+    <div id="viewer-stage"><div class="stage-wrap sk-stage" aria-hidden="true"></div></div>
     <p class="vw-hint">Drag to rotate. Tap "View on your table" to see it at real size through your camera. The dish appears once your phone has found your table; until then you will see a scanner. If that button is missing, this phone or browser does not support AR.</p>
     <details class="ar-guide"><summary>Tips for placing it on your table</summary>
       <ol>

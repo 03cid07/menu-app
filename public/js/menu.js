@@ -207,7 +207,9 @@ function render() {
 // ---- Entering the Full menu: the rows load one after another ----
 // Each row on screen first shows a shimmering placeholder inside its card, then fills in with its dish, top to bottom.
 // Only quick.js calls this, when the person goes from the start screen to the Full menu (not for page turns or searches).
-const INTRO_FIRST = 260, INTRO_STEP = 130, INTRO_ROWS = 12, INTRO_RISE = 14;
+// menuIntro({ skeleton: false }) is for arriving straight on the Full menu: the page already showed its own skeleton rows while loading,
+// so a second skeleton would be a repeat. The dishes just fade and rise in, one after another.
+const INTRO_FIRST = 260, INTRO_STEP = 130, INTRO_STEP_FAST = 70, INTRO_ROWS = 12, INTRO_RISE = 14;
 let introJobs = [];
 function cleanIntroRow(row) {
   row.classList.remove("sk-hold", "sk-in");
@@ -219,28 +221,37 @@ function cancelIntro() {
   for (const j of introJobs) { clearTimeout(j.timer); if (j.ctl) j.ctl.stop(); cleanIntroRow(j.row); }
   introJobs = [];
 }
-function menuIntro() {
+function menuIntro(opts) {
   cancelIntro();
+  const withSk = !(opts && opts.skeleton === false);
   if (!window.Springs || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const rows = Array.from(document.querySelectorAll("#menu .item"))
     .filter((n) => !n.closest(".pgr-off") && n.getBoundingClientRect().top < innerHeight).slice(0, INTRO_ROWS);
   rows.forEach((row, k) => {
-    const th = row.querySelector(".thumb"), w = (th && th.offsetWidth) || 56, h = (th && th.offsetHeight) || 56;
-    row.insertAdjacentHTML("beforeend", `<div class="sk-ov" aria-hidden="true"><div class="thumb" style="width:${w}px;height:${h}px"></div><div class="sk-body"><span class="sk-line"></span><span class="sk-line s"></span></div></div>`);
-    row.classList.add("sk-hold");
+    if (withSk) {
+      const th = row.querySelector(".thumb"), w = (th && th.offsetWidth) || 56, h = (th && th.offsetHeight) || 56;
+      row.insertAdjacentHTML("beforeend", `<div class="sk-ov" aria-hidden="true"><div class="thumb" style="width:${w}px;height:${h}px"></div><div class="sk-body"><span class="sk-line" style="width:${SK_NAME_W[k % SK_NAME_W.length]}%"></span></div><span class="sk-price"></span></div>`);
+      row.classList.add("sk-hold");
+    } else { // no skeleton: start see-through and a few pixels low, the spring below brings the row in
+      row.classList.add("sk-in");
+      row.style.setProperty("--p", "0");
+      row.style.transform = `translate3d(0, ${INTRO_RISE}px, 0)`;
+    }
     const job = { row, timer: 0, ctl: null };
     introJobs.push(job);
     job.timer = setTimeout(() => {
-      row.querySelector(":scope > .sk-ov")?.remove();
-      row.classList.remove("sk-hold");
-      row.classList.add("sk-in");
+      if (withSk) {
+        row.querySelector(":scope > .sk-ov")?.remove();
+        row.classList.remove("sk-hold");
+        row.classList.add("sk-in");
+      }
       // the row's content fades in while the row rises a few pixels into place (a spring, like the rest of the app)
       job.ctl = Springs.spring({
         from: 0, to: 100, response: 0.5, damping: 0.9,
         onUpdate: (x) => { row.style.setProperty("--p", Math.max(0, Math.min(1, x / 100)).toFixed(3)); row.style.transform = `translate3d(0, ${((1 - x / 100) * INTRO_RISE).toFixed(2)}px, 0)`; },
         onDone: () => { cleanIntroRow(row); introJobs = introJobs.filter((j) => j !== job); },
       });
-    }, INTRO_FIRST + k * INTRO_STEP);
+    }, withSk ? INTRO_FIRST + k * INTRO_STEP : k * INTRO_STEP_FAST);
   });
 }
 window.menuIntro = menuIntro;
@@ -298,7 +309,9 @@ $("#fs").addEventListener("input", (e) => {
 // ---- Search loading: while you type (or press Enter) the icon spins, skeleton rows shimmer, results fade in ----
 const SEARCH_LOAD_MS = 650;      // after pressing Enter
 const SEARCH_TYPE_MS = 450;      // after the last keystroke
-const SK_ROW = '<article class="item sk" aria-hidden="true"><div class="thumb"></div><div class="sk-body"><span class="sk-line"></span><span class="sk-line s"></span></div></article>';
+// One skeleton row, shaped like a real dish row: photo, name and price (menuIntro and index.html use the same shapes).
+const SK_NAME_W = [62, 48, 70, 54, 66, 44]; // name widths, varied so the rows don't look copy-pasted
+const skRowHtml = (k = 0) => `<article class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:${SK_NAME_W[k % SK_NAME_W.length]}%"></span></div><span class="sk-price"></span></article>`;
 function cancelSearchLoad() {
   if (!searching) return;
   clearTimeout(searchTimer);
@@ -318,7 +331,7 @@ function runSearchLoad(ms = SEARCH_LOAD_MS) {
     // the bar is pinned, so you can search from far down the page: bring the list top into view so the skeleton is seen
     const barH = $("#fs").offsetHeight, top = menu.getBoundingClientRect().top + window.scrollY - barH - 8;
     if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
-    menu.innerHTML = `<section class="cat sk-cat"><div class="pgr-box"><div class="pgr-list">${SK_ROW.repeat(3)}</div></div></section>`;
+    menu.innerHTML = `<section class="cat sk-cat"><div class="pgr-box"><div class="pgr-list">${Array.from({ length: 3 }, (_, k) => skRowHtml(k)).join("")}</div></div></section>`;
   }
   searchTimer = setTimeout(() => {
     cancelSearchLoad();

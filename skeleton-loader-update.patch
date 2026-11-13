@@ -1,0 +1,213 @@
+diff --git a/public/css/style.css b/public/css/style.css
+index 9f4615f..775bde7 100644
+--- a/public/css/style.css
++++ b/public/css/style.css
+@@ -633,15 +633,28 @@ body.has-list main { padding-bottom: 0; }
+ :root { --sk-a: color-mix(in srgb, var(--ink) 7%, transparent); --sk-b: color-mix(in srgb, var(--ink) 16%, transparent); }
+ .sk-cat { pointer-events: none; }
+ .item.sk { display: flex; align-items: center; gap: .75rem; }
+-.item.sk .thumb, .sk-line { background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
++.item.sk .thumb, .sk-line, .sk-price { background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
+ .sk-line { display: block; height: .9rem; width: 70%; border-radius: 6px; margin: .3rem 0; }
+ .sk-line.s { width: 40%; }
++.sk-price { flex: none; display: block; width: 3.2rem; height: .9rem; border-radius: 6px; }
++/* start screen / Quick menu skeleton (index.html #home-sk): shown instead of the spinner when arriving on #home or #quick, replaced by the real screen */
++.home-sk { display: none; pointer-events: none; }
++html.boot-sk-home .home-sk { display: block; }
++html.boot-sk-home #boot { display: none !important; }
++.home-sk .sk-line.xl { height: 2.4rem; width: 62%; margin: 0 0 .9rem; border-radius: 10px; }
++.home-sk .sk-line.md { width: 78%; margin: 0 0 1.5rem; }
++.home-sk .sk-card { cursor: default; }
++.home-sk .sk-card .sk-line { margin: .2rem 0; }
++.home-sk .sk-card .sk-line.lg { height: 1.1rem; width: 42%; }
++.home-sk .sk-card .sk-line:not(.lg) { height: .85rem; width: 80%; }
++/* 3D view: the empty stage shimmers until the menu has loaded and the real viewer replaces it */
++.sk-stage { flex: 1 1 auto; min-height: 200px; background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
+ /* a photo shimmers until it loads, then fades in */
+ :is(#menu, .home) .item .thumb:not(.ph):not(.ld), .gal-slide:not(.ld), img.sheet-hero:not(.ld) {
+   background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; color: transparent;
+ }
+ img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: sk-in .3s ease; }
+-@media (prefers-reduced-motion: reduce) { .item.sk .thumb, .sk-line, :is(#menu, .home) .item .thumb:not(.ph):not(.ld), .gal-slide:not(.ld), img.sheet-hero:not(.ld) { animation: none; } img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: none; } }
++@media (prefers-reduced-motion: reduce) { .item.sk .thumb, .sk-line, .sk-price, .sk-stage, :is(#menu, .home) .item .thumb:not(.ph):not(.ld), .gal-slide:not(.ld), img.sheet-hero:not(.ld) { animation: none; } img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: none; } }
+ 
+ /* ---- Layout v2: settings gear (top right, holds QR) / [search bar | My list pill] ---- */
+ .fs-actions { position: relative; flex: none; }
+@@ -804,7 +817,7 @@ html.theme-anim body, html.theme-anim body * { transition: background-color .35s
+ .fs-bar.is-searching .fs-search-ic svg { display: none; }
+ .fs-bar.is-searching .fs-search-ic::before { content: ""; width: 20px; height: 20px; box-sizing: border-box; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--accent) 25%, transparent); border-top-color: var(--accent); animation: fs-spin .7s linear infinite; }
+ @keyframes fs-spin { to { transform: rotate(360deg); } }
+-.item.sk .thumb { flex: none; width: 56px; height: 56px; border-radius: 12px; }
++.item.sk .thumb { display: block; flex: none; border-radius: 12px; } /* size comes from the real .thumb rules, so the skeleton always matches the photo that replaces it */
+ .sk-body { flex: 1; min-width: 0; }
+ #menu.sk-results-in { animation: sk-in .35s ease both; }
+ @media (prefers-reduced-motion: reduce) { .fs-bar.is-searching .fs-search-ic::before { animation-duration: 2s; } #menu.sk-results-in { animation: none; } }
+diff --git a/public/index.html b/public/index.html
+index ec58f7b..0a9cd65 100644
+--- a/public/index.html
++++ b/public/index.html
+@@ -24,13 +24,15 @@
+     // Opening straight on the Full menu (e.g. from the 3D view's bottom bar): no loading screen. The page already has skeleton rows in
+     // the menu area (see #menu below), and the dishes fill in one after another once the menu has loaded (menuIntro in menu.js).
+     if (/^#full/.test(location.hash)) { var bs = document.createElement("style"); bs.textContent = "#boot{display:none!important}"; document.head.appendChild(bs); }
++    // Same for the Quick menu and the start screen (e.g. from the 3D view's bottom bar): a skeleton of that screen (#home-sk below) instead of the spinner.
++    else if (/^#(quick|home)/.test(location.hash)) document.documentElement.classList.add("boot-sk-home");
+   </script>
+   <script>
+     // Hides the loading screen once the menu, start screen and fonts are ready (8s failsafe)
+     (function(){var t0=Date.now(),done=false;
+       window.bootHide=function(){if(done)return;done=true;
+         var f=document.fonts&&document.fonts.ready?Promise.race([document.fonts.ready,new Promise(function(r){setTimeout(r,1200)})]):Promise.resolve();
+-        f.then(function(){setTimeout(function(){var b=document.getElementById("boot");if(!b)return;b.classList.add("out");setTimeout(function(){b.remove()},450)},Math.max(0,350-(Date.now()-t0)))})};
++        f.then(function(){setTimeout(function(){var s=document.getElementById("home-sk");if(s)setTimeout(function(){s.remove()},550);var b=document.getElementById("boot");if(!b)return;b.classList.add("out");setTimeout(function(){b.remove()},450)},Math.max(0,350-(Date.now()-t0)))})};
+       setTimeout(window.bootHide,8000)})();
+   </script>
+   <script>
+@@ -48,16 +50,17 @@
+       function tick(){if(pref()==="auto"&&eff("auto")!==root.getAttribute("data-theme")){apply(true);if(window.menuThemeChanged)window.menuThemeChanged()}}
+       setInterval(tick,30000);document.addEventListener("visibilitychange",tick)})();
+   </script>
+-  <link rel="stylesheet" href="css/style.css?v=49">
++  <link rel="stylesheet" href="css/style.css?v=50">
+ </head>
+ <body>
+   <div id="boot" role="status" aria-live="polite"><div class="ring" aria-hidden="true"></div><p>Loading menu…</p></div>
++  <div class="home home-sk" id="home-sk" aria-hidden="true"><div class="home-box"><span class="sk-line xl"></span><span class="sk-line md"></span><div class="home-card sk-card"><span class="sk-line lg"></span><span class="sk-line"></span></div><div class="home-card sk-card"><span class="sk-line lg"></span><span class="sk-line"></span></div><div class="home-card sk-card"><span class="sk-line lg"></span><span class="sk-line"></span></div></div></div>
+   <header class="top">
+     <div class="top-row"><div class="fs-actions" id="gear-slot"></div><h1 id="name">Menu</h1></div>
+     <p>Prices are per serving. Ask staff about allergens.</p>
+   </header>
+   <div id="fs"></div>
+-  <main id="menu" aria-live="polite"><section class="cat sk-cat" aria-hidden="true"><div class="pgr-box"><div class="pgr-list"><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><span class="thumb"></span></span><div class="info"><i class="sk-line"></i><i class="sk-line s"></i></div></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><span class="thumb"></span></span><div class="info"><i class="sk-line"></i><i class="sk-line s"></i></div></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><span class="thumb"></span></span><div class="info"><i class="sk-line"></i><i class="sk-line s"></i></div></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><span class="thumb"></span></span><div class="info"><i class="sk-line"></i><i class="sk-line s"></i></div></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><span class="thumb"></span></span><div class="info"><i class="sk-line"></i><i class="sk-line s"></i></div></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><span class="thumb"></span></span><div class="info"><i class="sk-line"></i><i class="sk-line s"></i></div></div></div></div></section></main>
++  <main id="menu" aria-live="polite"><section class="cat sk-cat" aria-hidden="true"><div class="pgr-box"><div class="pgr-list"><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:62%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:48%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:70%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:54%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:66%"></span></div><span class="sk-price"></span></div><div class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:44%"></span></div><span class="sk-price"></span></div></div></div></section></main>
+   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js"></script>
+   <script src="js/glb-tools.js?v=5"></script>
+   <script src="js/qrcode.min.js?v=1"></script>
+@@ -66,9 +69,9 @@
+   <script src="js/marquee.js?v=1"></script>
+   <script src="js/pager.js?v=22"></script>
+   <script src="js/ar-guide.js?v=1"></script>
+-  <script src="js/menu.js?v=38"></script>
++  <script src="js/menu.js?v=39"></script>
+   <script src="js/quick-gen.js?v=6"></script>
+-  <script src="js/quick.js?v=19"></script>
++  <script src="js/quick.js?v=20"></script>
+   <script src="js/list.js?v=4"></script>
+ </body>
+ </html>
+diff --git a/public/js/menu.js b/public/js/menu.js
+index f0ce6f4..1f85c3c 100644
+--- a/public/js/menu.js
++++ b/public/js/menu.js
+@@ -207,7 +207,9 @@ function render() {
+ // ---- Entering the Full menu: the rows load one after another ----
+ // Each row on screen first shows a shimmering placeholder inside its card, then fills in with its dish, top to bottom.
+ // Only quick.js calls this, when the person goes from the start screen to the Full menu (not for page turns or searches).
+-const INTRO_FIRST = 260, INTRO_STEP = 130, INTRO_ROWS = 12, INTRO_RISE = 14;
++// menuIntro({ skeleton: false }) is for arriving straight on the Full menu: the page already showed its own skeleton rows while loading,
++// so a second skeleton would be a repeat. The dishes just fade and rise in, one after another.
++const INTRO_FIRST = 260, INTRO_STEP = 130, INTRO_STEP_FAST = 70, INTRO_ROWS = 12, INTRO_RISE = 14;
+ let introJobs = [];
+ function cleanIntroRow(row) {
+   row.classList.remove("sk-hold", "sk-in");
+@@ -219,28 +221,37 @@ function cancelIntro() {
+   for (const j of introJobs) { clearTimeout(j.timer); if (j.ctl) j.ctl.stop(); cleanIntroRow(j.row); }
+   introJobs = [];
+ }
+-function menuIntro() {
++function menuIntro(opts) {
+   cancelIntro();
++  const withSk = !(opts && opts.skeleton === false);
+   if (!window.Springs || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+   const rows = Array.from(document.querySelectorAll("#menu .item"))
+     .filter((n) => !n.closest(".pgr-off") && n.getBoundingClientRect().top < innerHeight).slice(0, INTRO_ROWS);
+   rows.forEach((row, k) => {
+-    const th = row.querySelector(".thumb"), w = (th && th.offsetWidth) || 56, h = (th && th.offsetHeight) || 56;
+-    row.insertAdjacentHTML("beforeend", `<div class="sk-ov" aria-hidden="true"><div class="thumb" style="width:${w}px;height:${h}px"></div><div class="sk-body"><span class="sk-line"></span><span class="sk-line s"></span></div></div>`);
+-    row.classList.add("sk-hold");
++    if (withSk) {
++      const th = row.querySelector(".thumb"), w = (th && th.offsetWidth) || 56, h = (th && th.offsetHeight) || 56;
++      row.insertAdjacentHTML("beforeend", `<div class="sk-ov" aria-hidden="true"><div class="thumb" style="width:${w}px;height:${h}px"></div><div class="sk-body"><span class="sk-line" style="width:${SK_NAME_W[k % SK_NAME_W.length]}%"></span></div><span class="sk-price"></span></div>`);
++      row.classList.add("sk-hold");
++    } else { // no skeleton: start see-through and a few pixels low, the spring below brings the row in
++      row.classList.add("sk-in");
++      row.style.setProperty("--p", "0");
++      row.style.transform = `translate3d(0, ${INTRO_RISE}px, 0)`;
++    }
+     const job = { row, timer: 0, ctl: null };
+     introJobs.push(job);
+     job.timer = setTimeout(() => {
+-      row.querySelector(":scope > .sk-ov")?.remove();
+-      row.classList.remove("sk-hold");
+-      row.classList.add("sk-in");
++      if (withSk) {
++        row.querySelector(":scope > .sk-ov")?.remove();
++        row.classList.remove("sk-hold");
++        row.classList.add("sk-in");
++      }
+       // the row's content fades in while the row rises a few pixels into place (a spring, like the rest of the app)
+       job.ctl = Springs.spring({
+         from: 0, to: 100, response: 0.5, damping: 0.9,
+         onUpdate: (x) => { row.style.setProperty("--p", Math.max(0, Math.min(1, x / 100)).toFixed(3)); row.style.transform = `translate3d(0, ${((1 - x / 100) * INTRO_RISE).toFixed(2)}px, 0)`; },
+         onDone: () => { cleanIntroRow(row); introJobs = introJobs.filter((j) => j !== job); },
+       });
+-    }, INTRO_FIRST + k * INTRO_STEP);
++    }, withSk ? INTRO_FIRST + k * INTRO_STEP : k * INTRO_STEP_FAST);
+   });
+ }
+ window.menuIntro = menuIntro;
+@@ -298,7 +309,9 @@ $("#fs").addEventListener("input", (e) => {
+ // ---- Search loading: while you type (or press Enter) the icon spins, skeleton rows shimmer, results fade in ----
+ const SEARCH_LOAD_MS = 650;      // after pressing Enter
+ const SEARCH_TYPE_MS = 450;      // after the last keystroke
+-const SK_ROW = '<article class="item sk" aria-hidden="true"><div class="thumb"></div><div class="sk-body"><span class="sk-line"></span><span class="sk-line s"></span></div></article>';
++// One skeleton row, shaped like a real dish row: photo, name and price (menuIntro and index.html use the same shapes).
++const SK_NAME_W = [62, 48, 70, 54, 66, 44]; // name widths, varied so the rows don't look copy-pasted
++const skRowHtml = (k = 0) => `<article class="item sk" aria-hidden="true"><span class="thumb-wrap"><div class="thumb"></div></span><div class="info"><span class="sk-line" style="width:${SK_NAME_W[k % SK_NAME_W.length]}%"></span></div><span class="sk-price"></span></article>`;
+ function cancelSearchLoad() {
+   if (!searching) return;
+   clearTimeout(searchTimer);
+@@ -318,7 +331,7 @@ function runSearchLoad(ms = SEARCH_LOAD_MS) {
+     // the bar is pinned, so you can search from far down the page: bring the list top into view so the skeleton is seen
+     const barH = $("#fs").offsetHeight, top = menu.getBoundingClientRect().top + window.scrollY - barH - 8;
+     if (window.scrollY > top) window.scrollTo({ top: Math.max(0, top), behavior: "instant" });
+-    menu.innerHTML = `<section class="cat sk-cat"><div class="pgr-box"><div class="pgr-list">${SK_ROW.repeat(3)}</div></div></section>`;
++    menu.innerHTML = `<section class="cat sk-cat"><div class="pgr-box"><div class="pgr-list">${Array.from({ length: 3 }, (_, k) => skRowHtml(k)).join("")}</div></div></section>`;
+   }
+   searchTimer = setTimeout(() => {
+     cancelSearchLoad();
+diff --git a/public/js/quick.js b/public/js/quick.js
+index 05f8e3b..85b5da0 100644
+--- a/public/js/quick.js
++++ b/public/js/quick.js
+@@ -176,7 +176,7 @@
+     const go = () => {
+       const b = document.getElementById("boot");
+       if (b && !b.classList.contains("out") && getComputedStyle(b).display !== "none" && tries++ < 80) return setTimeout(go, 50);
+-      if (window.menuIntro) window.menuIntro();
++      if (window.menuIntro) window.menuIntro({ skeleton: false }); // the page's own skeleton rows already played while it loaded
+     };
+     go();
+   };
+diff --git a/public/viewer.html b/public/viewer.html
+index a427005..dfdccfc 100644
+--- a/public/viewer.html
++++ b/public/viewer.html
+@@ -15,7 +15,7 @@
+       document.documentElement.setAttribute("data-theme",t);
+       var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute("content",t==="light"?"#eee6d4":"#15120e")})();
+   </script>
+-  <link rel="stylesheet" href="css/style.css?v=49">
++  <link rel="stylesheet" href="css/style.css?v=50">
+   <style>
+     .vw { max-width: 760px; margin: 0 auto; padding: 0 1.25rem; }
+     .vw-pick { margin: 0 0 .7rem; }
+@@ -60,7 +60,7 @@
+       <a class="btn ghost" id="pick-btn" href="index.html?only3d=1#full">Choose a 3D model</a>
+       <a class="btn ghost" id="add-btn" href="index.html?only3d=1#full" hidden>Add another 3D model</a>
+     </div>
+-    <div id="viewer-stage"></div>
++    <div id="viewer-stage"><div class="stage-wrap sk-stage" aria-hidden="true"></div></div>
+     <p class="vw-hint">Drag to rotate. Tap "View on your table" to see it at real size through your camera. The dish appears once your phone has found your table; until then you will see a scanner. If that button is missing, this phone or browser does not support AR.</p>
+     <details class="ar-guide"><summary>Tips for placing it on your table</summary>
+       <ol>
