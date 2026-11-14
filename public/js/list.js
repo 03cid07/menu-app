@@ -1,4 +1,5 @@
 // "My list": customers tap + on a dish to collect what they want, then show the list to staff.
+// The list has its own page (a full screen at #list, like the 3D view), not a floating bar or pop-up.
 // Saved on the phone (localStorage), so a refresh keeps it. No ordering happens here, it is just a list.
 // Uses helpers from menu.js: data, $, esc, money, store.
 
@@ -35,31 +36,26 @@ const sheetCtlHtml = (i) => {
 const addSheetHtml = (i) => `<div class="sheet-listctl" data-ctl="${esc(i.id)}">${sheetCtlHtml(i)}</div>`;
 function addLabel(i, q) { return i.available ? `Add ${i.name} to list${q ? ` (${q} in list)` : ""}` : `${i.name} is sold out`; }
 
-// ---- Floating bar + list drawer ----
-const bar = document.createElement("button");
-bar.type = "button";
-bar.className = "list-bar";
-bar.hidden = true;
-document.body.appendChild(bar);
-
-const drawer = document.createElement("div");
-drawer.className = "mylist";
-drawer.hidden = true;
-drawer.innerHTML = '<div class="mylist-box" role="dialog" aria-modal="true" aria-labelledby="mylist-title"></div>';
-document.body.appendChild(drawer);
-// Screen-reader announcement ("Crispy Lumpia added"); kept outside the drawer because the drawer is hidden when closed
+// ---- My list page (a full screen on top of the menu, below the bottom bar; address #list) ----
+const listPage = document.createElement("section");
+listPage.className = "list-page";
+listPage.hidden = true;
+listPage.setAttribute("aria-labelledby", "mylist-title");
+// Goes in before the bottom bar, so the bar stays on top of it (the 3D view does the same)
+document.body.insertBefore(listPage, document.querySelector(".bottomnav"));
+// Screen-reader announcement ("Crispy Lumpia added"); kept outside the page because the page is hidden when closed
 const listStatus = document.createElement("p");
 listStatus.className = "sr-only";
 listStatus.setAttribute("role", "status");
 document.body.appendChild(listStatus);
-const drawerBox = drawer.querySelector(".mylist-box");
 
-let drawerView = "list", receiptTime = null;
-const CLOSE_BTN = '<button type="button" class="sheet-close mylist-close" aria-label="Close">\u00d7</button>';
+const LIST_HASH = "#list";
+let drawerView = "list", receiptTime = null, listOpen = false, listInert = [], listFade = null, listV = 0;
+const BACK_BTN = '<button type="button" class="home-back" data-list-back>\u2039 Back</button>';
 
 function receiptHtml(rows) {
   const when = receiptTime.toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
-  return `<div class="mylist-top"><h2 id="mylist-title">Receipt</h2>${CLOSE_BTN}</div>
+  return `${BACK_BTN}<h1 id="mylist-title" class="list-title" tabindex="-1">Receipt</h1>
     <div class="receipt">
       <div class="rc-head"><strong>${esc(data.restaurant)}</strong><span>${esc(when)}</span></div>
       <ul class="rc-rows">${rows.map(([it, q]) => `<li><span class="rc-q">${q}\u00d7</span><span class="rc-n">${esc(it.name)}${it.available ? "" : " (sold out)"}</span><span class="rc-p">${money(Number(it.price) * q)}</span></li>`).join("")}</ul>
@@ -69,12 +65,13 @@ function receiptHtml(rows) {
     <div class="mylist-actions"><button type="button" class="btn ghost" data-back-list>Back to list</button><button type="button" class="btn" data-new-list>New list</button></div>`;
 }
 
-function drawerHtml() {
+function pageHtml() {
   const rows = listEntries();
-  if (!rows.length) return `<div class="mylist-top"><h2 id="mylist-title">My list</h2>${CLOSE_BTN}</div>
-    <p class="mylist-empty">Your list is empty. Tap + on a dish to add it.</p>`;
+  if (!rows.length) return `${BACK_BTN}<h1 id="mylist-title" class="list-title" tabindex="-1">My list</h1>
+    <p class="mylist-empty">Your list is empty. Tap + on a dish to add it.</p>
+    <div class="mylist-actions"><button type="button" class="btn" data-list-back>Browse the menu</button></div>`;
   if (drawerView === "receipt") return receiptHtml(rows);
-  return `<div class="mylist-top"><h2 id="mylist-title">My list</h2>${CLOSE_BTN}</div>
+  return `${BACK_BTN}<h1 id="mylist-title" class="list-title" tabindex="-1">My list</h1>
     <p class="mylist-hint">Show this list to your server when you're ready to order.</p>
     <ul class="mylist-rows">${rows.map(([it, q]) => `<li class="ml-row" data-id="${esc(it.id)}">
       <div class="ml-name">${mqHtml(it.name)}<small>${money(it.price)} each${it.available ? "" : " \u00b7 sold out"}</small></div>
@@ -86,7 +83,24 @@ function drawerHtml() {
     <div class="mylist-actions"><button type="button" class="btn ghost" data-clear-list>Clear list</button><button type="button" class="btn" data-done>Done</button></div>`;
 }
 
-// Refresh every + button, the detail card button, the floating bar and (if open) the drawer
+// Draws the page again (after + / - or a change in the list). Keeps keyboard focus on the same button where it can.
+function listRender(focusHeading) {
+  const a = document.activeElement, row = a && a.closest && a.closest(".ml-row");
+  const keep = row && listPage.contains(a) ? [row.dataset.id, a.hasAttribute("data-inc") ? "[data-inc]" : "[data-dec]"] : null;
+  const top = listPage.scrollTop;
+  listPage.innerHTML = `<div class="list-box">${pageHtml()}</div>`;
+  listPage.scrollTop = top;
+  if (focusHeading) return listPage.querySelector(".list-title")?.focus({ preventScroll: true });
+  if (keep) {
+    const r = listPage.querySelector(`.ml-row[data-id="${CSS.escape(keep[0])}"]`);
+    const b = r && (r.querySelector(keep[1] + ":not(:disabled)") || r.querySelector("button:not(:disabled)"));
+    if (b) return b.focus({ preventScroll: true });
+    if (a && a !== document.body && !listPage.contains(a)) return;
+    if (listOpen) listPage.querySelector(".list-title")?.focus({ preventScroll: true });
+  }
+}
+
+// Refresh every + button, the detail card button, the bottom bar badge and (if open) the list page
 function listSync() {
   document.querySelectorAll(".add-btn[data-add]").forEach((b) => {
     const q = listQty(b.dataset.add), it = listItem(b.dataset.add);
@@ -103,15 +117,12 @@ function listSync() {
     if (keep) (c.querySelector(keep) || c.querySelector("button"))?.focus();
   });
   const n = listCount();
-  bar.hidden = !n;
-  document.body.classList.toggle("has-list", n > 0);
   document.querySelectorAll(".fs-list, .nav-list").forEach((b) => {
     const badge = b.querySelector(".fs-badge");
     badge.textContent = n; badge.hidden = !n;
     b.setAttribute("aria-label", n ? `My list (${n} item${n === 1 ? "" : "s"})` : "My list");
   });
-  bar.innerHTML = `${ICON_LIST}<span class="lb-text">My list</span><span class="lb-count">${n} item${n === 1 ? "" : "s"}</span><span class="lb-total">${typeof data !== "undefined" && data ? money(listTotal()) : ""}</span>`;
-  if (!drawer.hidden) drawerBox.innerHTML = drawerHtml();
+  if (listOpen) listRender();
 }
 
 function listSet(id, q) {
@@ -120,41 +131,68 @@ function listSet(id, q) {
   listSync();
 }
 
-// Slides in and out with springs and follows a finger (see spring.js)
-const drawerCard = Springs.bottomCard({ root: drawer, box: drawerBox, finish: finishList });
-function openList() {
-  drawerView = "list";
-  drawerBox.innerHTML = drawerHtml();
-  drawer.hidden = false;
-  drawerCard.open();
-  document.body.classList.add("no-scroll");
-  drawerBox.querySelector(".mylist-close").focus({ preventScroll: true });
+// Fades in and out with a spring (see spring.js), the same way as the start screen
+function listShow(on, done) {
+  if (listFade) listFade.stop();
+  if (!window.Springs) { listPage.style.setProperty("--h", on ? "1" : "0"); return done && done(); }
+  listFade = Springs.spring({ from: listV, to: on ? 100 : 0, response: on ? 0.4 : 0.3, damping: 1,
+    onUpdate: (x) => { listV = x; listPage.style.setProperty("--h", (x / 100).toFixed(4)); }, onDone: done });
 }
-function closeList() {
-  if (drawer.hidden || drawerCard.isClosing()) return;
-  drawerCard.dismiss();
-}
-function finishList() {
-  drawer.hidden = true;
-  // Keep the page locked if the detail card is still open underneath
-  if (typeof sheet === "undefined" || sheet.hidden) document.body.classList.remove("no-scroll");
-  (bar.hidden ? document.body : bar).focus?.();
-}
+// The screens under the list page can't be reached by keyboard or screen reader while it is open.
+// Only what is not already inert is touched, so the 3D view's own inert state is left alone.
+const listBackdrop = () => [document.querySelector("header.top"), document.getElementById("fs"), document.getElementById("menu"), ...document.querySelectorAll(".home, .vw-screen")].filter(Boolean);
 
-bar.addEventListener("click", openList);
+function openList(opts = {}) {
+  if (listOpen || typeof data === "undefined" || !data) return;
+  // From the dish card's "View list": close the card first
+  if (typeof sheet !== "undefined" && !sheet.hidden && typeof closeSheet === "function") closeSheet();
+  drawerView = "list";
+  listOpen = true;
+  listPage.hidden = false;
+  listPage.scrollTop = 0;
+  listRender(true);
+  listInert = listBackdrop().filter((el) => !el.inert);
+  listInert.forEach((el) => { el.inert = true; });
+  listShow(true);
+  if (!opts.noPush) history.pushState({ ml: 1 }, "", LIST_HASH);
+  document.dispatchEvent(new CustomEvent("list:open"));
+}
+// quiet: another screen is taking over (the bottom bar sets itself), so hide at once and say nothing.
+// fromPop: the browser's Back button already moved the address.
+function closeList(opts = {}) {
+  if (!listOpen) return;
+  listOpen = false;
+  listInert.forEach((el) => { el.inert = false; });
+  listInert = [];
+  if (!opts.fromPop && location.hash === LIST_HASH) history.replaceState(null, "", location.pathname + location.search);
+  if (opts.quiet) { if (listFade) listFade.stop(); listV = 0; listPage.style.setProperty("--h", "0"); listPage.hidden = true; }
+  else {
+    listShow(false, () => { if (!listOpen) listPage.hidden = true; });
+    document.dispatchEvent(new CustomEvent("list:close"));
+  }
+}
+// The page's own Back button: step back in history when this page was opened from the app, so Back / Forward stay in line
+const listBack = () => { if (history.state && history.state.ml) history.back(); else closeList(); };
+
 document.addEventListener("click", (e) => { if (e.target.closest("[data-open-list]")) openList(); });
-drawer.addEventListener("click", (e) => {
-  if (e.target === drawer || e.target.closest(".mylist-close")) return closeList();
-  if (e.target.closest("[data-clear-list], [data-new-list]")) { myList = {}; listSave(); listSync(); return closeList(); }
-  if (e.target.closest("[data-done]")) { drawerView = "receipt"; receiptTime = new Date(); drawerBox.innerHTML = drawerHtml(); drawerBox.scrollTop = 0; return drawerBox.querySelector(".mylist-close").focus(); }
-  if (e.target.closest("[data-back-list]")) { drawerView = "list"; drawerBox.innerHTML = drawerHtml(); return drawerBox.querySelector(".mylist-close").focus(); }
+listPage.addEventListener("click", (e) => {
+  if (e.target.closest("[data-list-back]")) return listBack();
+  if (e.target.closest("[data-clear-list], [data-new-list]")) { myList = {}; drawerView = "list"; listSave(); listStatus.textContent = "List cleared."; listSync(); return listRender(true); }
+  if (e.target.closest("[data-done]")) { drawerView = "receipt"; receiptTime = new Date(); listRender(true); return (listPage.scrollTop = 0); }
+  if (e.target.closest("[data-back-list]")) { drawerView = "list"; listRender(true); return (listPage.scrollTop = 0); }
   const row = e.target.closest(".ml-row");
   if (!row) return;
   const id = row.dataset.id;
   if (e.target.closest("[data-inc]")) listSet(id, listQty(id) + 1);
   else if (e.target.closest("[data-dec]")) listSet(id, listQty(id) - 1);
 });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeList(); });
+// Browser Back / Forward, and opening the address #list directly
+window.addEventListener("popstate", () => {
+  if (location.hash === LIST_HASH) openList({ noPush: true });
+  else if (listOpen) closeList({ fromPop: true });
+});
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && listOpen && (typeof sheet === "undefined" || sheet.hidden)) listBack(); });
+window.MyList = { open: openList, close: closeList, isOpen: () => listOpen };
 
 // - in the detail card stepper
 document.addEventListener("click", (e) => {
@@ -179,7 +217,7 @@ document.addEventListener("click", (e) => {
   listStatus.textContent = `${it.name} added. ${listQty(it.id)} in your list.`;
 });
 
-// Once the menu has loaded, draw the bar (and drop anything the owner has since removed)
+// Once the menu has loaded, update the badge (and drop anything the owner has since removed)
 const listWait = setInterval(() => {
   if (typeof data === "undefined" || !data) return;
   clearInterval(listWait);

@@ -76,8 +76,8 @@
   const nav = document.createElement("nav");
   nav.className = "bottomnav";
   nav.setAttribute("aria-label", "Main");
-  // My list sits in the middle of the bar. It is not a screen: it opens the My list card (list.js, data-open-list) and shows the item count as a badge.
-  const LIST_BTN = `<button type="button" class="navlink nav-list" data-open-list aria-label="My list" title="My list">${SVG('<path d="M4 6h11M4 12h8M4 18h6M17 14v8M13 18h8"/>')}<span class="fs-badge" hidden>0</span></button>`;
+  // My list sits in the middle of the bar. It is a screen of its own (list.js, address #list) and shows the item count as a badge.
+  const LIST_BTN = `<button type="button" class="navlink nav-list" data-nav="list" aria-label="My list" title="My list">${SVG('<path d="M4 6h11M4 12h8M4 18h6M17 14v8M13 18h8"/>')}<span class="nav-label" aria-hidden="true">My list</span><span class="fs-badge" hidden>0</span></button>`;
   const tabs = NAV.map(([k, t, icon]) => `<button type="button" class="navlink" data-nav="${k}" aria-label="${t}" title="${t}">${icon}<span class="nav-label" aria-hidden="true">${t}</span></button>`);
   tabs.splice(Math.ceil(tabs.length / 2), 0, LIST_BTN);
   nav.innerHTML = `<div class="bottomnav-in">${tabs.join("")}</div>`;
@@ -85,7 +85,7 @@
   // The start screen has no bottom bar; it slides up once the customer picks Full menu or Quick menu
   // On the start screen the bar slides down out of sight (and back up later). The active tab opens into a pill with its label.
   let navReady = false;
-  let navNow = "home", navBeforeViewer = "home";
+  let navNow = "home", navBeforeViewer = "home", navBeforeList = "home";
   const setNav = (on) => {
     const away = on === "home", first = !navReady;
     navReady = true; navNow = on;
@@ -101,6 +101,9 @@
   // The 3D view is a screen on top of this page (js/viewer.js): the bottom bar follows it, and goes back to the screen under it when it closes
   document.addEventListener("viewer:open", () => { if (navNow !== "viewer") navBeforeViewer = navNow; setNav("viewer"); }); // opened from the picker (tab already "viewer"): keep "full", the screen under it
   document.addEventListener("viewer:close", () => setNav(navBeforeViewer));
+  // My list is a screen on top of whatever is open (list.js): the bar lights its tab, and goes back to the tab under it when the page closes
+  document.addEventListener("list:open", () => { if (navNow !== "list") navBeforeList = navNow; setNav("list"); });
+  document.addEventListener("list:close", () => setNav(navBeforeList));
   // "Choose a 3D model": the menu listing only dishes with a 3D model, shown as part of the 3D view (its tab stays lit), like the Quick menu's results stay in the Quick menu tab
   document.addEventListener("viewer:pick", () => { navBeforeViewer = "full"; enterFull({ instant: true, nav: "viewer" }); });
   // Questions: the ones the owner reviewed in the admin (data.quick), or ones made live from the menu
@@ -177,6 +180,9 @@
     if (e.target.closest("[data-full-menu]")) return enterFull(); // burger panel button (menu.js draws it while the quiz picks are on)
     const n = e.target.closest("[data-nav]");
     if (!n) return;
+    if (n.dataset.nav === "list") return window.MyList && !MyList.isOpen() && MyList.open(); // opens over the current screen, which stays as it is
+    // Any other tab while My list is open: the list page goes away at once and the bar goes back to the tab under it, then the tab is handled as usual
+    if (window.MyList && MyList.isOpen()) { MyList.close({ quiet: true }); setNav(navBeforeList); }
     const wasViewer = !!(window.Viewer && Viewer.isOpen());
     if (window.Viewer) Viewer.endPick(); // any tab ends "choose a 3D model"
     // Going from the 3D view to Home / Quick: bring that screen up first and close the 3D view after, so the Full menu that sits
@@ -201,5 +207,5 @@
     go();
   };
   // Wait for menu.js to finish loading the menu, then show the start screen
-  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); const to = location.hash.slice(1); if (linkedItemId() || to === "full") { home.hidden = true; setNav("full"); if (!linkedItemId()) introAfterBoot(); } else if (to === "quick") { hist = []; show([]); } else landing(); requestAnimationFrame(() => requestAnimationFrame(() => window.bootHide && window.bootHide())); } }, 50);
+  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); const to = location.hash.slice(1); if (linkedItemId() || to === "full") { home.hidden = true; setNav("full"); if (!linkedItemId()) introAfterBoot(); } else if (to === "quick") { hist = []; show([]); } else landing(); if (to === "list" && window.MyList) MyList.open({ noPush: true }); requestAnimationFrame(() => requestAnimationFrame(() => window.bootHide && window.bootHide())); } }, 50);
 })();
