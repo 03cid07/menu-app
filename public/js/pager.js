@@ -242,7 +242,7 @@
     // nat = the list's natural height when every dish already fits (0 for a page with no dishes).
     const info = S.els.map((n, j) => {
       const list = lists[j], it = Array.from(list.querySelectorAll(".item"));
-      if (!it.length) return { h: 0, nat: 0 };
+      if (!it.length) return { h: 0, nat: 0, free: 0 };
       return laidOut(n, () => {
         DishFit.reset(it);
         const box = list.parentElement, nav = n.querySelector(".pgr-nav");
@@ -251,12 +251,15 @@
         list.style.maxHeight = "";
         const h = DishFit.apply(it, free);
         list.style.maxHeight = h ? h + "px" : "";
-        return { h, nat: h ? 0 : list.offsetHeight };
+        return { h, nat: h ? 0 : list.offsetHeight, free };
       });
     });
     // Pass 2: every page gets a box of the SAME size (the biggest one), so a page with only a few dishes
     // (like "Ice Cream") is not a small box between big ones. Short pages just have empty room inside their box.
-    const common = Math.max(0, ...info.map((r) => r.h || r.nat));
+    // The box never shrinks below the room the Full menu normally fills, so a short list (like the dishes with a 3D model
+    // when choosing one for the 3D view) is the same size of box as the Full menu and Quick menu, with empty room inside.
+    const room = Math.max(0, ...info.map((r) => r.free || 0));
+    const common = Math.max(room, ...info.map((r) => r.h || r.nat));
     lists.forEach((list, j) => {
       if (!info[j].nat && !info[j].h) return; // a page with no dishes keeps its natural size
       list._base = common || null; // the window height with the header shown (the header animation adds to this)

@@ -359,18 +359,67 @@ sheet.innerHTML = '<div class="sheet-box" role="dialog" aria-modal="true" aria-l
 document.body.appendChild(sheet);
 const sheetBox = sheet.querySelector(".sheet-box");
 let sheetItem = null, sheetOpener = null;
+// Phones: the card is one of a row of cards you swipe through (the neighbours peek in at the sides).
+// Bigger screens keep the single card.
+const sheetMq = matchMedia("(max-width: 599px)");
+const slideOf = (id) => sheetBox.querySelector(`.sheet-slide[data-id="${CSS.escape(id)}"]`);
+const activeSlide = () => sheetBox.querySelector(".sheet-slide.on");
+const slideStep = () => { const a = sheetBox.children[0], b = sheetBox.children[1]; return a && b ? b.offsetLeft - a.offsetLeft : 0; };
 // The card slides in and out with springs and follows a finger (see spring.js)
-const sheetCard = Springs.bottomCard({ root: sheet, box: sheetBox, finish: finishSheet });
+const sheetCard = Springs.bottomCard({
+  root: sheet, box: sheetBox, finish: finishSheet,
+  scroller: (t) => (sheetMq.matches ? (t && t.closest && t.closest(".sheet-slide")) || activeSlide() : sheetBox),
+});
+if (sheetMq.matches) sheetBox.dataset.rbEdges = "both"; // the row of cards stretches at both ends; each card stretches at its bottom only
+// Cards are made empty and filled in only when they are near the one on screen, so a long menu stays light
+function fillSlide(k) {
+  const s = sheetBox.children[k];
+  if (!s || s.dataset.filled) return;
+  const it = data.items.find((x) => x.id === s.dataset.id);
+  if (!it) return;
+  s.innerHTML = sheetHtml(it).replace(' id="sheet-title"', "");
+  s.dataset.filled = "1";
+}
+function setActive(k) {
+  const s = sheetBox.children[k];
+  if (!s) return;
+  for (let j = Math.max(0, k - 2); j <= k + 2; j++) fillSlide(j);
+  sheetBox.querySelectorAll(".sheet-slide.on").forEach((n) => n.classList.remove("on"));
+  s.classList.add("on");
+  sheetBox.querySelectorAll("#sheet-title").forEach((n) => n.removeAttribute("id"));
+  const h = s.querySelector(".sheet-head h2");
+  if (h) h.id = "sheet-title";
+  sheetItem = data.items.find((x) => x.id === s.dataset.id) || sheetItem;
+}
+function goToSlide(k, smooth) {
+  const step = slideStep();
+  if (!step) return;
+  sheetBox.scrollTo({ left: k * step, behavior: smooth && !matchMedia("(prefers-reduced-motion: reduce)").matches ? "smooth" : "auto" });
+}
+// the dishes in the list the card was opened from, in the order they are shown
+function sheetIdsFor(id, opener) {
+  if (!sheetMq.matches) return [id];
+  const scope = opener && opener.closest ? opener.closest(".home-results, #menu") : null;
+  // only dishes from the same category as the one opened, so swiping stays inside e.g. "Non-espresso drinks"
+  const cat = (data.items.find((x) => x.id === id) || {}).category;
+  const ids = scope ? [...new Set([...scope.querySelectorAll(".item[data-id]")].map((n) => n.dataset.id))]
+    .filter((x) => ((data.items.find((it) => it.id === x) || {}).category) === cat) : [];
+  return ids.includes(id) ? ids : [id];
+}
 function openSheet(id, opener) {
-  sheetItem = data.items.find((x) => x.id === id);
-  if (!sheetItem) return;
+  const it = data.items.find((x) => x.id === id);
+  if (!it) return;
+  sheetItem = it;
   sheetOpener = opener || null;
-  sheetBox.innerHTML = sheetHtml(sheetItem);
-  sheetBox.scrollTop = 0;
+  const ids = sheetIdsFor(id, opener);
+  sheetBox.innerHTML = ids.map((x) => `<div class="sheet-slide" data-id="${esc(x)}" data-rb-edges="end"></div>`).join("");
   sheet.hidden = false;
+  const k = ids.indexOf(id);
+  setActive(k);
+  if (sheetMq.matches) { sheetBox.style.scrollSnapType = "none"; sheetBox.scrollLeft = k * slideStep(); sheetBox.style.scrollSnapType = ""; }
   sheetCard.open();
   document.body.classList.add("no-scroll");
-  sheetBox.querySelector(".sheet-close").focus({ preventScroll: true });
+  activeSlide().querySelector(".sheet-close").focus({ preventScroll: true });
 }
 function closeSheet() {
   if (sheet.hidden || sheetCard.isClosing()) return;
@@ -390,8 +439,16 @@ document.addEventListener("click", (e) => {
   if (inner && !inner.classList.contains("item-open")) return; // e.g. the 3D / AR button keeps its own job
   openSheet(card.dataset.id, card.querySelector(".item-open"));
 });
+// Capture phase: a tap on a neighbouring card only brings it to the front (it must not press that card's buttons)
+sheetBox.addEventListener("click", (e) => {
+  if (!sheetMq.matches) return;
+  const sl = e.target.closest && e.target.closest(".sheet-slide");
+  if (!sl || sl.classList.contains("on")) return;
+  e.stopPropagation(); e.preventDefault();
+  goToSlide([...sheetBox.children].indexOf(sl), true);
+}, true);
 sheet.addEventListener("click", (e) => {
-  if (e.target === sheet || e.target.closest(".sheet-close")) return closeSheet();
+  if (e.target === sheet || e.target.closest(".sheet-close") || (sheetMq.matches && e.target === sheetBox)) return closeSheet();
   const gb = e.target.closest(".gal-nav, .gal-dot");
   if (gb) {
     const track = gb.closest(".gallery").querySelector(".gal-track");
@@ -399,26 +456,39 @@ sheet.addEventListener("click", (e) => {
   }
   const star = e.target.closest(".rate-star");
   if (!star || !sheetItem) return;
-  const item = sheetItem, n = Number(star.dataset.n), msg = sheetBox.querySelector(".rate-msg");
+  const item = data.items.find((x) => x.id === star.closest(".sheet-slide").dataset.id), n = Number(star.dataset.n), msg = star.closest(".sheet-slide").querySelector(".rate-msg");
   msg.textContent = "Saving\u2026";
   fetch(`/api/items/${encodeURIComponent(item.id)}/rate`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stars: n, device: devId }) })
     .then((r) => r.json().then((j) => { if (!r.ok) throw new Error(j.error || "Could not save your rating"); return j; }))
     .then((sum) => {
       item.rating = sum;
       const mine = myRatings(); mine[item.id] = n; store.set("menuRatings", JSON.stringify(mine));
-      if (sheetItem !== item) return;
-      sheetBox.querySelector(".sheet-rating").innerHTML = ratingHtml(item, true);
-      sheetBox.querySelector(".sheet-rate").innerHTML = rateHtml(item);
-      sheetBox.querySelector(".rate-msg").textContent = `Thanks! You rated ${n} star${n === 1 ? "" : "s"}.`;
-      sheetBox.querySelector(`.rate-star[data-n="${n}"]`).focus();
+      const sl = slideOf(item.id);
+      if (!sl) return;
+      sl.querySelector(".sheet-rating").innerHTML = ratingHtml(item, true);
+      sl.querySelector(".sheet-rate").innerHTML = rateHtml(item);
+      sl.querySelector(".rate-msg").textContent = `Thanks! You rated ${n} star${n === 1 ? "" : "s"}.`;
+      if (sheetItem === item) sl.querySelector(`.rate-star[data-n="${n}"]`).focus();
       renderList();
     })
     .catch((err) => { msg.textContent = err.message || "Could not save your rating"; });
 });
 // Scroll events don't bubble, so listen while they travel down to the gallery
-let galRaf = 0;
+let galRaf = 0, rowRaf = 0;
 sheetBox.addEventListener("scroll", (e) => {
   const t = e.target;
+  if (t === sheetBox) {
+    // the row of cards: whichever card is nearest the middle is the one in front
+    if (rowRaf || !sheetMq.matches) return;
+    rowRaf = requestAnimationFrame(() => {
+      rowRaf = 0;
+      const step = slideStep();
+      if (!step) return;
+      const k = Math.max(0, Math.min(sheetBox.children.length - 1, Math.round(sheetBox.scrollLeft / step)));
+      if (sheetBox.children[k] !== activeSlide()) setActive(k);
+    });
+    return;
+  }
   if (!t.classList || !t.classList.contains("gal-track") || galRaf) return;
   galRaf = requestAnimationFrame(() => { galRaf = 0; galSync(t); });
 }, true);

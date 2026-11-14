@@ -39,7 +39,7 @@
   // Make a fixed backdrop (`root`) with a bottom card (`box`) slide in and out with springs, and let
   // a finger drag it down to close. Pulling it up past its resting place stretches like a rubber band.
   // `reveal()` is called before it slides in; `finish()` is called when it has slid out (hide it there).
-  function bottomCard({ root, box, finish, dim = 0.55 }) {
+  function bottomCard({ root, box, finish, dim = 0.55, scroller = null }) {
     let y = 0, anim = null, closing = false, t0 = null;
     box.dataset.rbEdges = "end"; // rubber.js: pulling down at the top closes the card, so only the bottom stretches
     const height = () => box.offsetHeight || 1;
@@ -89,7 +89,9 @@
       if (!t0.mode) {
         if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
         if (Math.abs(dx) > Math.abs(dy)) { t0.mode = "ignore"; return; } // sideways: the photo gallery's job
-        const atTop = box.scrollTop <= 0, canScroll = box.scrollHeight > box.clientHeight + 1;
+        // scroller(target) lets a card made of several swipeable pages say which page is scrolling (default: the box itself)
+        const sc = (scroller && scroller(e.target)) || box;
+        const atTop = sc.scrollTop <= 0, canScroll = sc.scrollHeight > sc.clientHeight + 1;
         t0.mode = (dy > 0 && atTop) || (dy < 0 && !canScroll) ? "drag" : "scroll";
         if (t0.mode === "drag") { t0.y = t.clientY; t0.base = y; t0.pts = [[performance.now(), t.clientY]]; }
       }

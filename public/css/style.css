@@ -12,6 +12,8 @@
   --ctl: color-mix(in srgb, var(--ink) 10%, transparent);
   --ctl-hover: color-mix(in srgb, var(--ink) 18%, transparent);
   --outline: color-mix(in srgb, var(--ink) 30%, transparent);
+  /* Visible hairline for the see-through boxes and rows (the old border was too close to the background to notice) */
+  --edge: color-mix(in srgb, var(--ink) 24%, transparent);
   --font: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 /* Light: soft cream + lighter cream, with a deep matcha-green accent */
@@ -20,6 +22,7 @@ html[data-theme="light"] {
   --bg: #eee6d4; --surface: #f5eedf; --ink: #2a231a; --muted: #6e6352;
   --line: #d6c9b0; --accent: #4a6b1f; --accent-ink: #f7f3e6; --alert: #a63a2b;
   --wash-top: 58%; --wash-bot: 70%;
+  --edge: color-mix(in srgb, var(--ink) 30%, transparent);
 }
 * { box-sizing: border-box; }
 html { overscroll-behavior-y: none; } /* rubber.js draws the stretch at the ends of the page */
@@ -258,7 +261,7 @@ body::before {
 :is(#menu, .home) .item {
   background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent);
   -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 14px;
+  border: 1px solid var(--edge); border-radius: 14px;
   padding: .75rem; margin: 0 0 .65rem; box-shadow: none;
   transition: background-color .15s ease, border-color .15s ease;
 }
@@ -277,7 +280,7 @@ section.cat h2 { margin: 1.75rem 0 .75rem; }
 .fs-bar, .fs-panel {
   background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent);
   -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 14px; box-shadow: none;
+  border: 1px solid var(--edge); border-radius: 14px; box-shadow: none;
 }
 .fs-bar { overflow: hidden; margin-top: 1rem; }
 .fs-tab { padding: .85rem 1rem; gap: .75rem; }
@@ -307,7 +310,7 @@ section.cat h2 { margin: 1.75rem 0 .75rem; }
 .home-card {
   background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent);
   -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 14px; box-shadow: none;
+  border: 1px solid var(--edge); border-radius: 14px; box-shadow: none;
   transition: background-color .15s ease, border-color .15s ease;
 }
 .home-card:active { background: color-mix(in srgb, color-mix(in srgb, var(--surface) 85%, var(--ink)) var(--card-alpha), transparent); }
@@ -348,10 +351,10 @@ section.cat h2 { margin: 1.75rem 0 .75rem; }
 .list-box { max-width: 560px; margin: 0 auto; padding: calc(1.5rem + env(safe-area-inset-top, 0px)) 1.25rem calc(var(--nav-h) + 2.5rem + env(safe-area-inset-bottom, 0px)); }
 .list-title { font-size: clamp(2rem, 7vw, 2.6rem); line-height: 1.05; margin: 1rem 0 .5rem; font-weight: 800; letter-spacing: -.02em; outline: none; }
 .list-box > .mylist-rows, .list-box > .receipt, .list-box > .mylist-foot { background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent);
-  -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+  -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); border: 1px solid var(--edge); }
 .list-box > .mylist-rows { border-radius: 14px 14px 0 0; padding: 0 1rem; margin-top: 1rem; border-bottom: 0; }
 .list-box > .mylist-rows .ml-row:last-child { border-bottom: 0; }
-.list-box > .mylist-foot { margin-top: 0; padding: .8rem 1rem; border-top: 1px solid var(--line); border-radius: 0 0 14px 14px; border-top-color: color-mix(in srgb, var(--line) 70%, transparent); }
+.list-box > .mylist-foot { margin-top: 0; padding: .8rem 1rem; border-top: 1px solid var(--line); border-radius: 0 0 14px 14px; border-top-color: var(--edge); }
 .list-box > .receipt { background: color-mix(in srgb, var(--bg) 82%, transparent); border: 1px dashed var(--line); }
 .list-box .mylist-hint, .list-box .mylist-empty { color: color-mix(in srgb, var(--ink) 78%, var(--muted)); }
 .list-box .mylist-actions .btn.ghost { background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent); -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); }
@@ -504,7 +507,7 @@ section.cat h2 { margin: 1.75rem 0 .75rem; }
   max-width: 420px; height: var(--nav-h); margin: 0 auto; padding: .3rem;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.35);
+  border: 1px solid var(--edge); border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.35);
 }
 .bottomnav .navlink { flex: 1; display: flex; align-items: center; justify-content: center; height: 100%; padding: 0; border: 0; border-radius: 999px; background: none; color: var(--muted); cursor: pointer; transition: background-color .15s ease, color .15s ease; }
 .bottomnav .navlink:hover { color: var(--ink); }
@@ -550,7 +553,7 @@ body { padding-bottom: calc(var(--nav-h) + 1.5rem + env(safe-area-inset-bottom, 
 /* ---- Search bar layout: [top row: slot + My list] / [burger | search ... icon] / filter + sort panel ---- */
 .fs-top { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: 1rem; min-height: 44px; }
 .fs-top-slot { flex: 1; min-width: 0; }
-.fs-top .fs-list { flex: none; width: 44px; height: 44px; padding: 0; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+.fs-top .fs-list { flex: none; width: 44px; height: 44px; padding: 0; border-radius: 999px; border: 1px solid var(--edge);
   background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent); -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); }
 .fs-top .fs-badge { top: -4px; right: -4px; }
 .fs-bar { display: flex; align-items: center; gap: .25rem; margin-top: .6rem; padding: 0 1rem 0 .35rem; border-radius: 999px; overflow: visible; }
@@ -564,7 +567,7 @@ body { padding-bottom: calc(var(--nav-h) + 1.5rem + env(safe-area-inset-bottom, 
 .fs-sort .fs-label { display: block; margin-bottom: .4rem; }
 
 /* ---- QR codes: button beside My list, button in the dish card, and the popup ---- */
-.fs-top .fs-list, .fs-top .fs-qr { flex: none; width: 44px; height: 44px; padding: 0; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+.fs-top .fs-list, .fs-top .fs-qr { flex: none; width: 44px; height: 44px; padding: 0; border-radius: 999px; border: 1px solid var(--edge);
   background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent); -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); }
 .sheet-qr { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; margin: 0; border-radius: 999px; border: 1px solid var(--outline); background: transparent; color: var(--ink); cursor: pointer; }
 .sheet-qr:hover, .sheet-qr:focus-visible { background: var(--ctl-hover); }
@@ -697,7 +700,7 @@ img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: sk-in .3s ease; }
 
 /* ---- Layout v2: settings gear (top right, holds QR) / [search bar | My list pill] ---- */
 .fs-actions { position: relative; flex: none; }
-.fs-gear { flex: none; width: 44px; height: 44px; padding: 0; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+.fs-gear { flex: none; width: 44px; height: 44px; padding: 0; border-radius: 999px; border: 1px solid var(--edge);
   background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent); -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); }
 .fs-gear[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
 .fs-settings { position: absolute; top: calc(100% + .5rem); right: 0; z-index: 8; min-width: 190px; padding: .35rem; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); box-shadow: 0 10px 28px rgba(0,0,0,.4); }
@@ -708,7 +711,7 @@ img.thumb.ld, img.gal-slide.ld, img.sheet-hero.ld { animation: sk-in .3s ease; }
 
 .fs-row-search { display: flex; align-items: center; gap: .6rem; }
 .fs-row-search .fs-bar { flex: 1; min-width: 0; margin-top: 0; }
-.fs-row-search .fs-list { position: relative; flex: none; display: flex; align-items: center; gap: .5rem; height: 50px; width: auto; min-width: 44px; padding: 0 1.1rem 0 .9rem; border-radius: 999px; font: inherit; font-size: .95rem; font-weight: 600; white-space: nowrap; border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+.fs-row-search .fs-list { position: relative; flex: none; display: flex; align-items: center; gap: .5rem; height: 50px; width: auto; min-width: 44px; padding: 0 1.1rem 0 .9rem; border-radius: 999px; font: inherit; font-size: .95rem; font-weight: 600; white-space: nowrap; border: 1px solid var(--edge);
   background: color-mix(in srgb, var(--surface) var(--card-alpha), transparent); -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur)); }
 .fs-row-search .fs-badge { top: -4px; right: -4px; }
 @media (max-width: 340px) { .fs-row-search .fs-list-t { display: none; } .fs-row-search .fs-list { width: 50px; padding: 0; justify-content: center; } }
@@ -932,7 +935,7 @@ body { padding-bottom: calc(var(--nav-h) + 5rem + env(safe-area-inset-bottom, 0p
 .pgr-float { position: fixed; z-index: 7; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-h) + 1.1rem + env(safe-area-inset-bottom, 0px));
   display: flex; align-items: center; max-width: calc(100% - 2rem); padding: .15rem .45rem; border-radius: 999px;
   background: color-mix(in srgb, var(--surface) 88%, transparent); -webkit-backdrop-filter: blur(var(--card-blur, 10px)); backdrop-filter: blur(var(--card-blur, 10px));
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); box-shadow: 0 6px 18px rgba(0,0,0,.3);
+  border: 1px solid var(--edge); box-shadow: 0 6px 18px rgba(0,0,0,.3);
   transition: bottom .3s ease; }
 body.no-scroll .pgr-float { visibility: hidden; } /* a card or the 3D viewer is open */
 
@@ -982,7 +985,7 @@ header.top { position: relative; z-index: 8; }
   margin: 0; padding: .55rem .55rem .55rem;
   background: color-mix(in srgb, var(--surface) calc(var(--card-alpha) * .55), transparent);
   -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 18px;
+  border: 1px solid var(--edge); border-radius: 18px;
 }
 
 /* ---- Connector to the next / previous page: always shown ----
@@ -999,7 +1002,7 @@ header.top { position: relative; z-index: 8; }
   background: color-mix(in srgb, var(--surface) calc(var(--card-alpha) * .55), transparent);
   -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
 }
-.pgr-tab::before { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--line) 70%, transparent); }
+.pgr-tab::before { content: ""; position: absolute; inset: 0; background: var(--edge); }
 /* the bridge is nearly as tall as the box: the shape is drawn in three pieces (curved neck at the top, curved neck at the bottom,
    a plain block between) so the curves keep their shape however tall the box is */
 .pgr-tab.r { right: -32px; }
@@ -1012,7 +1015,7 @@ header.top { position: relative; z-index: 8; }
 .pgr-box.has-prev, .pgr-box.has-next { border-color: transparent; }
 .pgr-box.has-prev::before, .pgr-box.has-next::before {
   content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; box-sizing: border-box;
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  border: 1px solid var(--edge);
 }
 .pgr-box.has-next::before { clip-path: polygon(0 0, 100% 0, 100% 21px, calc(100% - 10px) 21px, calc(100% - 10px) calc(100% - 21px), 100% calc(100% - 21px), 100% 100%, 0 100%); }
 .pgr-box.has-prev::before { clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 calc(100% - 21px), 10px calc(100% - 21px), 10px 21px, 0 21px); }
@@ -1036,7 +1039,7 @@ header.top { position: relative; z-index: 8; }
   flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; padding: .55rem;
   background: color-mix(in srgb, var(--surface) calc(var(--card-alpha) * .55), transparent);
   -webkit-backdrop-filter: blur(var(--card-blur)); backdrop-filter: blur(var(--card-blur));
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); border-radius: 18px;
+  border: 1px solid var(--edge); border-radius: 18px;
 }
 
 /* ---- Soft fade at the bottom of the dishes while there is more below (.more is set by pager.js / quick.js) ----
@@ -1122,10 +1125,78 @@ model-viewer[data-ar-scan] .mv-label { visibility: hidden; }
   display: inline-flex; align-items: center; gap: .4rem; height: 2.4rem; padding: 0 .85rem 0 .7rem; border-radius: 999px; cursor: pointer;
   font: inherit; font-size: .85rem; font-weight: 700; color: var(--ink); white-space: nowrap; -webkit-tap-highlight-color: transparent;
   background: color-mix(in srgb, var(--surface) 92%, transparent); -webkit-backdrop-filter: blur(var(--card-blur, 10px)); backdrop-filter: blur(var(--card-blur, 10px));
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent); box-shadow: 0 6px 18px rgba(0,0,0,.3);
+  border: 1px solid var(--edge); box-shadow: 0 6px 18px rgba(0,0,0,.3);
   opacity: calc(1 - var(--away, 1)); transform: translateY(calc(var(--away, 1) * 14px)); }
 .restart-fab[hidden] { display: none; }
 .restart-fab svg { color: var(--accent); flex: none; }
 .restart-fab:active { filter: brightness(.9); }
 .restart-fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 body.no-scroll .restart-fab { visibility: hidden; } /* a dish card or the 3D viewer is open */
+
+/* ---- Phones: the detail card is one of a row you swipe through ----
+   --peek is how much of each neighbouring card shows at the sides, as a fraction of a card (0.1 = 10%).
+   The card width follows from it: 2 gaps + 1 card + 2 x peek of a card = the screen. Lower --peek = wider card. */
+.sheet-slide { position: relative; }
+@media (max-width: 599px) {
+  .sheet-box {
+    --peek: .1; --gap: 10px; --ext: 80px;
+    --cw: calc((100vw - 2 * var(--gap)) / (1 + 2 * var(--peek)));
+    display: flex; align-items: flex-end; gap: var(--gap);
+    width: 100%; max-height: none; background: transparent; border-radius: 0; box-shadow: none;
+    overflow-x: auto; overflow-y: hidden; overscroll-behavior: contain;
+    scroll-snap-type: x mandatory; scrollbar-width: none;
+    /* the cards reach --ext below the screen, so nothing shows under them when the card is pulled up a little */
+    padding-bottom: var(--ext); margin-bottom: calc(-1 * var(--ext));
+  }
+  .sheet-box::-webkit-scrollbar { display: none; }
+  /* spacers so the first and last card can sit in the middle too */
+  .sheet-box::before, .sheet-box::after { content: ""; flex: 0 0 calc((100vw - var(--cw)) / 2 - var(--gap)); }
+  .sheet-slide {
+    flex: 0 0 var(--cw); min-width: 0; scroll-snap-align: center; scroll-snap-stop: always;
+    background: var(--surface); color: var(--ink);
+    border-radius: 18px 18px 0 0; border: 1px solid var(--edge); border-bottom: var(--ext) solid var(--surface); margin-bottom: calc(-1 * var(--ext));
+    /* every card is the same height, whatever is in it (longer ones scroll inside) */
+    height: calc(88vh + var(--ext)); height: calc(88dvh + var(--ext));
+    /* only the up/down scroll is kept inside the card: "contain" on both axes stopped a sideways swipe from reaching the row of cards */
+    overflow-y: auto; overscroll-behavior-y: contain; overscroll-behavior-x: auto; scrollbar-width: none;
+    opacity: .6; transition: opacity .2s ease;
+  }
+  .sheet-slide::-webkit-scrollbar { display: none; }
+  .sheet-slide.on { opacity: 1; }
+  .sheet-slide .sheet-body { padding: 1rem 1rem 1.5rem; }
+  .sheet-slide .sheet-head { flex-wrap: wrap; gap: .25rem .75rem; }
+  .sheet-slide .sheet-head h2 { font-size: 1.3rem; overflow-wrap: anywhere; }
+  .sheet-slide .sheet-meta { flex-wrap: wrap; gap: .35rem .5rem; }
+  .sheet-slide .sheet-listctl { flex-wrap: wrap; }
+  .sheet-slide .sheet-more { flex-wrap: wrap; }
+  .sheet-slide .sheet-more > * { flex: 1 1 100%; }
+  .sheet-slide .rate-star { min-width: 34px; font-size: 1.7rem; }
+  .sheet-slide .sheet-hero, .sheet-slide .gal-slide { max-height: 220px; }
+  /* swiping the photos must never flip the dish by accident */
+  .sheet-slide .gal-track { overscroll-behavior-x: contain; }
+}
+@media (prefers-reduced-motion: reduce) { .sheet-slide { transition: none; } }
+
+/* ---- My list: more to read on each row (photo, category, description, ingredients, rating, price x quantity) ---- */
+.mylist-summary { margin: 0 0 .5rem; color: var(--muted); font-size: .9rem; }
+.mylist-summary strong { color: var(--ink); }
+.ml-row { grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: start; }
+.ml-row > .ml-step, .ml-row > .ml-sub { align-self: center; }
+.ml-thumb { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; background: color-mix(in srgb, var(--bg) 70%, transparent); border: 1px solid var(--edge); }
+.ml-thumb.ph { display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; color: var(--muted); }
+.ml-name .ml-desc, .ml-name .ml-ing { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: .15rem; font-weight: 500; font-size: .82rem; line-height: 1.3; color: var(--muted); }
+.ml-name .ml-desc { color: color-mix(in srgb, var(--ink) 78%, var(--muted)); }
+.ml-name .ml-ing b { font-weight: 600; }
+.ml-name .rating { font-size: .78rem; margin-top: .2rem; font-weight: 500; }
+.ml-out { color: var(--alert); font-style: normal; font-weight: 700; }
+.ml-row.is-out .ml-thumb { opacity: .55; }
+.ml-sub small { display: block; font-weight: 500; font-size: .75rem; color: var(--muted); }
+.mylist-count { display: flex; justify-content: space-between; align-items: baseline; color: var(--muted); font-size: .9rem; margin-bottom: .25rem; }
+@media (max-width: 420px) {
+  .ml-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .ml-row > .ml-sub { grid-column: 3; grid-row: 1; align-self: start; min-width: 0; }
+  .ml-row > .ml-step { grid-column: 2 / -1; grid-row: 2; justify-self: start; }
+  .ml-thumb { width: 56px; height: 56px; }
+}
+.list-box > .mylist-foot { flex-direction: column; align-items: stretch; gap: 0; }
+.mylist-foot .mylist-total { width: 100%; display: flex; justify-content: space-between; align-items: baseline; }

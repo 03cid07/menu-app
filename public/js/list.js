@@ -73,13 +73,21 @@ function pageHtml() {
   if (drawerView === "receipt") return receiptHtml(rows);
   return `${BACK_BTN}<h1 id="mylist-title" class="list-title" tabindex="-1">My list</h1>
     <p class="mylist-hint">Show this list to your server when you're ready to order.</p>
-    <ul class="mylist-rows">${rows.map(([it, q]) => `<li class="ml-row" data-id="${esc(it.id)}">
-      <div class="ml-name">${mqHtml(it.name)}<small>${money(it.price)} each${it.available ? "" : " \u00b7 sold out"}</small></div>
+    <p class="mylist-summary"><strong>${rows.length}</strong> dish${rows.length === 1 ? "" : "es"} \u00b7 <strong>${listCount()}</strong> item${listCount() === 1 ? "" : "s"}</p>
+    <ul class="mylist-rows">${rows.map(([it, q]) => {
+      const img = (it.images && it.images[0]) || it.image;
+      const thumb = img ? `<img class="ml-thumb" src="${esc(img)}" alt="" loading="lazy">` : `<span class="ml-thumb ph" aria-hidden="true">${esc(it.name.trim().charAt(0).toUpperCase())}</span>`;
+      return `<li class="ml-row${it.available ? "" : " is-out"}" data-id="${esc(it.id)}">
+      ${thumb}
+      <div class="ml-name">${mqHtml(it.name)}
+        <small>${it.category ? `${esc(it.category)} \u00b7 ` : ""}${money(it.price)} each${it.available ? "" : ' \u00b7 <em class="ml-out">sold out</em>'}</small>
+      </div>
       <div class="ml-step" role="group" aria-label="Quantity of ${esc(it.name)}">
         <button type="button" data-dec aria-label="Remove one ${esc(it.name)}">${ICON_MINUS}</button><span aria-live="polite">${q}</span><button type="button" data-inc aria-label="Add one ${esc(it.name)}"${it.available ? "" : " disabled"}>${ICON_PLUS}</button>
       </div>
-      <span class="ml-sub">${money(Number(it.price) * q)}</span></li>`).join("")}</ul>
-    <div class="mylist-foot"><div class="mylist-total"><span>Total</span><strong>${money(listTotal())}</strong></div></div>
+      <span class="ml-sub"><small>${q} \u00d7 ${money(it.price)}</small>${money(Number(it.price) * q)}</span></li>`;
+    }).join("")}</ul>
+    <div class="mylist-foot"><div class="mylist-count"><span>Items</span><span>${listCount()}</span></div><div class="mylist-total"><span>Total</span><strong>${money(listTotal())}</strong></div></div>
     <div class="mylist-actions"><button type="button" class="btn ghost" data-clear-list>Clear list</button><button type="button" class="btn" data-done>Done</button></div>`;
 }
 
@@ -142,10 +150,15 @@ function listShow(on, done) {
 // Only what is not already inert is touched, so the 3D view's own inert state is left alone.
 const listBackdrop = () => [document.querySelector("header.top"), document.getElementById("fs"), document.getElementById("menu"), ...document.querySelectorAll(".home, .vw-screen")].filter(Boolean);
 
+let cardBack = null; // { id, opener } of the dish card that was open when My list was opened from it
 function openList(opts = {}) {
   if (listOpen || typeof data === "undefined" || !data) return;
-  // From the dish card's "View list": close the card first
-  if (typeof sheet !== "undefined" && !sheet.hidden && typeof closeSheet === "function") closeSheet();
+  // From the dish card's "View list": close the card first, and remember it so Back brings the same card (and its row of swipeable dishes) back
+  cardBack = null;
+  if (typeof sheet !== "undefined" && !sheet.hidden && typeof closeSheet === "function") {
+    if (sheetItem) cardBack = { id: sheetItem.id, opener: sheetOpener };
+    closeSheet();
+  }
   drawerView = "list";
   listOpen = true;
   listPage.hidden = false;
@@ -165,9 +178,18 @@ function closeList(opts = {}) {
   listInert.forEach((el) => { el.inert = false; });
   listInert = [];
   if (!opts.fromPop && location.hash === LIST_HASH) history.replaceState(null, "", location.pathname + location.search);
-  if (opts.quiet) { if (listFade) listFade.stop(); listV = 0; listPage.style.setProperty("--h", "0"); listPage.hidden = true; }
+  if (opts.quiet) { cardBack = null; if (listFade) listFade.stop(); listV = 0; listPage.style.setProperty("--h", "0"); listPage.hidden = true; }
   else {
-    listShow(false, () => { if (!listOpen) listPage.hidden = true; });
+    listShow(false, () => {
+      if (listOpen) return;
+      listPage.hidden = true;
+      // Back to where we were: the dish card opens again on the same dish
+      const back = cardBack; cardBack = null;
+      if (back && typeof openSheet === "function" && sheet.hidden) {
+        const op = back.opener && back.opener.isConnected ? back.opener : document.querySelector(`.item[data-id="${CSS.escape(back.id)}"] .item-open`);
+        openSheet(back.id, op);
+      }
+    });
     document.dispatchEvent(new CustomEvent("list:close"));
   }
 }
