@@ -61,7 +61,7 @@
       "images": [
         "images/mvtlbkve-xj2cf.jpg"
       ],
-      "model": "models/static_co_iced_coffee_13cm.glb",
+      "model": "models/static-co-cupIcedLatte2_10cm.glb",
       "temp": "",
       "label": "new",
       "available": true
@@ -77,7 +77,7 @@
       "images": [
         "images/mvtljfob-v59l8.jpg"
       ],
-      "model": "",
+      "model": "models/static-co-cupIcedMacchiato_10cm.glb",
       "temp": "",
       "label": "new",
       "available": true
@@ -93,7 +93,7 @@
       "images": [
         "images/mvtll5om-1ygju.jpg"
       ],
-      "model": "",
+      "model": "models/static-co-cupIcedMocha_10cm.glb",
       "temp": "",
       "label": "new",
       "available": true
@@ -109,7 +109,7 @@
       "images": [
         "images/mvtlm9cg-fi0o7.jpg"
       ],
-      "model": "",
+      "model": "models/static-co-cupIcedLatte_10cm.glb",
       "temp": "",
       "label": "new",
       "available": true
@@ -125,7 +125,7 @@
       "images": [
         "images/mvtln5h2-dst2s.jpg"
       ],
-      "model": "",
+      "model": "models/static-co-cupIcedAmericano_10cm.glb",
       "temp": "",
       "label": "new",
       "available": true
@@ -141,7 +141,7 @@
       "images": [
         "images/mvtlp9ng-978su.jpg"
       ],
-      "model": "models/static_co_matcha_textured_12cm.glb",
+      "model": "models/static-co-cupMatchaLatte_10cm.glb",
       "temp": "",
       "label": "new",
       "available": true
@@ -157,7 +157,7 @@
       "images": [
         "images/mvtlq2u5-qbcih.jpg"
       ],
-      "model": "",
+      "model": "models/static-co-cupStrawberryMilk_10cm.glb",
       "temp": "",
       "label": "new",
       "available": true
