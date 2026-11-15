@@ -4,6 +4,11 @@
 //   Viewer.openDish(id)    same, for one dish; keeps the dishes chosen before when "Add another 3D model" was used
 //   Viewer.close()         hide it
 //   Viewer.beginPick(keep) go to the Full menu listing only dishes with a 3D model; the next "View in 3D / AR" comes back here
+//                          (the buttons in the 3D view no longer use this: they open the picker and the QR scanner in js/viewer-add.js, so the scene stays put)
+//   Viewer.add(id)         put one more dish in the scene: returns "ok", "dup" (already there), "full" (4 dishes) or "none" (not a dish with a model)
+//   Viewer.replace(id)     show only this dish
+//                          (while an AR session runs, VwAdd.arUi adds a dish to the scene in place: see addInAr in openModels)
+//   Viewer.ids() / Viewer.max   the dishes in view / how many fit
 // It tells quick.js what happened with the events viewer:open, viewer:close and viewer:pick (quick.js owns the bottom bar and the Full menu).
 // Uses helpers from menu.js: $, esc, data, view, render, fxKind.
 (() => {
@@ -19,6 +24,7 @@
   const MAIN_HTML = `<div class="vw-pick">
       <button type="button" class="btn ghost" id="pick-btn">Choose a 3D model</button>
       <button type="button" class="btn ghost" id="add-btn" hidden>Add another 3D model</button>
+      <button type="button" class="btn ghost" id="scan-btn" hidden>Scan a dish QR</button>
     </div>
     <div id="viewer-stage"><div class="stage-wrap sk-stage" aria-hidden="true"></div></div>
     <p class="vw-hint">Drag to rotate. Tap "View on your table" to see it at real size through your camera. The dish appears once your phone has found your table; until then you will see a scanner. If that button is missing, this phone or browser does not support AR.</p>
@@ -52,7 +58,8 @@
     // Effects belong to one dish at a time: tap a dish below the viewer, then pick its effect.
     function openModels(items) {
       cleanup(); cleanup = () => {};
-      const multi = items.length > 1, src = items[0].model;
+      let multi = items.length > 1;                      // becomes true when a dish is added while the AR session is running (see addInAr)
+      const src = items[0].model;
       const stageHtml = `<div class="stage-wrap"><div class="mv-loader" role="status" aria-live="polite"><div class="mv-spin" aria-hidden="true"></div><div class="mv-ltext">${multi ? "Putting your dishes together\u2026" : "Loading 3D model\u2026"} <span class="mv-pct">0%</span></div><div class="mv-lbar" aria-hidden="true"><i></i></div></div><model-viewer ${multi ? "" : `src="${esc(src)}"`} alt="3D model of ${esc(items.map((i) => i.name.trim()).join(", "))}"
         ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor"
         autoplay camera-controls touch-action="pan-y" shadow-intensity="1" camera-orbit="auto auto 150%" max-camera-orbit="auto auto 600%">
@@ -178,13 +185,36 @@
       ["pointerdown", "pointermove", "pointerup", "mousedown", "touchstart", "touchmove", "touchend", "wheel"].forEach((t) => tray.addEventListener(t, (e) => e.stopPropagation(), { passive: true }));
       fxBtn.addEventListener("click", () => { const open = tray.hidden; tray.hidden = !open; fxBtn.setAttribute("aria-expanded", String(open)); });
       tray.addEventListener("click", (e) => { const c = e.target.closest(".fx-chip"); if (!c) return; pick[items[sel].id] = c.dataset.id; syncFx(); showFx(); });
+      // Adding a dish while the AR session is running (the button lives in js/viewer-add.js, VwAdd.arUi). Redrawing the screen would end the
+      // session, so the new dish is joined to the scene that is already on the table, to the right of the others. When AR ends, the screen
+      // is redrawn once so the dish chips and buttons match (see ar-status below).
+      const addInAr = async (id) => {
+        const it = modelDishes().find((x) => x.id === id);
+        if (!it || items.some((x) => x.id === id) || items.length >= MAX_DISHES) return false;
+        const b = await baseOf(it);
+        if (!b || !mv.isConnected) return false;
+        if (Object.keys(place).length) {                 // already several dishes: stand the new one at the right-hand end
+          const right = Math.max(...items.map((i) => (place[i.id] && info[i.id] ? place[i.id].x + info[i.id].size[0] / 2 : -Infinity)));
+          place[it.id] = { x: (isFinite(right) ? right : 0) + Math.max(0.02, 0.3 * b.size[0]) + b.size[0] / 2, z: 0 };
+          info[it.id] = b;
+        }
+        items.push(it); multi = true; sel = items.length - 1;
+        buildTray(); syncFx(); showFx();
+        return true;
+      };
+      const addUi = window.VwAdd && VwAdd.arUi ? VwAdd.arUi({ ids: () => items.map((i) => i.id), add: addInAr }) : null;
+      if (addUi) wrap.appendChild(addUi);
       let xr = false;
       if (navigator.xr && navigator.xr.isSessionSupported) navigator.xr.isSessionSupported("immersive-ar").then((v) => { xr = v; }).catch(() => {});
       // Android without WebXR opens Scene Viewer from the file's web address, so it gets the first dish's original file (it cannot read the combined scene)
       mv.querySelector(".ar-btn").addEventListener("click", () => { if (!xr && /Android/i.test(navigator.userAgent) && mv.src !== src) mv.src = src; }, true);
       mv.addEventListener("ar-status", (e) => {
-        if (e.detail.status === "session-started") { fxUi.classList.add("in-ar"); mv.appendChild(fxUi); }
-        else if (e.detail.status === "not-presenting") { fxUi.classList.remove("in-ar"); wrap.appendChild(fxUi); }
+        if (e.detail.status === "session-started") { fxUi.classList.add("in-ar"); mv.appendChild(fxUi); if (addUi) { addUi.show(); mv.appendChild(addUi); } }
+        else if (e.detail.status === "not-presenting") {
+          fxUi.classList.remove("in-ar"); wrap.appendChild(fxUi);
+          if (addUi) { addUi.hide(); wrap.appendChild(addUi); }
+          if (items.length !== currentIds.length) setDishes(items.map((i) => i.id));   // dishes were added in AR: redraw so the screen matches
+        }
       });
     }
 
@@ -194,7 +224,8 @@
     if (!withModel.length) { page.innerHTML = '<p class="vw-err">No dishes have a 3D model yet. <button type="button" class="linkbtn" data-vw-full>Go to the full menu</button></p>'; return; }
     const its = [...new Set(ids)].map((id) => withModel.find((x) => x.id === id)).filter(Boolean).slice(0, MAX_DISHES);
     currentIds = its.map((x) => x.id);
-    const pickBtn = $("#pick-btn"), addBtn = $("#add-btn");
+    const pickBtn = $("#pick-btn"), addBtn = $("#add-btn"), scanBtn = $("#scan-btn");
+    scanBtn.hidden = !window.VwAdd || its.length >= MAX_DISHES || withModel.length <= its.length;   // nothing left to scan for when the view is full or every dish is already in it
     if (!its.length) { pickBtn.textContent = "Choose a 3D model"; pickBtn.hidden = false; addBtn.hidden = true; openEmpty(); return; }
     document.title = `${its.map((x) => x.name.trim()).join(", ")} in 3D | ${data.restaurant}`;
     pickBtn.textContent = "Choose another 3D model"; pickBtn.hidden = its.length > 1;   // with several dishes, change them with the buttons under the viewer
@@ -261,8 +292,10 @@
   function goFull() { close({ quiet: true }); document.dispatchEvent(new CustomEvent("viewer:pick")); }
 
   root.addEventListener("click", (e) => {
-    if (e.target.closest("#pick-btn")) beginPick([]);
-    else if (e.target.closest("#add-btn")) beginPick(currentIds);
+    // The picker and the scanner open on top of the 3D view (js/viewer-add.js). Without that file, fall back to the Full menu.
+    if (e.target.closest("#pick-btn")) { if (window.VwAdd) VwAdd.open(currentIds.length ? "replace" : "add"); else beginPick([]); }
+    else if (e.target.closest("#add-btn")) { if (window.VwAdd) VwAdd.open("add"); else beginPick(currentIds); }
+    else if (e.target.closest("#scan-btn")) { if (window.VwAdd) VwAdd.scan(); }
     else if (e.target.closest("[data-vw-full]")) goFull();
   });
   // Browser Back / Forward
@@ -275,5 +308,15 @@
     if (e.key === "Escape" && isOpen && (typeof sheet === "undefined" || sheet.hidden)) close();
   });
 
-  window.Viewer = { root, open, openDish, close, beginPick, endPick, hashIds, isOpen: () => isOpen, modelDishes };
+  // Adding from inside the 3D view (used by js/viewer-add.js)
+  function addDish(id) {
+    if (!isOpen || !modelDishes().some((x) => x.id === id)) return "none";
+    if (currentIds.includes(id)) return "dup";
+    if (currentIds.length >= MAX_DISHES) return "full";
+    setDishes([...currentIds, id]);
+    return "ok";
+  }
+  const replaceDish = (id) => { if (isOpen) setDishes([id]); };
+
+  window.Viewer = { root, open, openDish, close, beginPick, endPick, hashIds, isOpen: () => isOpen, modelDishes, add: addDish, replace: replaceDish, ids: () => currentIds.slice(), max: MAX_DISHES };
 })();

@@ -688,6 +688,43 @@ html.boot-sk-viewer #boot { display: none !important; }
 .vw-sk .sk-line.xl { display: block; height: 2rem; width: 45%; margin: 0 0 .6rem; border-radius: 10px; }
 .vw-sk .sk-line.md { display: block; width: 70%; margin: 0; }
 @media (prefers-reduced-motion: reduce) { .vw-screen { animation: none; } }
+/* ---- Adding from inside the 3D view: the picker card and the QR scanner (js/viewer-add.js). They sit above the bottom bar. ---- */
+.vw-pick { display: flex; flex-wrap: wrap; gap: .4rem; }
+.vw-pick .btn.ghost { margin: 0; }
+.vwa { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
+.vwa[hidden], .vws[hidden], .vwa-toast[hidden] { display: none; }
+.vwa-box { position: relative; background: var(--surface); color: var(--ink); width: min(560px, 100%); max-height: 82vh; max-height: 82dvh; overflow-y: auto; overscroll-behavior: contain; border-radius: 18px 18px 0 0; will-change: transform; padding-bottom: env(safe-area-inset-bottom, 0px); }
+@media (min-width: 600px) { .vwa { align-items: center; padding: 1rem; } .vwa-box { border-radius: 16px; } }
+.vwa-head { position: sticky; top: 0; z-index: 1; background: var(--surface); padding: .9rem 1.1rem .6rem; border-bottom: 1px solid var(--line); }
+.vwa-top { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: .55rem; }
+.vwa-top h2 { margin: 0; font-size: 1.25rem; }
+.vwa-x { width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--bg); color: var(--ink); font-size: 1.5rem; line-height: 1; cursor: pointer; }
+.vwa-search { width: 100%; box-sizing: border-box; font: inherit; font-size: 1rem; padding: .55rem .8rem; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.vwa-list { padding: .35rem .6rem; }
+.vwa-row { display: flex; align-items: center; gap: .75rem; width: 100%; text-align: left; font: inherit; color: var(--ink); background: none; border: 0; border-radius: 12px; padding: .5rem; cursor: pointer; }
+.vwa-row:hover, .vwa-row:focus-visible { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.vwa-row:disabled { cursor: default; opacity: .55; background: none; }
+.vwa-thumb { flex: none; width: 52px; height: 52px; border-radius: 10px; object-fit: cover; background: var(--bg); }
+.vwa-ph { display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.3rem; color: var(--muted); }
+.vwa-txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: .1rem; }
+.vwa-txt strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vwa-txt small { color: var(--muted); }
+.vwa-act { flex: none; font-size: .85rem; font-weight: 700; color: var(--accent); }
+.vwa-act.in { color: var(--muted); font-weight: 500; }
+.vwa-none { margin: 1.5rem 0; text-align: center; color: var(--muted); }
+.vwa-foot { padding: .4rem 1.1rem 1rem; }
+.vwa-foot .btn { margin: 0; width: 100%; padding: .6rem; }
+.vws { position: fixed; inset: 0; z-index: 31; background: #000; color: #fff; }
+.vws-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.vws-shade { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.vws-frame { display: block; width: min(68vw, 300px); aspect-ratio: 1; border-radius: 22px; box-shadow: 0 0 0 100vmax rgba(0,0,0,.5); border: 3px solid var(--accent); }
+.vws-x { position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: 1.7rem; line-height: 1; cursor: pointer; }
+.vws-bottom { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: .7rem; padding: 1rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom, 0px)); background: linear-gradient(transparent, rgba(0,0,0,.7)); }
+.vws-msg { margin: 0; text-align: center; font-weight: 600; text-shadow: 0 1px 4px rgba(0,0,0,.7); }
+.vws-msg.bad { color: #ffb4a8; }
+.vws-bottom .btn { margin: 0; color: #fff; border-color: rgba(255,255,255,.6); background: rgba(0,0,0,.45); padding: .5rem .9rem; }
+.vwa-toast { position: fixed; left: 50%; bottom: calc(5.2rem + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 32; max-width: min(92vw, 420px); margin: 0; padding: .65rem 1rem; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: .9rem; font-weight: 600; text-align: center; box-shadow: 0 6px 20px rgba(0,0,0,.35); pointer-events: none; }
+
 
 /* 3D view: the empty stage shimmers until the menu has loaded and the real viewer replaces it */
 .sk-stage { flex: 1 1 auto; min-height: 200px; background: linear-gradient(90deg, var(--sk-a) 25%, var(--sk-b) 50%, var(--sk-a) 75%) 0 0 / 200% 100%; animation: sk-shimmer 1.3s linear infinite; }
@@ -1200,3 +1237,13 @@ body.no-scroll .restart-fab { visibility: hidden; } /* a dish card or the 3D vie
 }
 .list-box > .mylist-foot { flex-direction: column; align-items: stretch; gap: 0; }
 .mylist-foot .mylist-total { width: 100%; display: flex; justify-content: space-between; align-items: baseline; }
+
+/* ---- "+ Add dish" inside the AR session (js/viewer-add.js, arUi). Shown only while AR runs, top right (the Effects button is top left). ---- */
+.ar-add { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; z-index: 11; display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; pointer-events: auto; max-width: 70vw; }
+.ar-add[hidden], .ar-add [hidden] { display: none; }
+.ar-add-btn { font: inherit; font-size: .9rem; padding: .45rem .95rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.6); background: rgba(0,0,0,.6); color: #fff; cursor: pointer; }
+.ar-add-btn[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.ar-add-panel { display: flex; flex-direction: column; gap: .3rem; max-height: 42vh; overflow-y: auto; overscroll-behavior: contain; padding: .4rem; border-radius: 12px; background: rgba(0,0,0,.7); border: 1px solid rgba(255,255,255,.5); touch-action: pan-y; }
+.ar-add-row { font: inherit; font-size: .85rem; text-align: left; padding: .4rem .8rem; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.5); background: transparent; color: #fff; cursor: pointer; white-space: nowrap; }
+.ar-add-row:disabled { opacity: .5; }
+.ar-add-none, .ar-add-msg { margin: 0; font-size: .85rem; color: #fff; padding: .3rem .6rem; border-radius: 10px; background: rgba(0,0,0,.65); }
