@@ -10,6 +10,9 @@
   if (window.Viewer) document.body.appendChild(Viewer.root); // the 3D view screen goes above the start screen (same layer, later in the page), and below the bottom bar made further down
 
   let hist = [], cur = null;
+  // While the page is still booting (loading screen up / fading out) the start and Quick screens must appear fully solid.
+  // Fading them in at the same time as the loading screen fades out would show the Full menu behind them for a few frames.
+  let booting = true;
   // ---- Motion: Springs.spring from spring.js (README, "Motion and feel"), no CSS easing ----
   // A value runs 0-100 (the spring stops when it is within 0.4 of its target, so 0-1 would stop at once) and is
   // written to a CSS variable as 0-1. A new tween on the same variable takes over from where the last one got to.
@@ -26,7 +29,8 @@
   const openHome = () => {
     setFab(false); // the floating Start over only belongs on the filtered main menu, never over these screens
     home.classList.remove("leaving");
-    if (home.hidden) { home.hidden = false; snap(home, "--h", 0); tween(home, "--h", 1, { response: 0.4 }); }
+    if (booting) { home.hidden = false; snap(home, "--h", 1); }
+    else if (home.hidden) { home.hidden = false; snap(home, "--h", 0); tween(home, "--h", 1, { response: 0.4 }); }
     else tween(home, "--h", 1, { response: 0.3 });
   };
   const leaveHome = () => {
@@ -63,7 +67,7 @@
   }
   fab.addEventListener("click", () => { hist = []; show([]); });
   // Content of the current screen rises into place each time a new screen is drawn
-  const rise = () => { const box = home.firstElementChild; if (box) { snap(box, "--r", 0); tween(box, "--r", 1, { response: 0.5 }); } };
+  const rise = () => { const box = home.firstElementChild; if (booting) { if (box) snap(box, "--r", 1); return; } if (box) { snap(box, "--r", 0); tween(box, "--r", 1, { response: 0.5 }); } };
 
   // Bottom nav with an expanding label: the active tab grows into a pill and its label slides out, the others shrink to icons.
   const SVG = (d) => `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -207,5 +211,5 @@
     go();
   };
   // Wait for menu.js to finish loading the menu, then show the start screen
-  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); const to = location.hash.slice(1); if (linkedItemId() || to === "full") { home.hidden = true; setNav("full"); if (!linkedItemId()) introAfterBoot(); } else if (to === "quick") { hist = []; show([]); } else landing(); if (to === "list" && window.MyList) MyList.open({ noPush: true }); requestAnimationFrame(() => requestAnimationFrame(() => window.bootHide && window.bootHide())); } }, 50);
+  const t = setInterval(() => { if (typeof data !== "undefined" && data) { clearInterval(t); const to = location.hash.slice(1); if (linkedItemId() || to === "full") { home.hidden = true; setNav("full"); if (!linkedItemId()) introAfterBoot(); } else if (to === "quick") { hist = []; show([]); } else landing(); if (to === "list" && window.MyList) MyList.open({ noPush: true }); requestAnimationFrame(() => requestAnimationFrame(() => { window.bootHide && window.bootHide(); setTimeout(() => { booting = false; }, 900); })); } }, 50);
 })();
