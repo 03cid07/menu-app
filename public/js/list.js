@@ -131,6 +131,7 @@ function listSync() {
     b.setAttribute("aria-label", n ? `My list (${n} item${n === 1 ? "" : "s"})` : "My list");
   });
   if (listOpen) listRender();
+  document.dispatchEvent(new CustomEvent("list:sync")); // the mini list (mini-list.js) redraws itself
 }
 
 function listSet(id, q) {
@@ -248,3 +249,6 @@ const listWait = setInterval(() => {
   if (changed) listSave();
   listSync();
 }, 50);
+
+// The mini list (mini-list.js): added here too, so an older index.html without its <script> tag still gets it
+if (!document.querySelector('script[src*="mini-list.js"]')) { const sc = document.createElement("script"); sc.src = "js/mini-list.js?v=7"; document.body.appendChild(sc); }
