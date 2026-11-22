@@ -215,7 +215,7 @@ window.addEventListener("popstate", () => {
   else if (listOpen) closeList({ fromPop: true });
 });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && listOpen && (typeof sheet === "undefined" || sheet.hidden)) listBack(); });
-window.MyList = { open: openList, close: closeList, isOpen: () => listOpen };
+window.MyList = { open: openList, close: closeList, back: listBack, isOpen: () => listOpen };
 
 // - in the detail card stepper
 document.addEventListener("click", (e) => {
@@ -251,4 +251,4 @@ const listWait = setInterval(() => {
 }, 50);
 
 // The mini list (mini-list.js): added here too, so an older index.html without its <script> tag still gets it
-if (!document.querySelector('script[src*="mini-list.js"]')) { const sc = document.createElement("script"); sc.src = "js/mini-list.js?v=7"; document.body.appendChild(sc); }
+if (!document.querySelector('script[src*="mini-list.js"]')) { const sc = document.createElement("script"); sc.src = "js/mini-list.js?v=9"; document.body.appendChild(sc); }

@@ -6,7 +6,7 @@
   <title>Manage menu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=23">
+  <link rel="stylesheet" href="css/style.css?v=61">
 </head>
 <body class="admin-page">
   <nav class="adminnav" aria-label="Admin sections">
@@ -88,6 +88,12 @@
     </div>
     <div class="panel" data-panel="qr" hidden>
       <h2>QR code</h2>
+      <div class="qr-switch-row">
+        <label class="qm-switch" for="qr-enabled"><input type="checkbox" id="qr-enabled" role="switch" aria-describedby="qr-switch-hint" checked><span class="qm-slider"></span><span class="qm-swt" id="qr-enabled-t">QR codes are on</span></label>
+        <p class="hint" id="qr-switch-hint">For debugging. Off turns every QR in the system off: the QR buttons in the customer menu and the dish card, "Scan a dish QR" in the 3D view, the QR images and print sign, and this tab's tools. Customers see the change when they reload the menu.</p>
+      </div>
+      <div id="qr-off-note" class="qr-off-note" hidden><strong>QR codes are turned off.</strong> Turn the switch above back on to make or test QR codes.</div>
+      <div id="qr-body">
       <p class="hint">Customers scan this to open the menu on their phone. No app to install. Print it and put it on the tables. You can also make a QR for a single dish: it opens that dish's detail card.</p>
       <label for="qr-target">What should it open?</label>
       <select id="qr-target"><option value="">Whole menu</option></select>
@@ -105,7 +111,8 @@
           <p class="hint qr-tip">Print it at least 4 cm wide, dark on a light background, and scan it with both an iPhone and an Android phone before you use it. "Test link" opens exactly what the code contains.</p>
         </div>
       </div>
-    </div>
+          </div>
+</div>
     <div class="panel" data-panel="items"><h2>Current items</h2><div id="list"></div></div>
   </main>
   <div class="gf" id="gf" role="dialog" aria-modal="true" aria-labelledby="gf-title" hidden>
@@ -198,7 +205,7 @@
   <script src="js/rubber.js?v=2"></script>
   <script src="js/marquee.js"></script>
   <script src="js/quick-gen.js?v=6"></script>
-  <script src="js/admin.js?v=3"></script>
+  <script src="js/admin.js?v=4"></script>
   <script src="js/admin-quick.js?v=7"></script>
 </body>
 </html>

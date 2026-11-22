@@ -185,6 +185,8 @@
     const n = e.target.closest("[data-nav]");
     if (!n) return;
     if (n.dataset.nav === "list") return window.MyList && !MyList.isOpen() && MyList.open(); // opens over the current screen, which stays as it is
+    // The tab that was under My list (the one you came from): same as the page's Back button, so the screen is left exactly where it was (no scroll to top)
+    if (window.MyList && MyList.isOpen() && n.dataset.nav === navBeforeList) return MyList.back();
     // Any other tab while My list is open: the list page goes away at once and the bar goes back to the tab under it, then the tab is handled as usual
     if (window.MyList && MyList.isOpen()) { MyList.close({ quiet: true }); setNav(navBeforeList); }
     const wasViewer = !!(window.Viewer && Viewer.isOpen());

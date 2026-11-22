@@ -259,5 +259,6 @@
       "label": "",
       "available": true
     }
-  ]
+  ],
+  "qrEnabled": false
 }

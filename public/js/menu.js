@@ -161,6 +161,7 @@ function renderBar() {
   $("#fs").innerHTML = `<div class="fs-row-search"><div class="fs-bar">
       <button type="button" class="fs-icon fs-burger${dot ? " has-active" : ""}" data-open="menu" aria-expanded="${m}" aria-controls="fs-menu" aria-label="Filter and sort${n ? ` (${n} filter${n === 1 ? "" : "s"} on)` : ""}${pk ? ", showing your Quick menu picks" : ""}">${BURGER}</button>
       <input type="search" id="fs-q" class="fs-q" placeholder="Search dishes…" aria-label="Search dishes" autocomplete="off" value="${esc(view.q)}">
+      <button type="button" class="fs-clear" data-clear-q aria-label="Clear search"${view.q ? "" : " hidden"}><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></button>
       <span class="fs-search-ic">${SEARCH}</span>
     </div></div>
     <div class="fs-panel" id="fs-menu" ${m ? "" : "hidden"}>
@@ -298,9 +299,18 @@ document.addEventListener("keydown", (e) => {
 $("#fs").addEventListener("input", (e) => {
   if (e.target.id !== "fs-q") return;
   view.q = e.target.value;
+  const clr = $("#fs").querySelector("[data-clear-q]"); if (clr) clr.hidden = !view.q; // our own clear (x) button: shown whenever the box has text, also after coming back to this screen
   // Typing shows the loading skeleton too, then the results once you pause. An empty box goes straight back to the full menu.
   if (!view.q.trim()) { cancelSearchLoad(); renderList(); return; }
   runSearchLoad(SEARCH_TYPE_MS);
+});
+
+// The clear (x) button: empties the box, brings the full list back and keeps the keyboard on the box
+$("#fs").addEventListener("click", (e) => {
+  if (!e.target.closest("[data-clear-q]")) return;
+  const q = $("#fs-q"); view.q = ""; if (q) { q.value = ""; q.focus(); }
+  e.target.closest("[data-clear-q]").hidden = true;
+  cancelSearchLoad(); renderList();
 });
 
 // ---- Search loading: while you type (or press Enter) the icon spins, skeleton rows shimmer, results fade in ----

@@ -21,6 +21,15 @@ fs.mkdirSync(MODELS_DIR, { recursive: true });
 fs.mkdirSync(IMAGES_DIR, { recursive: true });
 
 app.use(express.json());
+
+// QR switch (admin > QR code tab, for debugging): while it is off, every QR address answers "turned off", before any file or route is served.
+// It is saved in menu.json as  "qrEnabled": false  (the key is removed again when QR codes are turned back on).
+const QR_OFF_PATHS = new Set(["/qr.png", "/qr.svg", "/qr-print.html", "/api/qr-url"]);
+const qrOff = () => { try { return JSON.parse(fs.readFileSync(DATA_FILE, "utf8")).qrEnabled === false; } catch { return false; } };
+app.use((req, res, next) => (QR_OFF_PATHS.has(req.path) && qrOff()
+  ? res.status(403).json({ error: "QR codes are turned off in the admin (QR code tab)." })
+  : next()));
+
 app.use(express.static(path.join(__dirname, "public")));
 
 const load = () => JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
@@ -208,6 +217,15 @@ app.delete("/api/quick", requirePin, (_req, res) => {
   res.status(204).end();
 });
 
+
+// ---- QR switch: turn every QR in the system off or on (needs the PIN). The customer menu reads it from /api/menu (qrEnabled). ----
+app.put("/api/settings/qr", requirePin, (req, res) => {
+  if (!req.body || typeof req.body.enabled !== "boolean") return res.status(400).json({ error: "Send { enabled: true } or { enabled: false }." });
+  const d = load();
+  if (req.body.enabled) delete d.qrEnabled; else d.qrEnabled = false;
+  save(d);
+  res.json({ qrEnabled: req.body.enabled });
+});
 
 // ---- QR code for the menu link ----
 // The QR must hold a link a customer's phone can open (not localhost), and AR needs https.

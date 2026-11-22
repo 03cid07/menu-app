@@ -1,18 +1,8 @@
-/* ---- Mini list: floating list button (bottom right) that grows into a small panel (js/mini-list.js) ---- */
-.ml-fab { position: fixed; z-index: 7; right: max(1rem, calc((100% - 760px) / 2 + 1.25rem)); bottom: calc(var(--nav-h) + 1.1rem + env(safe-area-inset-bottom, 0px));
-  display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; padding: 0; border-radius: 999px; cursor: pointer; -webkit-tap-highlight-color: transparent;
-  color: var(--accent-ink); background: var(--accent); border: 0; box-shadow: 0 8px 22px rgba(0,0,0,.4); transition: bottom .3s ease, transform .1s; }
-.ml-fab:active { transform: scale(.93); }
-.ml-fab:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-.ml-fab.is-away { visibility: hidden; }
-.ml-fab-badge { position: absolute; top: -5px; right: -5px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: .72rem; font-weight: 800; line-height: 20px; text-align: center; font-variant-numeric: tabular-nums; }
-.ml-fab-badge[hidden] { display: none; }
-body.no-scroll .ml-fab { visibility: hidden; }
-body.no-scroll .ml-fab.is-away { visibility: hidden; }
+/* ---- Mini list: small panel that grows out of the bottom bar's "My list" tab (js/mini-list.js) ---- */
 
 .ml-scrim { position: fixed; inset: 0; z-index: 11; background: rgba(0,0,0,.35); opacity: 0; }
 .ml-scrim[hidden], .ml-mini[hidden] { display: none; }
-.ml-mini { position: fixed; z-index: 12; overflow: hidden; box-sizing: border-box; color: var(--ink);
+.ml-mini { position: fixed; z-index: 12; will-change: transform, opacity; overflow: hidden; box-sizing: border-box; color: var(--ink);
   background: color-mix(in srgb, var(--surface) 96%, transparent); border: 1px solid var(--edge); box-shadow: 0 14px 40px rgba(0,0,0,.5);
   -webkit-backdrop-filter: blur(var(--card-blur, 10px)); backdrop-filter: blur(var(--card-blur, 10px)); }
 .ml-mini-in { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: .9rem .95rem .95rem; box-sizing: border-box; }
@@ -41,8 +31,5 @@ body.no-scroll .ml-fab.is-away { visibility: hidden; }
 .ml-mini-total strong { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
 .ml-mini-foot .ml-mini-open { flex: 1; margin: 0; display: inline-flex; align-items: center; justify-content: center; gap: .5rem; padding: .7rem 1rem; border-radius: 12px; white-space: nowrap; }
 .ml-mini.is-empty .ml-mini-foot { display: none; }
-@media (prefers-reduced-motion: reduce) { .ml-fab { transition: none; } }
 
 .mm-qty { flex: none; min-width: 2rem; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent); }
-/* Inside the menu box, bottom centre, in front (placed by js/mini-list.js, which gives it left / bottom) */
-.ml-fab.in-box { transition: none; }

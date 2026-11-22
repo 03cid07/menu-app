@@ -1,4 +1,6 @@
 let data;
+// The QR switch (QR code tab): off hides every QR tool here and in the customer menu. Saved in menu.json as qrEnabled: false.
+const qrOn = () => !(data && data.qrEnabled === false);
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // Messages show right above the Save button while the add/edit form is open, so they can't be missed.
@@ -117,10 +119,11 @@ async function refresh() {
         <div class="admin-row">${i.image ? `<img class="admin-thumb" src="/${esc(i.image)}" alt="">` : ""}<div><div class="admin-title"><strong>${mqHtml(i.name)}</strong><span class="price">${data.currency}${i.price}</span></div>
         <small>${esc(i.category)}${i.model ? " · 3D model" : ""}${i.available ? "" : " (sold out)"}</small></div></div>
         <div><button class="btn ghost" data-edit="${i.id}">Edit</button>
-        <button class="btn ghost" data-qr="${i.id}">QR</button>
+        ${qrOn() ? `<button class="btn ghost" data-qr="${i.id}">QR</button>` : ""}
         <button class="btn ghost" data-toggle="${i.id}">${i.available ? "Mark sold out" : "Mark available"}</button>
         <button class="btn ghost danger" data-del="${i.id}">Delete</button></div></div>`).join("")
     : "<p>No items yet. Add your first item above.</p>";
+  if (window.qrSync) qrSync(qrOn());
 }
 
 function resetForm() {
@@ -293,8 +296,33 @@ $("#list").addEventListener("click", (e) => {
   input.addEventListener("input", () => { source = ""; clearTimeout(timer); timer = setTimeout(update, 300); });
   document.addEventListener("qr-for", async (e) => { await loadItems(e.detail); input.value = linkFor(target.value); update(); });
   document.querySelector('[data-tab="qr"]').addEventListener("click", () => loadItems());
-  Promise.all([
-    fetch("/api/qr-url").then((r) => r.json()).catch(() => ({ url: location.origin + "/", source: "request" })),
+  // Fills the tab the first time QR is on (never calls the QR address while it is off: the server refuses it then)
+  let started = false;
+  const start = () => Promise.all([
+    fetch("/api/qr-url").then((r) => (r.ok ? r.json() : Promise.reject())).catch(() => ({ url: location.origin + "/", source: "request" })),
     loadItems(""),
   ]).then(([j]) => { base = j.url; input.value = j.url; source = j.source; update(); });
+
+  // Shows the tab for the current switch state; also called after the list loads
+  const sw = $("#qr-enabled"), swText = $("#qr-enabled-t");
+  window.qrSync = (on) => {
+    sw.checked = on; swText.textContent = on ? "QR codes are on" : "QR codes are off";
+    $("#qr-body").hidden = !on; $("#qr-off-note").hidden = on;
+    if (on && !started) { started = true; start(); }
+  };
+  if (data) qrSync(qrOn());
+
+  sw.addEventListener("change", async () => {
+    const want = sw.checked;
+    sw.disabled = true;
+    try {
+      await api("PUT", "/api/settings/qr", { enabled: want });
+      if (want) delete data.qrEnabled; else data.qrEnabled = false;
+      refresh();   // redraws the list (the per-dish QR buttons) and the tab
+      say(want ? "QR codes are on." : "QR codes are off everywhere. Customers see it when they reload the menu.");
+    } catch (err) {
+      sw.checked = !want; qrSync(qrOn());
+      say(err.message, true);
+    } finally { sw.disabled = false; }
+  });
 })();

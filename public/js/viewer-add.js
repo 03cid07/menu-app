@@ -59,6 +59,7 @@
     mode = m === "replace" ? "replace" : "add";
     title.textContent = mode === "replace" ? "Choose a 3D model" : "Add a 3D model";
     search.value = "";
+    pick.querySelector(".vwa-foot").hidden = typeof qrOn === "function" && !qrOn(); // no "Scan a dish QR" while QR is turned off in the admin
     renderList();
     opener = document.activeElement;
     pick.hidden = false;
@@ -146,6 +147,7 @@
   }
 
   async function openScanner() {
+    if (typeof qrOn === "function" && !qrOn()) return; // QR turned off in the admin
     if (!V.isOpen() || !scanEl.hidden) return;
     closePicker();
     const my = ++run;

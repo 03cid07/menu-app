@@ -1,18 +1,13 @@
-// Mini list: a small panel that grows out of a button (the dish card's "View list", or the floating list button at the bottom right).
+// Mini list: a small panel that grows out of a button (the bottom bar's "My list" tab, or the dish card's "View list").
+// With dishes in the list, tapping "My list" in the bottom bar shows this panel first; its "Open My list" button goes on to the full page. With an empty list the tab opens the page directly.
 // It shows the dishes in the list with - / + and the total, and has an "Open My list" button that goes to the full My list page (list.js).
 // Uses helpers from menu.js and list.js: data, esc, money, listEntries, listCount, listTotal, listSet, ICON_LIST, ICON_PLUS, ICON_MINUS.
 (() => {
   if (window.__miniList) return; // loaded twice (index.html and list.js both add it): only the first one runs
   window.__miniList = true;
   // Its own stylesheet, added here so only the script needs to be on the page
-  if (!document.querySelector('link[href*="mini-list.css"]')) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "css/mini-list.css?v=7"; document.head.appendChild(l); }
+  if (!document.querySelector('link[href*="mini-list.css"]')) { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "css/mini-list.css?v=9"; document.head.appendChild(l); }
   const reduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  // ---- Floating button (bottom right) ----
-  const fab = document.createElement("button");
-  fab.type = "button"; fab.className = "ml-fab"; fab.setAttribute("aria-haspopup", "dialog"); fab.setAttribute("aria-expanded", "false");
-  fab.innerHTML = `${ICON_LIST}<span class="ml-fab-badge" hidden></span>`;
-  document.body.appendChild(fab);
 
   // ---- Panel ----
   const scrim = document.createElement("div");
@@ -29,7 +24,8 @@
   const inner = panel.firstElementChild, rowsEl = panel.querySelector(".ml-mini-rows");
   const countEl = panel.querySelector(".ml-mini-count"), totalEl = panel.querySelector(".ml-mini-total strong");
 
-  let isOpen = false, origin = null, anim = null, t = 0, A = null, B = null;
+  let isOpen = false, origin = null, anim = null, t = 0, A = null, B = null, anchor = null;
+  const navBtn = () => document.querySelector(".bottomnav [data-nav=\"list\"]");
 
   const fill = () => {
     const rows = listEntries(), n = listCount();
@@ -46,42 +42,53 @@
     }).join("") : `<li class="mm-empty">Your list is empty. Tap + on a dish to add it.</li>`;
   };
 
-  const syncFab = () => {
-    const n = listCount(), b = fab.querySelector(".ml-fab-badge");
-    b.textContent = n; b.hidden = !n;
-    fab.setAttribute("aria-label", n ? `My list (${n} item${n === 1 ? "" : "s"})` : "My list");
-  };
-
   const rectOf = (el) => {
     const r = el.getBoundingClientRect();
     return { right: innerWidth - r.right, bottom: innerHeight - r.bottom, w: r.width, h: r.height, rad: parseFloat(getComputedStyle(el).borderTopLeftRadius) || 14 };
   };
-  const mix = (a, b, k) => a + (b - a) * k;
+  // The panel is laid out once at its final size and only moves with transform + opacity (no size change while it animates, so nothing reflows).
+  // It grows out of the button it came from: scaling from that button's centre, as a spring.
+  const layout = () => {
+    panel.style.right = B.right + "px"; panel.style.bottom = B.bottom + "px";
+    panel.style.width = B.w + "px"; panel.style.height = B.h + "px"; panel.style.borderRadius = B.rad + "px";
+    setOrigin();
+  };
+  const setOrigin = () => {
+    const cx = innerWidth - A.right - A.w / 2, cy = innerHeight - A.bottom - A.h / 2;
+    panel.style.transformOrigin = (cx - (innerWidth - B.right - B.w)).toFixed(1) + "px " + (cy - (innerHeight - B.bottom - B.h)).toFixed(1) + "px";
+  };
   const paint = (k) => {
     t = k;
-    panel.style.right = mix(A.right, B.right, k) + "px";
-    panel.style.bottom = mix(A.bottom, B.bottom, k) + "px";
-    panel.style.width = mix(A.w, B.w, k) + "px";
-    panel.style.height = mix(A.h, B.h, k) + "px";
-    panel.style.borderRadius = mix(A.rad, B.rad, k) + "px";
-    inner.style.opacity = Math.max(0, Math.min(1, (k - 0.3) / 0.6)).toFixed(3);
-    scrim.style.opacity = Math.min(1, k).toFixed(3);
+    const c = Math.max(0, Math.min(1, k));
+    panel.style.opacity = Math.min(1, c * 1.8).toFixed(3);
+    panel.style.transform = k === 1 ? "none" : `translateY(${((1 - k) * 10).toFixed(2)}px) scale(${(0.6 + 0.4 * Math.max(0, k)).toFixed(4)})`;
+    inner.style.opacity = Math.max(0, Math.min(1, (c - 0.15) / 0.5)).toFixed(3);
+    scrim.style.opacity = c.toFixed(3);
   };
   const run = (to, done) => {
     if (anim) anim.stop();
     if (reduce() || !window.Springs) { paint(to); return done && done(); }
-    anim = Springs.spring({ from: t * 100, to: to * 100, response: to ? 0.42 : 0.32, damping: 1, onUpdate: (x) => paint(Math.max(0, Math.min(1, x / 100))), onDone: () => { paint(to); done && done(); } });
+    // opening settles with a small bounce; closing is quick and clean
+    anim = Springs.spring({ from: t * 100, to: to * 100, response: to ? 0.46 : 0.26, damping: to ? 0.74 : 1, onUpdate: (x) => paint(Math.max(0, x / 100)), onDone: () => { paint(to); done && done(); } });
   };
 
-  // Where the panel ends up: its bottom right corner stays on the button it grew from, as wide as fits, as tall as its list needs
-  const target = (from) => {
+  // Where the panel ends up. From the bottom bar's tab: centred just above the tab. From the dish card's button: its bottom right corner stays on the button.
+  // As wide as fits, as tall as its list needs.
+  const target = (from, above) => {
     const W = Math.min(360, innerWidth - 24);
     const prev = [panel.style.width, panel.style.height];
     panel.style.width = W + "px"; panel.style.height = "auto"; inner.style.opacity = "0";
     const nat = inner.offsetHeight;
     panel.style.width = prev[0]; panel.style.height = prev[1];
-    let right = Math.max(12, from.right), bottom = Math.max(12, from.bottom);
-    if (innerWidth - right - W < 12) right = innerWidth - W - 12;
+    let right, bottom;
+    if (above) {
+      const cx = innerWidth - from.right - from.w / 2;
+      const left = Math.max(12, Math.min(cx - W / 2, innerWidth - W - 12));
+      right = innerWidth - left - W; bottom = from.bottom + from.h + 10;
+    } else {
+      right = Math.max(12, from.right); bottom = Math.max(12, from.bottom);
+      if (innerWidth - right - W < 12) right = innerWidth - W - 12;
+    }
     const H = Math.min(nat, Math.max(160, innerHeight - bottom - 24 - 24), Math.round(innerHeight * 0.7));
     return { right, bottom, w: W, h: H, rad: 22 };
   };
@@ -91,46 +98,35 @@
     isOpen = true; origin = from;
     fill();
     scrim.hidden = false; panel.hidden = false;
-    A = rectOf(from); B = target(A);
-    fab.setAttribute("aria-expanded", "true");
-    if (from === fab) fab.classList.add("is-away");
-    t = 0; paint(0);
+    A = rectOf(from); anchor = A; B = target(anchor, from === navBtn());
+    from.setAttribute("aria-expanded", "true");
+    layout(); t = 0; paint(0);
     run(1, () => { if (isOpen) panel.querySelector("h2").focus({ preventScroll: true }); });
   }
   function close(quiet) {
     if (!isOpen) return;
     isOpen = false;
-    fab.setAttribute("aria-expanded", "false");
     const back = origin; origin = null;
-    const finish = () => { if (isOpen) return; panel.hidden = true; scrim.hidden = true; fab.classList.remove("is-away"); if (anim) anim.stop(); };
+    if (back && back.setAttribute) back.setAttribute("aria-expanded", "false");
+    const finish = () => { if (isOpen) return; panel.hidden = true; scrim.hidden = true; if (anim) anim.stop(); };
     if (quiet) { finish(); t = 0; return; }
-    // grow back into the button it came from (found again, as the card redraws its controls); else into the floating button
-    const btn = back === fab ? fab : (document.querySelector(".sheet:not([hidden]) .sheet-viewlist") || null);
-    if (btn && btn.getBoundingClientRect().width) { A = rectOf(btn); }
-    else { fab.classList.remove("is-away"); A = rectOf(fab); }
+    // grow back into the button it came from (found again, as the card redraws its controls); else just fade away where it is
+    const btn = back && back === navBtn() ? back : (document.querySelector(".sheet:not([hidden]) .sheet-viewlist") || null);
+    if (btn && btn.getBoundingClientRect().width) { A = rectOf(btn); setOrigin(); }
     run(0, () => { finish(); if (back && back.isConnected && !back.closest("[hidden]")) back.focus({ preventScroll: true }); });
   }
 
-  // The floating button is tucked into the bottom edge of the menu's rounded box (.pgr-box): centred on the box, fully inside it and in front of the dishes
-  // (a normal, sharp button, not under the frosted glass). It follows the box as the page lays out,
-  // and falls back to the CSS position (bottom right of the column, above everything) on screens that have no such box.
-  let last = "";
-  const place = () => {
-    requestAnimationFrame(place);
-    if (isOpen) return;
-    const box = document.querySelector("#menu .pgr-box:not(.pgr-off)") || document.querySelector("#menu .pgr-box");
-    const r = box && box.getBoundingClientRect();
-    let key = "";
-    if (r && r.width > 120 && r.height > 120 && r.bottom > 80 && r.top < innerHeight) {
-      const edge = Math.min(r.bottom, innerHeight - 96), size = fab.offsetWidth || 52;
-      const left = (r.left + r.right) / 2 - size / 2, bottom = innerHeight - edge + 10;
-      key = Math.round(left) + "," + Math.round(bottom);
-      if (key !== last) { fab.classList.add("in-box"); fab.style.left = left + "px"; fab.style.right = "auto"; fab.style.bottom = bottom + "px"; }
-    } else if (last !== "") { fab.classList.remove("in-box"); fab.style.left = ""; fab.style.right = ""; fab.style.bottom = ""; }
-    last = key;
-  };
-  place();
-  fab.addEventListener("click", () => (isOpen ? close() : open(fab)));
+  // The bottom bar's "My list" tab: with dishes in the list it shows this panel first (the panel's "Open My list" goes on to the page).
+  // With an empty list, or while the page is already open, the tab behaves as before (quick.js).
+  document.addEventListener("click", (e) => {
+    const n = e.target.closest('[data-nav="list"]');
+    if (!n) return;
+    if (isOpen) { e.stopPropagation(); e.preventDefault(); return close(); }
+    if (window.MyList && MyList.isOpen()) return;
+    if (typeof listCount !== "function" || !listCount()) return;
+    e.stopPropagation(); e.preventDefault();
+    open(n);
+  }, true);
   scrim.addEventListener("click", () => close());
   // The dish card's "View list" opens the panel instead of the page (the panel's own "Open My list" goes to the page)
   document.addEventListener("click", (e) => {
@@ -146,11 +142,9 @@
 
   // Refresh when the list changes (list.js tells us), keeping the scroll place and the panel's size right
   document.addEventListener("list:sync", () => {
-    syncFab();
     if (!isOpen) return;
     const top = rowsEl.scrollTop;
     fill(); rowsEl.scrollTop = top;
-    if (t >= 1) { B = target(B); paint(1); } // the panel follows the list as it grows or shrinks
+    if (t >= 1) { B = target(anchor, origin === navBtn()); layout(); paint(1); } // the panel follows the list as it grows or shrinks
   });
-  syncFab();
 })();

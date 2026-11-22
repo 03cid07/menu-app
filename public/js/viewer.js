@@ -225,7 +225,7 @@
     const its = [...new Set(ids)].map((id) => withModel.find((x) => x.id === id)).filter(Boolean).slice(0, MAX_DISHES);
     currentIds = its.map((x) => x.id);
     const pickBtn = $("#pick-btn"), addBtn = $("#add-btn"), scanBtn = $("#scan-btn");
-    scanBtn.hidden = !window.VwAdd || its.length >= MAX_DISHES || withModel.length <= its.length;   // nothing left to scan for when the view is full or every dish is already in it
+    scanBtn.hidden = !window.VwAdd || !qrOn() || its.length >= MAX_DISHES || withModel.length <= its.length;   // nothing left to scan for when the view is full or every dish is already in it
     if (!its.length) { pickBtn.textContent = "Choose a 3D model"; pickBtn.hidden = false; addBtn.hidden = true; openEmpty(); return; }
     document.title = `${its.map((x) => x.name.trim()).join(", ")} in 3D | ${data.restaurant}`;
     pickBtn.textContent = "Choose another 3D model"; pickBtn.hidden = its.length > 1;   // with several dishes, change them with the buttons under the viewer
@@ -295,7 +295,7 @@
     // The picker and the scanner open on top of the 3D view (js/viewer-add.js). Without that file, fall back to the Full menu.
     if (e.target.closest("#pick-btn")) { if (window.VwAdd) VwAdd.open(currentIds.length ? "replace" : "add"); else beginPick([]); }
     else if (e.target.closest("#add-btn")) { if (window.VwAdd) VwAdd.open("add"); else beginPick(currentIds); }
-    else if (e.target.closest("#scan-btn")) { if (window.VwAdd) VwAdd.scan(); }
+    else if (e.target.closest("#scan-btn")) { if (window.VwAdd && qrOn()) VwAdd.scan(); }
     else if (e.target.closest("[data-vw-full]")) goFull();
   });
   // Browser Back / Forward
