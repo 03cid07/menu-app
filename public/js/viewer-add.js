@@ -3,7 +3,7 @@
 //                      in view; mode "replace" swaps the single dish for the tapped one.
 //   VwAdd.scan()       camera scanner: point it at a dish's QR code (the one made in the admin QR tab, link ?item=ID) and that dish is added.
 //   VwAdd.close()      closes whichever of the two is showing
-//   VwAdd.arUi(host)   the "+ Add dish" button and list shown inside the AR session (see below)
+//   VwAdd.arUi(host)   the "Dishes" button inside the AR session: a bottom card to add dishes and to remove the ones in the scene (see below)
 // Uses Viewer (js/viewer.js) for what is in view and for adding, and $ / esc / money / data from js/menu.js.
 // The scanner uses the phone's own QR reader when it has one (BarcodeDetector, Chrome / Android). Everything else (iPhone Safari,
 // desktop Firefox) uses js/jsqr.min.js, which is only downloaded the first time someone scans.
@@ -229,19 +229,21 @@
   // ================= Inside the AR session ("View on your table") =================
   // Only a page element that sits inside <model-viewer> can be shown over the camera (WebXR DOM overlay: Android Chrome). iPhone (Quick Look) and
   // Android Scene Viewer draw their own screen, so no button can appear there. The camera is in use by AR, so scanning is not offered here; the list is.
-  // host = { ids(): dish ids in the scene, add(id): Promise<true | false | "nofit">, fits(id): false when a virtual table has no room for that dish }. Returns the element, with show() / hide(); viewer.js puts it in and out of the model-viewer.
+  // host = { ids(): dish ids in the scene, add(id): Promise<true | false | "nofit">, remove(id): Promise<boolean>, fits(id): false when a virtual table has no room for that dish }. Returns the element, with show() / hide(); viewer.js puts it in and out of the model-viewer.
   function arUi(host) {
     const el = document.createElement("div");
     el.className = "ar-add";
     el.hidden = true;
-    el.innerHTML = `<button type="button" class="ar-add-btn" aria-expanded="false">+ Add dish</button><div class="ar-add-panel" role="group" aria-label="Add a dish" hidden><div class="ar-add-head"><span class="ar-add-title">Add a dish</span><button type="button" class="ar-add-close">Close</button></div><div class="ar-add-list"></div></div><p class="ar-add-msg" role="status" hidden></p>`;
-    const btn = el.querySelector(".ar-add-btn"), panel = el.querySelector(".ar-add-panel"), list = el.querySelector(".ar-add-list"), closeBtn = el.querySelector(".ar-add-close"), note = el.querySelector(".ar-add-msg");
+    el.innerHTML = `<button type="button" class="ar-add-btn" aria-expanded="false">Dishes</button><div class="ar-add-panel" role="group" aria-label="Add or remove a dish" hidden><div class="ar-add-head"><span class="ar-add-title">Your dishes</span><button type="button" class="ar-add-close">Close</button></div><div class="ar-add-in"></div><div class="ar-add-lbl">Add another</div><div class="ar-add-list"></div></div><p class="ar-add-msg" role="status" hidden></p>`;
+    const btn = el.querySelector(".ar-add-btn"), panel = el.querySelector(".ar-add-panel"), list = el.querySelector(".ar-add-list"), inEl = el.querySelector(".ar-add-in"), closeBtn = el.querySelector(".ar-add-close"), note = el.querySelector(".ar-add-msg");
     list.dataset.rb = "off";
     let busy = false, nt = 0;
     const flash = (t) => { note.textContent = t; note.hidden = false; clearTimeout(nt); nt = setTimeout(() => { note.hidden = true; }, 2400); };
     // One card per dish that has a 3D model and is not in the scene yet: its photo (or its first letter), name and price. The strip scrolls sideways.
     const render = () => {
       const inView = host.ids(), left = withModel().filter((i) => !inView.includes(i.id));
+      // the dishes in the scene, each with an \u00d7 to take it out (the last one has none: something has to stay on the table)
+      inEl.innerHTML = inView.map((id) => { const d = data.items.find((x) => x.id === id), nm = d ? nameOf(d) : id; return `<span class="ar-add-chip"><span class="ar-add-cn">${esc(nm)}</span>${inView.length > 1 ? `<button type="button" class="ar-add-del" data-id="${esc(id)}" aria-label="Remove ${esc(nm)}">\u00d7</button>` : ""}</span>`; }).join("");
       list.innerHTML = inView.length >= V.max ? `<span class="ar-add-none">Full: ${V.max} dishes</span>`
         : left.length ? left.map((i) => {
           const pic = i.image ? `<img class="ar-add-img" src="${esc(i.image)}" alt="" draggable="false">` : `<span class="ar-add-ph" aria-hidden="true">${esc(nameOf(i).charAt(0).toUpperCase())}</span>`;
@@ -255,6 +257,18 @@
     btn.addEventListener("click", () => setOpen(panel.hidden));
     closeBtn.addEventListener("click", () => setOpen(false));
     panel.addEventListener("click", async (e) => {
+      const x = e.target.closest(".ar-add-del");
+      if (x) {
+        if (busy || !host.remove) return;
+        busy = true; x.disabled = true;
+        const gone = data.items.find((d) => d.id === x.dataset.id);
+        let ok = false;
+        try { ok = await host.remove(x.dataset.id); } catch { ok = false; }
+        busy = false;
+        render();                                            // stays open: the dish is back in the "Add another" list, and more can be removed
+        flash(ok ? `${gone ? nameOf(gone) : "Dish"} removed` : "Could not remove that dish");
+        return;
+      }
       const r = e.target.closest(".ar-add-row");
       if (!r || busy) return;
       busy = true; r.disabled = true;

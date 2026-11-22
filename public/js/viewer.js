@@ -193,11 +193,14 @@
       let FX = [];
       const buildTray = () => {
         FX = T ? [{ id: "", icon: "\u{1F6AB}", name: "None" }, ...[...T.EFFECTS].sort((x, y) => (y.g === fxKind(items[sel])) - (x.g === fxKind(items[sel])))] : [];
-        tray.innerHTML = FX.map((f) => `<button type="button" class="fx-chip" data-id="${f.id}" aria-pressed="false">${f.icon} ${esc(f.name)}</button>`).join("");
+        // With several dishes, a row on top says which dish the effect is for (each dish keeps its own). Only shown in AR, where the dish chips under the viewer are out of reach.
+        const who = items.length > 1 ? `<div class="fx-pick"><span class="fx-for">Effect for</span>${items.map((it, i) => `<button type="button" class="fx-dish" data-i="${i}" aria-pressed="false">${esc(it.name.trim())}</button>`).join("")}</div>` : "";
+        tray.innerHTML = who + `<div class="fx-row">${FX.map((f) => `<button type="button" class="fx-chip" data-id="${f.id}" aria-pressed="false">${f.icon} ${esc(f.name)}</button>`).join("")}</div>`;
       };
       function syncFx() {
         const cur = pick[items[sel].id] || "";
         tray.querySelectorAll(".fx-chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.id === cur)));
+        tray.querySelectorAll(".fx-dish").forEach((b) => { const i = Number(b.dataset.i), it = items[i]; if (!it) return; b.setAttribute("aria-pressed", String(i === sel)); b.textContent = it.name.trim() + (pick[it.id] ? " \u2713" : ""); });   // a tick: this dish has an effect
         const f = FX.find((x) => x.id === cur);
         fxBtn.textContent = cur && f ? `${f.icon} ${f.name}` : "\u2728 Effects";
         document.querySelectorAll(".vw-dish-sel").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.i) === sel)));
@@ -224,8 +227,8 @@
       [fxUi, fxBtn, tray].forEach((el) => el.addEventListener("beforexrselect", (e) => e.preventDefault()));
       ["pointerdown", "pointermove", "pointerup", "mousedown", "touchstart", "touchmove", "touchend", "wheel"].forEach((t) => tray.addEventListener(t, (e) => e.stopPropagation(), { passive: true }));
       fxBtn.addEventListener("click", () => { const open = tray.hidden; tray.hidden = !open; fxBtn.setAttribute("aria-expanded", String(open)); });
-      tray.addEventListener("click", (e) => { const c = e.target.closest(".fx-chip"); if (!c) return; pick[items[sel].id] = c.dataset.id; syncFx(); showFx(); });
-      // Adding a dish while the AR session is running (the button lives in js/viewer-add.js, VwAdd.arUi). Redrawing the screen would end the
+      tray.addEventListener("click", (e) => { const d = e.target.closest(".fx-dish"); if (d) { sel = Number(d.dataset.i); buildTray(); syncFx(); return; } const c = e.target.closest(".fx-chip"); if (!c) return; pick[items[sel].id] = c.dataset.id; syncFx(); showFx(); });
+      // Adding (and below, removing) a dish while the AR session is running (the button lives in js/viewer-add.js, VwAdd.arUi). Redrawing the screen would end the
       // session, so the new dish is joined to the scene that is already on the table, to the right of the others. When AR ends, the screen
       // is redrawn once so the dish chips and buttons match (see ar-status below).
       const addInAr = async (id) => {
@@ -243,7 +246,19 @@
         buildTray(); syncFx(); showFx();
         return true;
       };
-      const addUi = window.VwAdd && VwAdd.arUi ? VwAdd.arUi({ ids: () => items.map((i) => i.id), add: addInAr, fits: (id) => { if (!tableId || !VT || !sizes[id]) return true; const f = feetOf(items.map((i) => i.id)); return f.some((x) => !x) ? true : VT.fits(tableId, [...f, [sizes[id][0], sizes[id][2]]]); } }) : null;
+      // Taking a dish out while the AR session is running: the scene is rebuilt without it, the others keep their places (on a virtual table they
+      // are arranged again on the top). The last dish cannot be removed, there would be nothing left to show.
+      const removeInAr = async (id) => {
+        const k = items.findIndex((x) => x.id === id);
+        if (k < 0 || items.length <= 1 || !mv.isConnected) return false;
+        items.splice(k, 1);
+        delete place[id]; delete info[id]; delete pick[id];
+        if (k < sel) sel--;
+        sel = Math.max(0, Math.min(sel, items.length - 1));
+        buildTray(); syncFx(); showFx();
+        return true;
+      };
+      const addUi = window.VwAdd && VwAdd.arUi ? VwAdd.arUi({ ids: () => items.map((i) => i.id), add: addInAr, remove: removeInAr, fits: (id) => { if (!tableId || !VT || !sizes[id]) return true; const f = feetOf(items.map((i) => i.id)); return f.some((x) => !x) ? true : VT.fits(tableId, [...f, [sizes[id][0], sizes[id][2]]]); } }) : null;
       if (addUi) wrap.appendChild(addUi);
       let xr = false;
       if (navigator.xr && navigator.xr.isSessionSupported) navigator.xr.isSessionSupported("immersive-ar").then((v) => { xr = v; }).catch(() => {});
@@ -254,7 +269,7 @@
         else if (e.detail.status === "not-presenting") {
           fxUi.classList.remove("in-ar"); wrap.appendChild(fxUi);
           if (addUi) { addUi.hide(); wrap.appendChild(addUi); }
-          if (items.length !== currentIds.length) setDishes(items.map((i) => i.id));   // dishes were added in AR: redraw so the screen matches
+          if (items.map((i) => i.id).join() !== currentIds.join()) setDishes(items.map((i) => i.id));   // dishes were added or removed in AR: redraw so the screen matches
           else if (tableId) { tableId = ""; showFx(); }                              // the virtual table was only for the AR session
         }
       });

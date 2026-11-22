@@ -134,13 +134,17 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 .fx-ui.in-ar .fx-toggle { top: max(12px, env(safe-area-inset-top)); right: auto; left: 12px; z-index: 11; pointer-events: auto; font-size: .9rem; padding: .45rem .95rem; background: rgba(0,0,0,.6); color: #fff; border-color: rgba(255,255,255,.6); }
 .fx-ui { display: contents; }
 .fx-toggle[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-.fx-tray { position: absolute; left: 8px; right: 8px; bottom: 60px; z-index: 3; display: flex; gap: .4rem; overflow-x: auto; padding: .4rem; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); scrollbar-width: thin; -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior: contain; }
+.fx-tray { position: absolute; left: 8px; right: 8px; bottom: 60px; z-index: 3; display: flex; flex-direction: column; gap: .4rem; padding: .4rem; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
+.fx-row, .fx-pick { display: flex; gap: .4rem; overflow-x: auto; scrollbar-width: thin; -webkit-overflow-scrolling: touch; touch-action: pan-x; overscroll-behavior: contain; }
+.fx-pick { display: none; align-items: center; }
+.fx-ui.in-ar .fx-pick { display: flex; }
+.fx-for { flex: none; font-size: .78rem; color: #fff; opacity: .8; }
 .fx-tray[hidden] { display: none; }
-.fx-chip { flex: none; font: inherit; font-size: .8rem; padding: .3rem .7rem; border-radius: 999px; border: 1.5px solid var(--outline); background: transparent; color: var(--ink); cursor: pointer; white-space: nowrap; }
-.fx-chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.fx-chip, .fx-dish { flex: none; font: inherit; font-size: .8rem; padding: .3rem .7rem; border-radius: 999px; border: 1.5px solid var(--outline); background: transparent; color: var(--ink); cursor: pointer; white-space: nowrap; }
+.fx-chip[aria-pressed="true"], .fx-dish[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .fx-ui.in-ar .fx-tray { bottom: calc(max(16px, env(safe-area-inset-bottom)) + 56px); z-index: 11; background: rgba(0,0,0,.65); border-color: rgba(255,255,255,.5); pointer-events: auto; }
-.fx-ui.in-ar .fx-chip { color: #fff; border-color: rgba(255,255,255,.5); }
-.fx-ui.in-ar .fx-chip[aria-pressed="true"] { background: #fff; color: #000; }
+.fx-ui.in-ar .fx-chip, .fx-ui.in-ar .fx-dish { color: #fff; border-color: rgba(255,255,255,.5); }
+.fx-ui.in-ar .fx-chip[aria-pressed="true"], .fx-ui.in-ar .fx-dish[aria-pressed="true"] { background: #fff; color: #000; }
 
 /* ---- Ratings + product detail card ---- */
 :root { --star: #f5a623; --star-off: rgba(128,128,128,.35); }
@@ -1284,6 +1288,13 @@ body.no-scroll .restart-fab { visibility: hidden; } /* a dish card or the 3D vie
 .ar-add-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 0 .9rem; }
 .ar-add-title { font-weight: 700; font-size: 1.05rem; }
 .ar-add-close { font: inherit; font-size: .9rem; padding: .45rem .9rem; border-radius: 999px; cursor: pointer; border: 1px solid rgba(255,255,255,.55); background: transparent; color: #fff; }
+.ar-add-in { display: flex; flex-wrap: wrap; gap: .4rem; padding: 0 .9rem; }
+.ar-add-chip { display: inline-flex; align-items: center; gap: .15rem; max-width: 100%; padding: .2rem .25rem .2rem .75rem; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.45); background: rgba(255,255,255,.08); font-size: .88rem; }
+.ar-add-chip:not(:has(.ar-add-del)) { padding-right: .75rem; }
+.ar-add-cn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ar-add-del { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(255,255,255,.18); color: #fff; font-size: 1.15rem; line-height: 1; cursor: pointer; }
+.ar-add-del:disabled { opacity: .5; }
+.ar-add-lbl { padding: 0 .9rem; font-size: .8rem; color: rgba(255,255,255,.75); }
 .ar-add-list { display: flex; flex-direction: row; gap: .65rem; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; touch-action: pan-x; scroll-snap-type: x proximity; scroll-padding: 0 .9rem; -webkit-overflow-scrolling: touch;
   padding: .15rem .9rem .35rem; scrollbar-width: none; }
 .ar-add-list::-webkit-scrollbar { display: none; }
