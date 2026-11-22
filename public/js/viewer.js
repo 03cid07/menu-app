@@ -87,6 +87,7 @@
       const VT = window.VirtualTable;
       let tableId = "";                                  // the virtual table under the dishes in AR ("" = none)
       const bases = new Map(), made = new Map();
+      const sizes = {};                                   // dish id -> its size in meters, once known (used to check what fits on a table)
       const place = {}, info = {};                        // where each dish stands on the floor (centre x, z) and its size, so a moved dish stays where you put it
       const blobUrl = (u8) => URL.createObjectURL(new Blob([u8], { type: "model/gltf-binary" }));
       const baseOf = (it) => {
@@ -96,11 +97,13 @@
           const r = T.stripEffects(T.parseGlb(buf));
           const bd = T.bounds(r.gltf);
           if (!bd) throw new Error("the model has no shapes to measure");
+          sizes[it.id] = bd.size;
           return { u8: r.had ? T.buildGlb(r.gltf, r.bin) : new Uint8Array(buf), had: r.had, size: bd.size, ctr: bd.ctr };
         })().catch((e) => { console.error("Effects: could not prepare the model", e); return null; }));
         return bases.get(it.id);
       };
       const withFx = (b, id) => (id ? T.applyEffects(b.u8, b.size, b.ctr, { [id]: FX_STRENGTH }).glb : b.u8);
+      const feetOf = (ids) => ids.map((id) => sizes[id] && [sizes[id][0], sizes[id][2]]);   // [width, depth] per dish; a missing one is undefined
       const urlFor = async () => {
         const tid = tableId;
         const key = items.map((i) => pick[i.id] || "").join("|") + (multi ? JSON.stringify(place) : "") + (tid ? "@" + tid : "");
@@ -108,6 +111,9 @@
         const bs = await Promise.all(items.map(baseOf));
         if (bs.some((b) => !b)) return null;
         const tb = tid && VT ? await VT.load(tid) : null;   // the virtual table; throws if it cannot be downloaded
+        // On a table every dish gets a spot that is wholly on the top, away from the edge and from the other dishes. No room: say so (e.fit).
+        const lay = tb ? VT.arrange({ shape: VT.byId(tid).shape, w: tb.size[0], d: tb.size[2] }, bs.map((b) => [b.size[0], b.size[2]])) : null;
+        if (tb && !lay) { const e = new Error("the dishes do not fit on this table"); e.fit = true; throw e; }
         let url;
         if (!multi && !tb) {
           const id = pick[items[0].id] || "", b = bs[0];
@@ -120,7 +126,7 @@
             if (floor) floor.setStep(FloorGrid.niceStep(Math.max(...bs.map((b) => Math.max(b.size[0], b.size[2]))) / 4));
           }
           const parts = bs.map((b, i) => {
-            const pl = multi ? place[items[i].id] : { x: 0, z: 0 };      // one dish on a table: in the middle of it
+            const pl = lay ? lay[i] : multi ? place[items[i].id] : { x: 0, z: 0 };   // on a table: the spot worked out above
             const lift = tb ? tb.top : 0;                                 // with a table, the dishes stand on its top
             return { index: i, u8: withFx(b, pick[items[i].id] || ""), pos: [pl.x - b.ctr[0], lift - (b.ctr[1] - b.size[1] / 2), pl.z - b.ctr[2]] };
           });
@@ -130,7 +136,7 @@
         made.set(key, url);
         return url;
       };
-      const guide = window.ArGuide ? ArGuide.attach(mv, VT ? { tables: VT.LIST, onTable: (id) => setTable(id) } : undefined) : null;
+      const guide = window.ArGuide ? ArGuide.attach(mv, VT ? { tables: VT.LIST, onTable: (id) => setTable(id), fits: (id) => { const f = feetOf(items.map((i) => i.id)); return f.some((x) => !x) ? true : VT.fits(id, f); } } : undefined) : null;
       const floor = window.FloorGrid ? FloorGrid.attach(mv, wrap) : null;   // grid lines on the floor under the dishes
       const drag = multi && window.DishDrag && floor ? DishDrag.attach(mv, {
         floor,
@@ -227,6 +233,7 @@
         if (!it || items.some((x) => x.id === id) || items.length >= MAX_DISHES) return false;
         const b = await baseOf(it);
         if (!b || !mv.isConnected) return false;
+        if (tableId && VT && !VT.fits(tableId, [...feetOf(items.map((i) => i.id)).filter(Boolean), [b.size[0], b.size[2]]])) return "nofit";   // no room left on the table
         if (Object.keys(place).length) {                 // already several dishes: stand the new one at the right-hand end
           const right = Math.max(...items.map((i) => (place[i.id] && info[i.id] ? place[i.id].x + info[i.id].size[0] / 2 : -Infinity)));
           place[it.id] = { x: (isFinite(right) ? right : 0) + Math.max(0.02, 0.3 * b.size[0]) + b.size[0] / 2, z: 0 };
@@ -236,7 +243,7 @@
         buildTray(); syncFx(); showFx();
         return true;
       };
-      const addUi = window.VwAdd && VwAdd.arUi ? VwAdd.arUi({ ids: () => items.map((i) => i.id), add: addInAr }) : null;
+      const addUi = window.VwAdd && VwAdd.arUi ? VwAdd.arUi({ ids: () => items.map((i) => i.id), add: addInAr, fits: (id) => { if (!tableId || !VT || !sizes[id]) return true; const f = feetOf(items.map((i) => i.id)); return f.some((x) => !x) ? true : VT.fits(tableId, [...f, [sizes[id][0], sizes[id][2]]]); } }) : null;
       if (addUi) wrap.appendChild(addUi);
       let xr = false;
       if (navigator.xr && navigator.xr.isSessionSupported) navigator.xr.isSessionSupported("immersive-ar").then((v) => { xr = v; }).catch(() => {});

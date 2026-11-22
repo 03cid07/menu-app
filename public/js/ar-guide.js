@@ -14,7 +14,8 @@
  *      it, on the floor in front of them. The scene itself is built by js/viewer.js (the onTable option below). A small "Change table" button
  *      stays on screen afterwards, so the choice can be changed or taken away again.
  *
- *   ArGuide.attach(mv, { tables: [{ id, name, note, shape, color }], onTable: async (id) => {} })
+ *   ArGuide.attach(mv, { tables: [{ id, name, note, shape, color, img }], onTable: async (id) => {}, fits: (id) => boolean })
+ *     fits(id) is optional: false greys that table out as too small for the dishes in the scene. onTable may throw an error with .fit = true (no room).
  *     tables / onTable are optional; without them the virtual table offer is simply not shown. onTable("") means "no table".
  *
  * It reaches into model-viewer 4.0.0 internals (the pinned version in index.html) with feature checks. If anything is missing it falls back to the
@@ -73,11 +74,12 @@
     <button type="button" class="ar-override" hidden>Place it here anyway</button>
     <button type="button" class="ar-vt-btn" hidden>Use a virtual table</button>
     <div class="ar-vt" role="dialog" aria-label="Choose a virtual table" hidden>
-      <div class="ar-vt-title">Make your own table</div>
-      <div class="ar-vt-sub">Pick a table. Your dish stands on it, on the floor in front of you.</div>
+      <div class="ar-vt-head">
+        <div class="ar-vt-ttl"><div class="ar-vt-title">Make your own table</div><div class="ar-vt-sub">Swipe and pick one. Your dish stands on it.</div></div>
+        <button type="button" class="ar-vt-cancel">Keep looking</button>
+      </div>
       <div class="ar-vt-list"></div>
       <button type="button" class="ar-vt-none" hidden>Take the table away</button>
-      <button type="button" class="ar-vt-cancel">Keep looking</button>
     </div>
     <button type="button" class="ar-vt-chg">Change table</button>`;
 
@@ -92,6 +94,7 @@
     tableLook: ["Now looking for the floor", "Aim at the floor in front of you. Your table will stand there."],
     tableFound: ["Your table is ready", "Drag it to move it. Turn it with two fingers."],
     tableFail: ["Could not set up that table", "Try another one, or keep looking for your real table."],
+    tableTight: ["Not enough room on that table", "Your dishes do not all fit. Pick a bigger table, or remove a dish."],
   };
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -113,7 +116,10 @@
     const vtBtn = el.querySelector(".ar-vt-btn"), vt = el.querySelector(".ar-vt"), vtList = el.querySelector(".ar-vt-list"),
       vtNone = el.querySelector(".ar-vt-none"), vtCancel = el.querySelector(".ar-vt-cancel"), vtChg = el.querySelector(".ar-vt-chg");
     vtChg.hidden = true;
-    vtList.innerHTML = tables.map((t) => `<button type="button" class="ar-vt-opt" data-id="${esc(t.id)}"><i class="ar-vt-sw ${t.shape === "square" ? "square" : "round"}" style="--c:${esc(t.color || "#999")}"></i><span><b>${esc(t.name)}</b><small>${esc(t.note || "")}</small></span></button>`).join("");
+    vtList.innerHTML = tables.map((t) => {
+      const pic = t.img ? `<img class="ar-vt-img" src="${esc(t.img)}" alt=""  draggable="false">` : `<i class="ar-vt-sw ${t.shape === "square" ? "square" : "round"}" style="--c:${esc(t.color || "#999")}"></i>`;
+      return `<button type="button" class="ar-vt-opt" data-id="${esc(t.id)}"><span class="ar-vt-pic">${pic}</span><b>${esc(t.name)}</b><small>${esc(t.note || "")}</small><em class="ar-vt-tag" hidden>Too small for your dishes</em></button>`;
+    }).join("");
     // In AR, taps on page elements would also count as "select" in the XR scene; this keeps the button tap to itself
     [btn, vtBtn, vt, vtChg].forEach((n) => n.addEventListener("beforexrselect", (e) => e.preventDefault()));
     ["pointerdown", "pointermove", "pointerup", "mousedown", "touchstart", "touchmove", "touchend", "wheel"].forEach((t) => vt.addEventListener(t, (e) => e.stopPropagation(), { passive: true }));
@@ -123,7 +129,7 @@
     let startedAt = 0, firstFloorAt = 0, lastFloorAt = 0;
     let lowestY = null, streak = 0, lastY = 0, accepted = null;
     let scene = null, timer = 0, toast = 0, inSearch = false;
-    let tableId = "", busy = false, notice = 0;      // the virtual table now in use ("" = none), setting one up, and until when the error message stays
+    let tableId = "", busy = false, notice = 0, tight = false;      // the virtual table now in use ("" = none), setting one up, and until when the error message stays
 
     const setScene = (visible) => { try { if (scene) scene.visible = visible; } catch (e) { /* ignore */ } };
 
@@ -169,7 +175,7 @@
       let st, text, offer = false, offerTable = false;
       if (placed) { st = "found"; text = tableId ? TEXT.tableFound : TEXT.found; }
       else if (busy) { st = "scanning"; text = TEXT.tableWait; }
-      else if (now < notice) { st = "none"; text = TEXT.tableFail; }
+      else if (now < notice) { st = "none"; text = tight ? TEXT.tableTight : TEXT.tableFail; }
       else if (lost) { st = "lost"; text = TEXT.lost; }
       else if (tableId) { st = "scanning"; text = TEXT.tableLook; }
       else if (hooked && lastFloorAt && now - lastFloorAt < RECENT_MS) {
@@ -200,7 +206,11 @@
     function openPicker() {
       vtNone.hidden = !tableId;
       vtCancel.textContent = placed ? "Close" : "Keep looking";
-      vtList.querySelectorAll(".ar-vt-opt").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === tableId)));
+      vtList.querySelectorAll(".ar-vt-opt").forEach((b) => {
+        b.setAttribute("aria-pressed", String(b.dataset.id === tableId));
+        const room = !opts || typeof opts.fits !== "function" || opts.fits(b.dataset.id) !== false;     // too small for the dishes now in the scene
+        b.disabled = !room; b.querySelector(".ar-vt-tag").hidden = room;
+      });
       vt.hidden = false; el.dataset.vt = "open";
     }
     function closePicker() { vt.hidden = true; delete el.dataset.vt; }
@@ -210,7 +220,7 @@
       try { await onTable(id); }
       catch (e) {
         console.error("AR guide: could not set up the virtual table", e);
-        busy = false; notice = performance.now() + NOTICE_MS; view();
+        busy = false; tight = !!(e && e.fit); notice = performance.now() + NOTICE_MS; view();
         return;
       }
       busy = false; tableId = id;

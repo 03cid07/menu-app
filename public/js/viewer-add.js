@@ -229,24 +229,31 @@
   // ================= Inside the AR session ("View on your table") =================
   // Only a page element that sits inside <model-viewer> can be shown over the camera (WebXR DOM overlay: Android Chrome). iPhone (Quick Look) and
   // Android Scene Viewer draw their own screen, so no button can appear there. The camera is in use by AR, so scanning is not offered here; the list is.
-  // host = { ids(): dish ids in the scene, add(id): Promise<boolean> }. Returns the element, with show() / hide(); viewer.js puts it in and out of the model-viewer.
+  // host = { ids(): dish ids in the scene, add(id): Promise<true | false | "nofit">, fits(id): false when a virtual table has no room for that dish }. Returns the element, with show() / hide(); viewer.js puts it in and out of the model-viewer.
   function arUi(host) {
     const el = document.createElement("div");
     el.className = "ar-add";
     el.hidden = true;
-    el.innerHTML = `<button type="button" class="ar-add-btn" aria-expanded="false">+ Add dish</button><div class="ar-add-panel" role="group" aria-label="Add a dish" hidden></div><p class="ar-add-msg" role="status" hidden></p>`;
-    const btn = el.querySelector(".ar-add-btn"), panel = el.querySelector(".ar-add-panel"), note = el.querySelector(".ar-add-msg");
-    panel.dataset.rb = "off";
+    el.innerHTML = `<button type="button" class="ar-add-btn" aria-expanded="false">+ Add dish</button><div class="ar-add-panel" role="group" aria-label="Add a dish" hidden><div class="ar-add-head"><span class="ar-add-title">Add a dish</span><button type="button" class="ar-add-close">Close</button></div><div class="ar-add-list"></div></div><p class="ar-add-msg" role="status" hidden></p>`;
+    const btn = el.querySelector(".ar-add-btn"), panel = el.querySelector(".ar-add-panel"), list = el.querySelector(".ar-add-list"), closeBtn = el.querySelector(".ar-add-close"), note = el.querySelector(".ar-add-msg");
+    list.dataset.rb = "off";
     let busy = false, nt = 0;
     const flash = (t) => { note.textContent = t; note.hidden = false; clearTimeout(nt); nt = setTimeout(() => { note.hidden = true; }, 2400); };
+    // One card per dish that has a 3D model and is not in the scene yet: its photo (or its first letter), name and price. The strip scrolls sideways.
     const render = () => {
       const inView = host.ids(), left = withModel().filter((i) => !inView.includes(i.id));
-      panel.innerHTML = inView.length >= V.max ? `<span class="ar-add-none">Full: ${V.max} dishes</span>`
-        : left.length ? left.map((i) => `<button type="button" class="ar-add-row" data-id="${esc(i.id)}">${esc(nameOf(i))}</button>`).join("")
+      list.innerHTML = inView.length >= V.max ? `<span class="ar-add-none">Full: ${V.max} dishes</span>`
+        : left.length ? left.map((i) => {
+          const pic = i.image ? `<img class="ar-add-img" src="${esc(i.image)}" alt="" draggable="false">` : `<span class="ar-add-ph" aria-hidden="true">${esc(nameOf(i).charAt(0).toUpperCase())}</span>`;
+          const room = !host.fits || host.fits(i.id) !== false;     // false: the virtual table has no room left for it
+          return `<button type="button" class="ar-add-row" data-id="${esc(i.id)}"${room ? "" : " disabled"}><span class="ar-add-pic">${pic}</span><b>${esc(nameOf(i))}</b><small>${room ? money(i.price) : "No room on the table"}</small></button>`;
+        }).join("")
         : `<span class="ar-add-none">Every dish is already here</span>`;
+      list.scrollLeft = 0;
     };
     const setOpen = (on) => { if (on) render(); panel.hidden = !on; btn.setAttribute("aria-expanded", String(on)); };
     btn.addEventListener("click", () => setOpen(panel.hidden));
+    closeBtn.addEventListener("click", () => setOpen(false));
     panel.addEventListener("click", async (e) => {
       const r = e.target.closest(".ar-add-row");
       if (!r || busy) return;
@@ -256,10 +263,10 @@
       try { ok = await host.add(r.dataset.id); } catch { ok = false; }
       busy = false;
       setOpen(false);
-      flash(ok ? `${it ? nameOf(it) : "Dish"} added` : "Could not add that dish");
+      flash(ok === true ? `${it ? nameOf(it) : "Dish"} added` : ok === "nofit" ? "No room on the table for that dish" : "Could not add that dish");
     });
     // Touches on these controls must not turn the model or place it (same guards as the Effects tray)
-    [el, btn, panel].forEach((n) => n.addEventListener("beforexrselect", (e) => e.preventDefault()));
+    [el, btn, panel, closeBtn].forEach((n) => n.addEventListener("beforexrselect", (e) => e.preventDefault()));
     ["pointerdown", "pointermove", "pointerup", "mousedown", "touchstart", "touchmove", "touchend", "wheel"].forEach((t) => el.addEventListener(t, (e) => e.stopPropagation(), { passive: true }));
     el.show = () => { el.hidden = false; };
     el.hide = () => { el.hidden = true; setOpen(false); note.hidden = true; };

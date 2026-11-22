@@ -1143,21 +1143,32 @@ model-viewer[data-ar-scan] .mv-label { visibility: hidden; }
 .ar-vt-btn, .ar-vt-chg { pointer-events: auto; font: inherit; font-size: .9rem; font-weight: 600; padding: .5rem 1rem; border-radius: 999px; cursor: pointer;
   border: 1px solid #ffb74d; background: rgba(0,0,0,.6); color: #ffb74d; }
 .ar-vt-btn[hidden], .ar-vt-chg[hidden], .ar-vt-none[hidden], .ar-vt[hidden] { display: none; }
-.ar-vt-chg { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 11; display: none; padding: .45rem .95rem; color: #fff; border-color: rgba(255,255,255,.6); white-space: nowrap; }
+.ar-vt-chg { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 44px); left: 12px; z-index: 11; display: none; padding: .45rem .95rem; color: #fff; border-color: rgba(255,255,255,.6); white-space: nowrap; }   /* top-left corner, just under the Effects button */
 .ar-scan[data-compact]:not([data-vt]) .ar-vt-chg:not([hidden]) { display: block; }
-.ar-vt { pointer-events: auto; display: flex; flex-direction: column; gap: .5rem; width: min(340px, 100%); max-height: 100%; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
-  padding: .9rem; border-radius: 18px; background: rgba(0,0,0,.78); border: 1px solid rgba(255,255,255,.35); text-align: left; }
+/* the picker: a card strip along the bottom of the screen that scrolls sideways */
+.ar-vt { pointer-events: auto; position: absolute; left: 0; right: 0; bottom: 0; z-index: 12; display: flex; flex-direction: column; gap: .6rem; box-sizing: border-box;
+  padding: .85rem 0 calc(max(12px, env(safe-area-inset-bottom)) + .35rem); border-radius: 20px 20px 0 0; background: rgba(0,0,0,.8); border-top: 1px solid rgba(255,255,255,.3); text-align: left; }
+.ar-vt-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 0 .9rem; }
+.ar-vt-ttl { min-width: 0; }
 .ar-vt-title { font-weight: 700; font-size: 1.05rem; color: #fff; }
-.ar-vt-sub { font-size: .85rem; line-height: 1.35; color: rgba(255,255,255,.85); }
-.ar-vt-list { display: flex; flex-direction: column; gap: .4rem; margin-top: .2rem; }
-.ar-vt-opt { display: flex; align-items: center; gap: .75rem; width: 100%; font: inherit; text-align: left; padding: .55rem .75rem; border-radius: 14px; cursor: pointer;
-  border: 1.5px solid rgba(255,255,255,.4); background: rgba(255,255,255,.06); color: #fff; }
-.ar-vt-opt[aria-pressed="true"] { border-color: #a3c45f; background: rgba(163,196,95,.2); }
-.ar-vt-opt b { display: block; font-size: .95rem; }
-.ar-vt-opt small { display: block; font-size: .78rem; color: rgba(255,255,255,.75); }
-.ar-vt-sw { flex: none; width: 34px; height: 34px; background: var(--c, #999); box-shadow: inset 0 -4px 0 rgba(0,0,0,.22), 0 0 0 2px rgba(255,255,255,.35); }
+.ar-vt-sub { font-size: .8rem; line-height: 1.3; color: rgba(255,255,255,.8); }
+.ar-vt-list { display: flex; flex-direction: row; gap: .65rem; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; touch-action: pan-x; scroll-snap-type: x proximity; scroll-padding: 0 .9rem; -webkit-overflow-scrolling: touch;
+  padding: .15rem .9rem .35rem; scrollbar-width: none; }
+.ar-vt-list::-webkit-scrollbar { display: none; }
+.ar-vt-opt { flex: none; width: 148px; scroll-snap-align: start; display: flex; flex-direction: column; gap: .1rem; font: inherit; text-align: left; padding: .45rem .45rem .6rem; border-radius: 16px; cursor: pointer;
+  border: 2px solid rgba(255,255,255,.35); background: rgba(255,255,255,.07); color: #fff; }
+.ar-vt-opt[aria-pressed="true"] { border-color: #a3c45f; background: rgba(163,196,95,.22); }
+.ar-vt-opt:disabled { opacity: .5; cursor: default; }
+.ar-vt-tag { display: block; padding: .15rem .2rem 0; font-style: normal; font-size: .72rem; line-height: 1.25; color: #ffb74d; }
+.ar-vt-tag[hidden] { display: none; }
+.ar-vt-pic { display: flex; align-items: center; justify-content: center; height: 104px; margin-bottom: .35rem; border-radius: 11px; background: radial-gradient(ellipse at 50% 40%, rgba(255,255,255,.22), rgba(255,255,255,.06)); overflow: hidden; }
+.ar-vt-img { max-width: 100%; max-height: 100%; object-fit: contain; pointer-events: none; -webkit-user-drag: none; user-select: none; }
+.ar-vt-opt b { display: block; padding: 0 .2rem; font-size: .95rem; }
+.ar-vt-opt small { display: block; padding: 0 .2rem; font-size: .78rem; color: rgba(255,255,255,.75); }
+.ar-vt-sw { flex: none; width: 54px; height: 54px; background: var(--c, #999); box-shadow: inset 0 -6px 0 rgba(0,0,0,.22), 0 0 0 2px rgba(255,255,255,.35); }
 .ar-vt-sw.round { border-radius: 50%; }
-.ar-vt-sw.square { border-radius: 6px; }
+.ar-vt-sw.square { border-radius: 8px; }
+.ar-vt-none { align-self: center; }
 .ar-vt-none, .ar-vt-cancel { font: inherit; font-size: .9rem; padding: .5rem .9rem; border-radius: 999px; cursor: pointer; border: 1px solid rgba(255,255,255,.55); background: transparent; color: #fff; }
 .ar-scan[data-vt] .ar-stage, .ar-scan[data-vt] .ar-msg, .ar-scan[data-vt] .ar-override, .ar-scan[data-vt] .ar-vt-btn,
 .ar-scan[data-compact] .ar-stage, .ar-scan[data-compact] .ar-msg, .ar-scan[data-compact] .ar-override, .ar-scan[data-compact] .ar-vt-btn { display: none; }
@@ -1262,15 +1273,30 @@ body.no-scroll .restart-fab { visibility: hidden; } /* a dish card or the 3D vie
 .list-box > .mylist-foot { flex-direction: column; align-items: stretch; gap: 0; }
 .mylist-foot .mylist-total { width: 100%; display: flex; justify-content: space-between; align-items: baseline; }
 
-/* ---- "+ Add dish" inside the AR session (js/viewer-add.js, arUi). Shown only while AR runs, top right (the Effects button is top left). ---- */
-.ar-add { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; z-index: 11; display: flex; flex-direction: column; align-items: flex-end; gap: .4rem; pointer-events: auto; max-width: 70vw; }
+/* ---- "+ Add dish" inside the AR session (js/viewer-add.js, arUi). Shown only while AR runs. The button is top right (the Effects button is top left);
+   its dishes open as a strip of photo cards along the bottom that scrolls sideways. ---- */
+.ar-add { position: absolute; inset: 0; z-index: 11; pointer-events: none; }
 .ar-add[hidden], .ar-add [hidden] { display: none; }
-.ar-add-btn { font: inherit; font-size: .9rem; padding: .45rem .95rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.6); background: rgba(0,0,0,.6); color: #fff; cursor: pointer; }
+.ar-add-btn { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; pointer-events: auto; font: inherit; font-size: .9rem; padding: .45rem .95rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.6); background: rgba(0,0,0,.6); color: #fff; cursor: pointer; }
 .ar-add-btn[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-.ar-add-panel { display: flex; flex-direction: column; gap: .3rem; max-height: 42vh; overflow-y: auto; overscroll-behavior: contain; padding: .4rem; border-radius: 12px; background: rgba(0,0,0,.7); border: 1px solid rgba(255,255,255,.5); touch-action: pan-y; }
-.ar-add-row { font: inherit; font-size: .85rem; text-align: left; padding: .4rem .8rem; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.5); background: transparent; color: #fff; cursor: pointer; white-space: nowrap; }
+.ar-add-panel { position: absolute; left: 0; right: 0; bottom: 0; pointer-events: auto; display: flex; flex-direction: column; gap: .6rem; box-sizing: border-box; padding: .85rem 0 calc(max(12px, env(safe-area-inset-bottom)) + .35rem);
+  border-radius: 20px 20px 0 0; background: rgba(0,0,0,.8); border-top: 1px solid rgba(255,255,255,.3); color: #fff; }
+.ar-add-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 0 .9rem; }
+.ar-add-title { font-weight: 700; font-size: 1.05rem; }
+.ar-add-close { font: inherit; font-size: .9rem; padding: .45rem .9rem; border-radius: 999px; cursor: pointer; border: 1px solid rgba(255,255,255,.55); background: transparent; color: #fff; }
+.ar-add-list { display: flex; flex-direction: row; gap: .65rem; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; touch-action: pan-x; scroll-snap-type: x proximity; scroll-padding: 0 .9rem; -webkit-overflow-scrolling: touch;
+  padding: .15rem .9rem .35rem; scrollbar-width: none; }
+.ar-add-list::-webkit-scrollbar { display: none; }
+.ar-add-row { flex: none; width: 132px; scroll-snap-align: start; display: flex; flex-direction: column; gap: .1rem; font: inherit; text-align: left; padding: .4rem .4rem .55rem; border-radius: 16px; cursor: pointer;
+  border: 2px solid rgba(255,255,255,.35); background: rgba(255,255,255,.07); color: #fff; }
 .ar-add-row:disabled { opacity: .5; }
-.ar-add-none, .ar-add-msg { margin: 0; font-size: .85rem; color: #fff; padding: .3rem .6rem; border-radius: 10px; background: rgba(0,0,0,.65); }
+.ar-add-pic { display: flex; align-items: center; justify-content: center; height: 96px; margin-bottom: .35rem; border-radius: 11px; background: rgba(255,255,255,.1); overflow: hidden; }
+.ar-add-img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; -webkit-user-drag: none; user-select: none; }
+.ar-add-ph { font-weight: 800; font-size: 2rem; color: rgba(255,255,255,.7); }
+.ar-add-row b { display: block; padding: 0 .2rem; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ar-add-row small { display: block; padding: 0 .2rem; font-size: .78rem; color: rgba(255,255,255,.75); }
+.ar-add-none { margin: 0; font-size: .85rem; color: #fff; padding: .3rem .6rem; border-radius: 10px; background: rgba(0,0,0,.65); }
+.ar-add-msg { position: absolute; left: 50%; bottom: calc(max(16px, env(safe-area-inset-bottom)) + 70px); transform: translateX(-50%); margin: 0; white-space: nowrap; font-size: .85rem; color: #fff; padding: .4rem .8rem; border-radius: 999px; background: rgba(0,0,0,.7); }
 
 /* Phones: the NEW / HOT / POPULAR tag sits on the corner of the dish photo instead of beside the name, so it never takes space from (or covers) the name */
 @media (max-width: 520px) {
