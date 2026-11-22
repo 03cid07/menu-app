@@ -9,6 +9,8 @@
 //   Viewer.replace(id)     show only this dish
 //                          (while an AR session runs, VwAdd.arUi adds a dish to the scene in place: see addInAr in openModels)
 //   Viewer.ids() / Viewer.max   the dishes in view / how many fit
+// While an AR session runs and no real table can be found, js/ar-guide.js offers a virtual table (js/virtual-table.js): the dish is joined to the
+// chosen table into one scene and put on the floor. The table only lives for that AR session; the 2D view goes back to the dish alone afterwards.
 // It tells quick.js what happened with the events viewer:open, viewer:close and viewer:pick (quick.js owns the bottom bar and the Full menu).
 // Uses helpers from menu.js: $, esc, data, view, render, fxKind.
 (() => {
@@ -82,6 +84,8 @@
       const FX_STRENGTH = 0.7;
       let swap = 0, sel = 0;
       const pick = {};                                   // dish id -> effect id ("" = none)
+      const VT = window.VirtualTable;
+      let tableId = "";                                  // the virtual table under the dishes in AR ("" = none)
       const bases = new Map(), made = new Map();
       const place = {}, info = {};                        // where each dish stands on the floor (centre x, z) and its size, so a moved dish stays where you put it
       const blobUrl = (u8) => URL.createObjectURL(new Blob([u8], { type: "model/gltf-binary" }));
@@ -98,31 +102,35 @@
       };
       const withFx = (b, id) => (id ? T.applyEffects(b.u8, b.size, b.ctr, { [id]: FX_STRENGTH }).glb : b.u8);
       const urlFor = async () => {
-        const key = items.map((i) => pick[i.id] || "").join("|") + (multi ? JSON.stringify(place) : "");
+        const tid = tableId;
+        const key = items.map((i) => pick[i.id] || "").join("|") + (multi ? JSON.stringify(place) : "") + (tid ? "@" + tid : "");
         if (made.has(key)) return made.get(key);
         const bs = await Promise.all(items.map(baseOf));
         if (bs.some((b) => !b)) return null;
+        const tb = tid && VT ? await VT.load(tid) : null;   // the virtual table; throws if it cannot be downloaded
         let url;
-        if (!multi) {
+        if (!multi && !tb) {
           const id = pick[items[0].id] || "", b = bs[0];
           url = id ? blobUrl(withFx(b, id)) : (b.had ? blobUrl(b.u8) : src);
         } else {
-          if (!Object.keys(place).length) {                // first time: side by side along the left-right line, a gap of about a third of the widest dish between them
+          if (multi && !Object.keys(place).length) {       // first time: side by side along the left-right line, a gap of about a third of the widest dish between them
             const gap = Math.max(0.02, 0.3 * Math.max(...bs.map((b) => b.size[0])));
             let x = -(bs.reduce((s, b) => s + b.size[0], 0) + gap * (bs.length - 1)) / 2;
             bs.forEach((b, i) => { place[items[i].id] = { x: x + b.size[0] / 2, z: 0 }; info[items[i].id] = b; x += b.size[0] + gap; });
             if (floor) floor.setStep(FloorGrid.niceStep(Math.max(...bs.map((b) => Math.max(b.size[0], b.size[2]))) / 4));
           }
           const parts = bs.map((b, i) => {
-            const pl = place[items[i].id];
-            return { index: i, u8: withFx(b, pick[items[i].id] || ""), pos: [pl.x - b.ctr[0], -(b.ctr[1] - b.size[1] / 2), pl.z - b.ctr[2]] };
+            const pl = multi ? place[items[i].id] : { x: 0, z: 0 };      // one dish on a table: in the middle of it
+            const lift = tb ? tb.top : 0;                                 // with a table, the dishes stand on its top
+            return { index: i, u8: withFx(b, pick[items[i].id] || ""), pos: [pl.x - b.ctr[0], lift - (b.ctr[1] - b.size[1] / 2), pl.z - b.ctr[2]] };
           });
+          if (tb) parts.push({ index: items.length, u8: tb.u8, pos: [-tb.ctr[0], -(tb.ctr[1] - tb.size[1] / 2), -tb.ctr[2]] });   // the table's feet on the floor
           url = blobUrl(T.mergeGlbs(parts));
         }
         made.set(key, url);
         return url;
       };
-      const guide = window.ArGuide ? ArGuide.attach(mv) : null;
+      const guide = window.ArGuide ? ArGuide.attach(mv, VT ? { tables: VT.LIST, onTable: (id) => setTable(id) } : undefined) : null;
       const floor = window.FloorGrid ? FloorGrid.attach(mv, wrap) : null;   // grid lines on the floor under the dishes
       const drag = multi && window.DishDrag && floor ? DishDrag.attach(mv, {
         floor,
@@ -145,6 +153,32 @@
         const o = mv.getCameraOrbit && mv.loaded ? mv.getCameraOrbit() : null, tg = multi && o ? mv.getCameraTarget() : null;
         mv.addEventListener("load", () => { if (o) { mv.cameraOrbit = `${o.theta}rad ${o.phi}rad ${o.radius}m`; if (tg) mv.cameraTarget = `${tg.x}m ${tg.y}m ${tg.z}m`; if (mv.jumpCameraToGoal) mv.jumpCameraToGoal(); } }, { once: true });
         mv.src = url;
+      };
+      // Puts a virtual table under the dishes (or takes it away with "") and waits until the new scene is showing. Throws if that fails, after
+      // putting the old scene back, so the AR guide can tell the customer.
+      const setTable = async (id) => {
+        const prev = tableId;
+        const show = async () => {
+          const url = await urlFor();
+          if (!url) throw new Error("the scene could not be prepared");
+          if (!mv.isConnected) return;
+          swap++;                                                    // anything still being prepared by showFx is out of date now
+          if (mv.src === url) return;
+          await new Promise((resolve, reject) => {
+            const done = (fn, v) => { clearTimeout(t); mv.removeEventListener("load", ok); mv.removeEventListener("error", bad); fn(v); };
+            const ok = () => done(resolve), bad = () => done(reject, new Error("the scene did not load"));
+            const t = setTimeout(() => done(reject, new Error("the scene took too long to load")), 30000);
+            mv.addEventListener("load", ok); mv.addEventListener("error", bad);
+            mv.src = url;
+          });
+        };
+        tableId = id || "";
+        try { await show(); }
+        catch (e) {
+          tableId = prev;
+          try { await show(); } catch (e2) { console.error("Could not put the old scene back", e2); }
+          throw e;
+        }
       };
       const comeBack = () => { if (document.visibilityState === "visible" && mv.isConnected && mv.src === src && bases.size) showFx(); };
       document.addEventListener("visibilitychange", comeBack);
@@ -214,6 +248,7 @@
           fxUi.classList.remove("in-ar"); wrap.appendChild(fxUi);
           if (addUi) { addUi.hide(); wrap.appendChild(addUi); }
           if (items.length !== currentIds.length) setDishes(items.map((i) => i.id));   // dishes were added in AR: redraw so the screen matches
+          else if (tableId) { tableId = ""; showFx(); }                              // the virtual table was only for the AR session
         }
       });
     }

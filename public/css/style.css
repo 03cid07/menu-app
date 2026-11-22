@@ -1139,6 +1139,30 @@ model-viewer[data-ar-scan] .mv-label { visibility: hidden; }
 .ar-override { pointer-events: auto; font: inherit; font-size: .9rem; font-weight: 600; padding: .5rem 1rem; border-radius: 999px; cursor: pointer;
   border: 1px solid rgba(255,255,255,.8); background: rgba(0,0,0,.6); color: #fff; }
 
+/* ---- Virtual table: offered over the camera when no real table is found (js/ar-guide.js, js/virtual-table.js) ---- */
+.ar-vt-btn, .ar-vt-chg { pointer-events: auto; font: inherit; font-size: .9rem; font-weight: 600; padding: .5rem 1rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid #ffb74d; background: rgba(0,0,0,.6); color: #ffb74d; }
+.ar-vt-btn[hidden], .ar-vt-chg[hidden], .ar-vt-none[hidden], .ar-vt[hidden] { display: none; }
+.ar-vt-chg { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 11; display: none; padding: .45rem .95rem; color: #fff; border-color: rgba(255,255,255,.6); white-space: nowrap; }
+.ar-scan[data-compact]:not([data-vt]) .ar-vt-chg:not([hidden]) { display: block; }
+.ar-vt { pointer-events: auto; display: flex; flex-direction: column; gap: .5rem; width: min(340px, 100%); max-height: 100%; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y;
+  padding: .9rem; border-radius: 18px; background: rgba(0,0,0,.78); border: 1px solid rgba(255,255,255,.35); text-align: left; }
+.ar-vt-title { font-weight: 700; font-size: 1.05rem; color: #fff; }
+.ar-vt-sub { font-size: .85rem; line-height: 1.35; color: rgba(255,255,255,.85); }
+.ar-vt-list { display: flex; flex-direction: column; gap: .4rem; margin-top: .2rem; }
+.ar-vt-opt { display: flex; align-items: center; gap: .75rem; width: 100%; font: inherit; text-align: left; padding: .55rem .75rem; border-radius: 14px; cursor: pointer;
+  border: 1.5px solid rgba(255,255,255,.4); background: rgba(255,255,255,.06); color: #fff; }
+.ar-vt-opt[aria-pressed="true"] { border-color: #a3c45f; background: rgba(163,196,95,.2); }
+.ar-vt-opt b { display: block; font-size: .95rem; }
+.ar-vt-opt small { display: block; font-size: .78rem; color: rgba(255,255,255,.75); }
+.ar-vt-sw { flex: none; width: 34px; height: 34px; background: var(--c, #999); box-shadow: inset 0 -4px 0 rgba(0,0,0,.22), 0 0 0 2px rgba(255,255,255,.35); }
+.ar-vt-sw.round { border-radius: 50%; }
+.ar-vt-sw.square { border-radius: 6px; }
+.ar-vt-none, .ar-vt-cancel { font: inherit; font-size: .9rem; padding: .5rem .9rem; border-radius: 999px; cursor: pointer; border: 1px solid rgba(255,255,255,.55); background: transparent; color: #fff; }
+.ar-scan[data-vt] .ar-stage, .ar-scan[data-vt] .ar-msg, .ar-scan[data-vt] .ar-override, .ar-scan[data-vt] .ar-vt-btn,
+.ar-scan[data-compact] .ar-stage, .ar-scan[data-compact] .ar-msg, .ar-scan[data-compact] .ar-override, .ar-scan[data-compact] .ar-vt-btn { display: none; }
+.ar-scan[data-compact] { background: none; }
+
 @keyframes arGrid { to { background-position: 0 26px, 26px 0; } }
 @keyframes arSweep { 0% { transform: translateY(-100%); } 100% { transform: translateY(400%); } }
 @keyframes arPulse { 0% { transform: scale(.4); opacity: .95; } 100% { transform: scale(1.5); opacity: 0; } }

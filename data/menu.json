@@ -195,49 +195,10 @@
       "available": true
     },
     {
-      "id": "mvz4eami",
-      "name": "sdfs",
-      "price": 2134,
-      "category": "Mains",
-      "description": "",
-      "ingredients": "",
-      "image": "",
-      "images": [],
-      "model": "",
-      "label": "",
-      "available": true
-    },
-    {
       "id": "mvz4kj8p",
-      "name": "DEBUG",
+      "name": "DEBUG Test",
       "price": 124,
       "category": "ESPRESSO DRINKS",
-      "description": "",
-      "ingredients": "",
-      "image": "",
-      "images": [],
-      "model": "",
-      "label": "",
-      "available": true
-    },
-    {
-      "id": "mvz4kzw1",
-      "name": "bun",
-      "price": 436,
-      "category": "ESPRESSO DRINKS",
-      "description": "",
-      "ingredients": "",
-      "image": "",
-      "images": [],
-      "model": "",
-      "label": "",
-      "available": true
-    },
-    {
-      "id": "mvz4lx3o",
-      "name": "buunn",
-      "price": 345,
-      "category": "Mains",
       "description": "",
       "ingredients": "",
       "image": "",
@@ -257,6 +218,21 @@
       "images": [],
       "model": "",
       "label": "",
+      "available": true
+    },
+    {
+      "id": "mwrdqxlt",
+      "name": "CHEESE BURGER",
+      "price": 20,
+      "category": "Mains",
+      "description": "Burger with Cheese ",
+      "ingredients": "Cheese, Patty, Bans",
+      "image": "images/mwrdt9l1-f7hyu.jpg",
+      "images": [
+        "images/mwrdt9l1-f7hyu.jpg"
+      ],
+      "model": "models/model_15cm.glb",
+      "label": "popular",
       "available": true
     }
   ],

@@ -10,6 +10,12 @@
  *   3. Waits until the surface is steady for a few frames, so one noisy reading cannot lock the dish in the wrong place.
  *   4. Offers "Place it here anyway" after a while, so nobody is ever stuck (for example a very low coffee table).
  *   5. Puts the dish where the table was found, not a metre in front of where AR started.
+ *   6. When no table shows up, offers "Use a virtual table": the customer picks one of the 3D tables (js/virtual-table.js) and the dish stands on
+ *      it, on the floor in front of them. The scene itself is built by js/viewer.js (the onTable option below). A small "Change table" button
+ *      stays on screen afterwards, so the choice can be changed or taken away again.
+ *
+ *   ArGuide.attach(mv, { tables: [{ id, name, note, shape, color }], onTable: async (id) => {} })
+ *     tables / onTable are optional; without them the virtual table offer is simply not shown. onTable("") means "no table".
  *
  * It reaches into model-viewer 4.0.0 internals (the pinned version in index.html) with feature checks. If anything is missing it falls back to the
  * overlay messages only: the dish is not hidden, but nothing breaks. The 2D view is always restored when AR ends.
@@ -27,6 +33,8 @@
   const OVERRIDE_FLOOR_MS = 8000;   // floor-only for this long: offer "place it here anyway"
   const OVERRIDE_NONE_MS = 25000;   // nothing at all for this long: offer it too
   const FOUND_TOAST_MS = 4000;
+  const TABLE_FLOOR_MS = 6000;      // floor-only for this long: offer a virtual table (with nothing at all it is offered once "No table detected" shows)
+  const NOTICE_MS = 5000;           // how long "could not set up that table" stays up
 
   // model-viewer keeps its renderer under a Symbol("renderer") key; the AR part of it is renderer.arRenderer
   function findAr(mv) {
@@ -62,7 +70,16 @@
       <div class="ar-phone"></div>
     </div>
     <div class="ar-msg"><div class="ar-title"></div><div class="ar-sub"></div></div>
-    <button type="button" class="ar-override" hidden>Place it here anyway</button>`;
+    <button type="button" class="ar-override" hidden>Place it here anyway</button>
+    <button type="button" class="ar-vt-btn" hidden>Use a virtual table</button>
+    <div class="ar-vt" role="dialog" aria-label="Choose a virtual table" hidden>
+      <div class="ar-vt-title">Make your own table</div>
+      <div class="ar-vt-sub">Pick a table. Your dish stands on it, on the floor in front of you.</div>
+      <div class="ar-vt-list"></div>
+      <button type="button" class="ar-vt-none" hidden>Take the table away</button>
+      <button type="button" class="ar-vt-cancel">Keep looking</button>
+    </div>
+    <button type="button" class="ar-vt-chg">Change table</button>`;
 
   const TEXT = {
     scanning: ["Looking for your table\u2026", "Hold your phone about an arm's length above the table."],
@@ -71,9 +88,17 @@
     none:     ["No table detected yet", "Try brighter light, or put a napkin or menu with a pattern on the table and aim at it."],
     lost:     ["Lost tracking", "Move slowly and keep the table in view."],
     found:    ["Table found", "Drag the dish to move it. Turn it with two fingers."],
+    tableWait: ["Setting up your table\u2026", "This takes a moment."],
+    tableLook: ["Now looking for the floor", "Aim at the floor in front of you. Your table will stand there."],
+    tableFound: ["Your table is ready", "Drag it to move it. Turn it with two fingers."],
+    tableFail: ["Could not set up that table", "Try another one, or keep looking for your real table."],
   };
 
-  function attach(mv) {
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  function attach(mv, opts) {
+    const tables = (opts && Array.isArray(opts.tables) ? opts.tables : []), onTable = opts && opts.onTable;
+    const canTable = tables.length > 0 && typeof onTable === "function";
     const ar = findAr(mv);
     const hooked = !!(ar && typeof ar.moveToFloor === "function" && typeof ar.getHitPoint === "function");
 
@@ -85,14 +110,20 @@
     el.setAttribute("aria-live", "polite");
     el.innerHTML = SCAN_HTML;
     const titleEl = el.querySelector(".ar-title"), subEl = el.querySelector(".ar-sub"), btn = el.querySelector(".ar-override");
+    const vtBtn = el.querySelector(".ar-vt-btn"), vt = el.querySelector(".ar-vt"), vtList = el.querySelector(".ar-vt-list"),
+      vtNone = el.querySelector(".ar-vt-none"), vtCancel = el.querySelector(".ar-vt-cancel"), vtChg = el.querySelector(".ar-vt-chg");
+    vtChg.hidden = true;
+    vtList.innerHTML = tables.map((t) => `<button type="button" class="ar-vt-opt" data-id="${esc(t.id)}"><i class="ar-vt-sw ${t.shape === "square" ? "square" : "round"}" style="--c:${esc(t.color || "#999")}"></i><span><b>${esc(t.name)}</b><small>${esc(t.note || "")}</small></span></button>`).join("");
     // In AR, taps on page elements would also count as "select" in the XR scene; this keeps the button tap to itself
-    btn.addEventListener("beforexrselect", (e) => e.preventDefault());
+    [btn, vtBtn, vt, vtChg].forEach((n) => n.addEventListener("beforexrselect", (e) => e.preventDefault()));
+    ["pointerdown", "pointermove", "pointerup", "mousedown", "touchstart", "touchmove", "touchend", "wheel"].forEach((t) => vt.addEventListener(t, (e) => e.stopPropagation(), { passive: true }));
     mv.appendChild(el);      // inside <model-viewer> so it is part of what the browser shows over the camera
 
     let active = false, placed = false, lost = false, allowFloor = false;
     let startedAt = 0, firstFloorAt = 0, lastFloorAt = 0;
     let lowestY = null, streak = 0, lastY = 0, accepted = null;
     let scene = null, timer = 0, toast = 0, inSearch = false;
+    let tableId = "", busy = false, notice = 0;      // the virtual table now in use ("" = none), setting one up, and until when the error message stays
 
     const setScene = (visible) => { try { if (scene) scene.visible = visible; } catch (e) { /* ignore */ } };
 
@@ -135,9 +166,12 @@
     // ---- what the customer sees ----
     function view() {
       const now = performance.now(), t = now - startedAt;
-      let st, text, offer = false;
-      if (placed) { st = "found"; text = TEXT.found; }
+      let st, text, offer = false, offerTable = false;
+      if (placed) { st = "found"; text = tableId ? TEXT.tableFound : TEXT.found; }
+      else if (busy) { st = "scanning"; text = TEXT.tableWait; }
+      else if (now < notice) { st = "none"; text = TEXT.tableFail; }
       else if (lost) { st = "lost"; text = TEXT.lost; }
+      else if (tableId) { st = "scanning"; text = TEXT.tableLook; }
       else if (hooked && lastFloorAt && now - lastFloorAt < RECENT_MS) {
         st = "floor"; text = TEXT.floor; offer = now - firstFloorAt > OVERRIDE_FLOOR_MS;
       } else if (t > NONE_HINT_MS && !(lastFloorAt && now - lastFloorAt < RECENT_MS)) {
@@ -147,6 +181,9 @@
       if (titleEl.textContent !== text[0]) titleEl.textContent = text[0];
       if (subEl.textContent !== text[1]) subEl.textContent = text[1];
       btn.hidden = !offer || allowFloor || placed;
+      offerTable = canTable && !placed && !busy && !tableId && (st === "none" || (st === "floor" && lastFloorAt && now - firstFloorAt > TABLE_FLOOR_MS));
+      vtBtn.hidden = !offerTable;
+      vtChg.hidden = !(canTable && placed && tableId);
     }
 
     function markPlaced() {
@@ -154,14 +191,47 @@
       placed = true;
       mv.removeAttribute("data-ar-scan");       // brings the name/price label back
       view();
-      toast = setTimeout(() => { el.hidden = true; }, FOUND_TOAST_MS);
+      toast = setTimeout(() => { if (tableId) el.dataset.compact = "1"; else el.hidden = true; }, FOUND_TOAST_MS);
     }
 
     btn.addEventListener("click", () => { allowFloor = true; streak = 0; view(); });
 
+    // ---- virtual table: pick one (or take it away), then let the app rebuild the scene ----
+    function openPicker() {
+      vtNone.hidden = !tableId;
+      vtCancel.textContent = placed ? "Close" : "Keep looking";
+      vtList.querySelectorAll(".ar-vt-opt").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.id === tableId)));
+      vt.hidden = false; el.dataset.vt = "open";
+    }
+    function closePicker() { vt.hidden = true; delete el.dataset.vt; }
+    async function choose(id) {
+      if (busy || id === tableId) { closePicker(); return; }
+      closePicker(); busy = true; view();
+      try { await onTable(id); }
+      catch (e) {
+        console.error("AR guide: could not set up the virtual table", e);
+        busy = false; notice = performance.now() + NOTICE_MS; view();
+        return;
+      }
+      busy = false; tableId = id;
+      if (!placed && id) { allowFloor = true; streak = 0; }      // a virtual table stands on the floor, so the floor is fine now
+      if (placed) {                                              // changed after the dish was already down: show the result for a moment, or close the overlay
+        clearTimeout(toast); delete el.dataset.compact;
+        if (id) { el.hidden = false; toast = setTimeout(() => { if (tableId) el.dataset.compact = "1"; else el.hidden = true; }, FOUND_TOAST_MS); }
+        else el.hidden = true;
+      }
+      view();
+    }
+    vtBtn.addEventListener("click", openPicker);
+    vtChg.addEventListener("click", () => { delete el.dataset.compact; openPicker(); });
+    vtCancel.addEventListener("click", () => { closePicker(); if (placed && tableId) el.dataset.compact = "1"; });
+    vtNone.addEventListener("click", () => choose(""));
+    vtList.addEventListener("click", (e) => { const b = e.target.closest(".ar-vt-opt"); if (b) choose(b.dataset.id); });
+
     function begin() {
       end(true);
       active = true; placed = false; lost = false; allowFloor = false;
+      tableId = ""; busy = false; notice = 0; closePicker(); delete el.dataset.compact;
       startedAt = performance.now(); firstFloorAt = lastFloorAt = 0; lowestY = null; streak = 0;
       scene = hooked ? ar.presentedScene : null;
       if (hooks) hooks.cur = api;
@@ -178,8 +248,8 @@
       setScene(true);                              // never leave the 2D view hidden
       scene = null;
       mv.removeAttribute("data-ar-scan");
-      el.hidden = true;
-      if (!restoreOnly) active = false;
+      el.hidden = true; closePicker(); delete el.dataset.compact; vtChg.hidden = true;
+      if (!restoreOnly) { active = false; tableId = ""; busy = false; }
     }
 
     function onStatus(e) {

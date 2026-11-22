@@ -1,4 +1,6 @@
 let data, active = "All";
+// QR switch (set in the admin, saved as qrEnabled: false in menu.json). viewer.js and viewer-add.js call this; admin.js has its own copy.
+const qrOn = () => !(data && data.qrEnabled === false);
 const $ = (s) => document.querySelector(s);
 const money = (n) => `${data.currency}${Number(n).toLocaleString()}`;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
