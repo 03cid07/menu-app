@@ -131,7 +131,7 @@ input, select, textarea { width: 100%; padding: .55rem .7rem; font: inherit; col
 .fx-toggle { position: absolute; top: 8px; right: 8px; z-index: 3; font: inherit; font-size: .75rem; padding: .2rem .65rem; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
 
 .fx-toggle:disabled { opacity: .6; cursor: default; }
-.fx-ui.in-ar .fx-toggle { top: max(12px, env(safe-area-inset-top)); right: auto; left: 12px; z-index: 11; pointer-events: auto; font-size: .9rem; padding: .45rem .95rem; background: rgba(0,0,0,.6); color: #fff; border-color: rgba(255,255,255,.6); }
+.fx-ui.in-ar .fx-toggle { top: max(12px, env(safe-area-inset-top)); right: auto; left: 12px; z-index: 11; pointer-events: auto; font-size: .9rem; font-weight: 500; padding: .5rem 1rem; background: color-mix(in srgb, var(--surface) 80%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); color: var(--ink); border: 1px solid var(--edge); }
 .fx-ui { display: contents; }
 .fx-toggle[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .fx-tray { position: absolute; left: 8px; right: 8px; bottom: 60px; z-index: 3; display: flex; flex-direction: column; gap: .4rem; padding: .4rem; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); }
@@ -1293,8 +1293,9 @@ body.no-scroll .restart-fab { visibility: hidden; } /* a dish card or the 3D vie
    its dishes open as a strip of photo cards along the bottom that scrolls sideways. ---- */
 .ar-add { position: absolute; inset: 0; z-index: 11; pointer-events: none; }
 .ar-add[hidden], .ar-add [hidden] { display: none; }
-.ar-add-btn { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; pointer-events: auto; font: inherit; font-size: .9rem; padding: .45rem .95rem; border-radius: 999px; border: 1px solid rgba(255,255,255,.6); background: rgba(0,0,0,.6); color: #fff; cursor: pointer; }
-.ar-add-btn[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.ar-add-btn { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; pointer-events: auto; font: inherit; font-size: .9rem; font-weight: 600; padding: .5rem 1rem; border-radius: 999px; border: 0; background: var(--accent); color: var(--accent-ink); cursor: pointer; transition: transform .08s ease, filter .12s ease, box-shadow .2s ease; }
+.ar-add-btn:active { transform: scale(.96); filter: brightness(.9); }
+.ar-add-btn[aria-expanded="true"] { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 35%, transparent); }
 .ar-add-panel { position: absolute; left: 0; right: 0; bottom: 0; pointer-events: auto; display: flex; flex-direction: column; gap: .6rem; box-sizing: border-box; padding: .85rem 0 calc(max(12px, env(safe-area-inset-bottom)) + .35rem);
   border-radius: 20px 20px 0 0; background: rgba(0,0,0,.8); border-top: 1px solid rgba(255,255,255,.3); color: #fff; }
 .ar-add-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: 0 .9rem; }

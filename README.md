@@ -5,21 +5,24 @@ A digital restaurant menu that customers open from a QR code, with no app to ins
 ## Features
 
 **Customers**
-- Full menu with categories, photos (up to 8 per item), descriptions and ingredients
-- 3D models (`.glb`) with an AR view on supported phones
+- Book-style menu: one category per page. Swipe left or right (or use the buttons, dots or arrow keys) to turn the page. The header and search bar stay on top and the header tucks away as you scroll the dishes
+- Photos (up to 8 per item), descriptions and ingredients on each dish card
+- 3D view and AR for dishes with a 3D model (`.glb`): spin the dish on a floor grid, or see it on your own table (see "3D view and AR" below)
 - Quick menu: questions made from the menu itself (type of dish, ingredients, tags, price) narrow the dishes to the customer's mood and what they want to avoid
-- "My list": tap + on a dish to collect what you want, then show the list to staff (saved on the phone, no ordering happens in the app). The button sits beside the search bar and floats at the top right while scrolling, next to a settings gear that holds the QR code for opening the menu on another phone
+- "My list": tap + on a dish to collect what you want, then show the list to staff (saved on the phone, no ordering happens in the app). With dishes in the list, the bottom bar's My list tab first opens a small panel (dishes with - / +, and the total) with an "Open My list" button for the full page
+- QR codes: a settings gear (top right) holds the QR code for opening the menu on another phone, and every dish card has a QR button for that one dish
 - Settings gear (top right) with a theme switch: Auto, Light or Dark. Auto uses the phone's clock: light from 6 AM to 6 PM, dark at night. Light is a soft cream, dark is warm charcoal with a muted golden-brown accent. The choice is saved on the phone
 - 1 to 5 star ratings, one per device per dish
 - Labels such as popular, new and hot, plus hot or cold serving for drinks
 - iPhone-style rubber band scrolling on every scrolling area (see "Motion and feel" below)
 
 **Owner (admin page)**
-- Add, edit and delete items; rename, merge and delete categories
+- Add, edit and delete items; rename, merge, reorder and delete categories (the first category is the first page of the customer menu)
 - Upload photos (JPG, PNG, WebP) and 3D models
 - 3D model fixer for textures, real size and effects
 - Quick menu tab: the app writes the questions from your menu; you review, reword, reorder, switch off or add your own, and save
-- QR code page for printing, plus an "available" switch per item
+- QR code tab: a QR for the whole menu or for a single dish, PNG download, a printable table sign, and a master switch that turns every QR in the system off or on (for debugging)
+- An "available" switch per item
 
 ## Run it
 
@@ -32,7 +35,7 @@ A digital restaurant menu that customers open from a QR code, with no app to ins
    (Windows PowerShell: `$env:ADMIN_PIN="yourpin"; npm start`)
 3. Open http://localhost:3000 for the menu and http://localhost:3000/admin.html to manage it.
 
-If you skip `ADMIN_PIN`, the default PIN is `1234`. Change it before going live.
+If you skip `ADMIN_PIN`, the default PIN is `1111`. Change it before going live.
 
 `npm run dev` restarts the server automatically when `server.js` changes.
 
@@ -40,7 +43,7 @@ If you skip `ADMIN_PIN`, the default PIN is `1234`. Change it before going live.
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
-| `ADMIN_PIN` | PIN for the admin page | `1234` |
+| `ADMIN_PIN` | PIN for the admin page | `1111` |
 | `PORT` | Port the server listens on | `3000` |
 | `PUBLIC_URL` | Link the QR code points to | `https://03cid07.github.io/menu-app/` (GitHub Pages) |
 | `USE_TUNNEL_QR` | Set to `1` to make the QR use the temporary tunnel link (AR testing only) | off |
@@ -68,25 +71,42 @@ On the static site the menu is read from `menu.json`, ratings are read-only, and
 - `public/index.html`: what customers see
 - `public/admin.html`: where the owner manages the menu
 - `public/qr-print.html`: printable QR code page
-- `public/css/style.css`: all styling
-- `public/js/`: browser scripts (`spring.js` spring motion and the bottom cards, `rubber.js` rubber band scrolling, `marquee.js` moving names, `menu.js` menu, settings menu, theme switch and ratings, `quick.js` quick menu screens, `quick-gen.js` question maker shared by customer page, admin and server, `admin-quick.js` Quick menu tab, `list.js` My list, `admin.js` admin, `glb-fixer.js` and `glb-tools.js` 3D model fixer)
-- `public/images/` and `public/models/`: uploaded photos and 3D models
+- `public/css/style.css`: main styling; `public/css/mini-list.css`: the My list panel
+- `public/js/`: browser scripts
+  - Menu: `menu.js` (menu, settings menu, theme switch, ratings, dish QR), `pager.js` (book-style pages), `marquee.js` (moving names), `quick.js` (Quick menu screens and bottom bar), `quick-gen.js` (question maker shared by customer page, admin and server), `list.js` and `mini-list.js` (My list and its panel)
+  - Motion: `spring.js` (spring motion and the bottom cards), `rubber.js` (rubber band scrolling)
+  - 3D and AR: `viewer.js` (3D view screen), `viewer-add.js` (add a dish from the picker or the QR scanner), `ar-guide.js` (finds the table in AR), `virtual-table.js` (3D tables), `dish-drag.js` (move dishes on the floor), `floor-grid.js` (floor grid), `glb-tools.js` (read, merge and fix `.glb` files)
+  - Admin: `admin.js`, `admin-quick.js` (Quick menu tab), `glb-fixer.js` (3D model fixer)
+  - Libraries: `qrcode.min.js` (draws QR codes), `jsqr.min.js` (QR scanner for browsers without a built-in one; licence in `jsqr.LICENSE.txt`)
+- `public/images/`: uploaded photos; `public/images/Tables/` holds the table preview pictures
+- `public/models/`: uploaded 3D models and the three 3D tables (`table-brown.glb`, `table-round.glb`, `table-white.glb`)
+- `.github/workflows/pages.yml`: publishes the customer menu to GitHub Pages
 - `start-all.bat`, `start-menu.bat`, `start-tunnel.ps1`: Windows launch helpers
-- `AGENTS.md` and `docs/`: project documentation templates (see below)
 
 ## API
 
 Public:
-- `GET /api/menu`: the menu, each item with its rating summary, plus the saved Quick menu questions (`quick`)
+- `GET /api/menu`: the menu, each item with its rating summary, plus the saved Quick menu questions (`quick`) and the QR switch (`qrEnabled`)
 - `GET /api/quick`: the saved Quick menu questions and a fingerprint of the current menu
 - `POST /api/items/:id/rate`: rate a dish (limited to 30 ratings per visitor per 10 minutes)
 - `GET /api/qr-url`, `GET /qr.png`, `GET /qr.svg`: QR code link and images
 
 Admin (send the PIN in the `x-admin-pin` header):
 - `POST /api/items`, `PUT /api/items/:id`, `DELETE /api/items/:id`
-- `PUT /api/categories`, `DELETE /api/categories?name=`
+- `PUT /api/categories` (rename or merge), `PUT /api/categories/order` (set the page order), `DELETE /api/categories?name=`
 - `PUT /api/quick` (save reviewed Quick menu questions), `DELETE /api/quick` (back to automatic questions)
+- `PUT /api/settings/qr` (send `{ "enabled": true }` or `false` to turn every QR in the system on or off)
 - `POST /api/upload-image`, `POST /api/upload-model?name=`
+
+## 3D view and AR
+
+Dishes with a 3D model get a "View in 3D / AR" button. The 3D view is a screen inside `index.html`, so closing it brings the menu straight back.
+
+- **3D view:** spin and zoom the dish on a floor grid. Up to 4 dishes fit in one scene. "Add another 3D model" opens a picker of dishes that have a model, or a camera scanner for a dish's QR code (the `?item=ID` link from the admin QR tab). With more than one dish, drag a dish to move it on the floor. Phones without a built-in QR reader download `jsqr.min.js` the first time someone scans.
+- **AR table guide:** phones usually find the floor before the table, so during an AR session the dish stays hidden while the phone searches for a table-height surface, with a live status. "Place it here anyway" is offered after a while so nobody gets stuck. Add `?ardebug=1` to the page address to see the numbers the phone measures.
+- **3D tables:** if no real table is found, customers can pick a 3D table (brown, round or white) and the dish stands on it on the floor in front of them. The table only lives for that AR session. Tables too small for the dishes in the scene are greyed out. "Try again" and "Change table" stay in the top-left corner afterwards.
+
+**To add a table:** put its `.glb` (one buffer, bottom at y = 0, real size in meters, slimmed for phones to about 1 to 2 MB) in `public/models/`, put a preview picture in `public/images/Tables/`, then add a line to `LIST` in `public/js/virtual-table.js`.
 
 ## Quick menu questions
 
@@ -120,10 +140,6 @@ Scrolling should feel like an iPhone. Pull past the end of any list, card or pag
 5. Keep `<script src="js/spring.js">` and then `<script src="js/rubber.js">` on every page that scrolls, and raise the `?v=` number when either file changes.
 
 Not measured on a physical phone yet: the numbers match Apple's, but check the feel on your own phone after pushing.
-
-## Project documents
-
-`AGENTS.md` and the seven files in `docs/` (PRD, design system, architecture, database, security, code style, testing) are blank templates for now. They will be filled in with approved decisions before further feature work. AI coding assistants are asked to read them first.
 
 ## Checks
 

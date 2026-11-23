@@ -234,7 +234,7 @@
     const el = document.createElement("div");
     el.className = "ar-add";
     el.hidden = true;
-    el.innerHTML = `<button type="button" class="ar-add-btn" aria-expanded="false">Dishes</button><div class="ar-add-panel" role="group" aria-label="Add or remove a dish" hidden><div class="ar-add-head"><span class="ar-add-title">Your dishes</span><button type="button" class="ar-add-close">Close</button></div><div class="ar-add-in"></div><div class="ar-add-lbl">Add another</div><div class="ar-add-list"></div></div><p class="ar-add-msg" role="status" hidden></p>`;
+    el.innerHTML = `<button type="button" class="ar-add-btn" aria-expanded="false">+ Add dish</button><div class="ar-add-panel" role="group" aria-label="Add or remove a dish" hidden><div class="ar-add-head"><span class="ar-add-title">Your dishes</span><button type="button" class="ar-add-close">Close</button></div><div class="ar-add-in"></div><div class="ar-add-lbl">Add another</div><div class="ar-add-list"></div></div><p class="ar-add-msg" role="status" hidden></p>`;
     const btn = el.querySelector(".ar-add-btn"), panel = el.querySelector(".ar-add-panel"), list = el.querySelector(".ar-add-list"), inEl = el.querySelector(".ar-add-in"), closeBtn = el.querySelector(".ar-add-close"), note = el.querySelector(".ar-add-msg");
     list.dataset.rb = "off";
     let busy = false, nt = 0;
