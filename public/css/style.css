@@ -1140,15 +1140,27 @@ model-viewer[data-ar-scan] .mv-label { visibility: hidden; }
 .ar-msg { max-width: 320px; padding: .6rem .95rem; border-radius: 14px; background: rgba(0,0,0,.6); }
 .ar-title { font-weight: 700; font-size: 1.05rem; color: var(--ar-c); }
 .ar-sub { margin-top: .15rem; font-size: .9rem; line-height: 1.35; }
+.ar-prog { margin-top: .55rem; }
+.ar-prog-bar { height: 8px; border-radius: 999px; background: rgba(255,255,255,.22); overflow: hidden; }
+.ar-prog-fill { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--ar-c); transition: width .18s linear; }
+.ar-prog[data-wait] .ar-prog-fill { width: 100% !important; opacity: .35; animation: arWait 1s ease-in-out infinite alternate; }
+.ar-prog-lbl { margin-top: .3rem; font-size: .8rem; opacity: .9; }
+.ar-scan[data-near] .ar-prog-fill { animation: arNear .6s ease-in-out infinite alternate; }
+.ar-scan[data-near] .ar-prog-lbl { color: var(--ar-c); font-weight: 600; opacity: 1; }
+@keyframes arWait { from { opacity: .2; } to { opacity: .6; } }
+@keyframes arNear { from { filter: brightness(1); } to { filter: brightness(1.35); } }
 .ar-override { pointer-events: auto; font: inherit; font-size: .9rem; font-weight: 600; padding: .5rem 1rem; border-radius: 999px; cursor: pointer;
   border: 1px solid rgba(255,255,255,.8); background: rgba(0,0,0,.6); color: #fff; }
 
 /* ---- Virtual table: offered over the camera when no real table is found (js/ar-guide.js, js/virtual-table.js) ---- */
-.ar-vt-btn, .ar-vt-chg { pointer-events: auto; font: inherit; font-size: .9rem; font-weight: 600; padding: .5rem 1rem; border-radius: 999px; cursor: pointer;
+.ar-vt-btn, .ar-vt-chg, .ar-retry, .ar-retry-chg { pointer-events: auto; font: inherit; font-size: .9rem; font-weight: 600; padding: .5rem 1rem; border-radius: 999px; cursor: pointer; white-space: nowrap;
   border: 1px solid #ffb74d; background: rgba(0,0,0,.6); color: #ffb74d; }
-.ar-vt-btn[hidden], .ar-vt-chg[hidden], .ar-vt-none[hidden], .ar-vt[hidden] { display: none; }
-.ar-vt-chg { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 44px); left: 12px; z-index: 11; display: none; padding: .45rem .95rem; color: #fff; border-color: rgba(255,255,255,.6); white-space: nowrap; }   /* top-left corner, just under the Effects button */
-.ar-scan[data-compact]:not([data-vt]) .ar-vt-chg:not([hidden]) { display: block; }
+.ar-vt-btn[hidden], .ar-vt-chg[hidden], .ar-retry-chg[hidden], .ar-choice[hidden], .ar-vt-none[hidden], .ar-vt[hidden] { display: none; }
+.ar-choice { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; }
+.ar-retry { color: #fff; border-color: rgba(255,255,255,.8); }
+.ar-corner { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 44px); left: 12px; z-index: 11; display: none; flex-direction: column; align-items: flex-start; gap: .5rem; }   /* top-left corner, just under the Effects button */
+.ar-vt-chg, .ar-retry-chg { padding: .45rem .95rem; color: #fff; border-color: rgba(255,255,255,.6); }
+.ar-scan[data-compact]:not([data-vt]) .ar-corner { display: flex; }
 /* the picker: a card strip along the bottom of the screen that scrolls sideways */
 .ar-vt { pointer-events: auto; position: absolute; left: 0; right: 0; bottom: 0; z-index: 12; display: flex; flex-direction: column; gap: .6rem; box-sizing: border-box;
   padding: .85rem 0 calc(max(12px, env(safe-area-inset-bottom)) + .35rem); border-radius: 20px 20px 0 0; background: rgba(0,0,0,.8); border-top: 1px solid rgba(255,255,255,.3); text-align: left; }
@@ -1174,8 +1186,8 @@ model-viewer[data-ar-scan] .mv-label { visibility: hidden; }
 .ar-vt-sw.square { border-radius: 8px; }
 .ar-vt-none { align-self: center; }
 .ar-vt-none, .ar-vt-cancel { font: inherit; font-size: .9rem; padding: .5rem .9rem; border-radius: 999px; cursor: pointer; border: 1px solid rgba(255,255,255,.55); background: transparent; color: #fff; }
-.ar-scan[data-vt] .ar-stage, .ar-scan[data-vt] .ar-msg, .ar-scan[data-vt] .ar-override, .ar-scan[data-vt] .ar-vt-btn,
-.ar-scan[data-compact] .ar-stage, .ar-scan[data-compact] .ar-msg, .ar-scan[data-compact] .ar-override, .ar-scan[data-compact] .ar-vt-btn { display: none; }
+.ar-scan[data-vt] .ar-stage, .ar-scan[data-vt] .ar-msg, .ar-scan[data-vt] .ar-override, .ar-scan[data-vt] .ar-choice,
+.ar-scan[data-compact] .ar-stage, .ar-scan[data-compact] .ar-msg, .ar-scan[data-compact] .ar-override, .ar-scan[data-compact] .ar-choice { display: none; }
 .ar-scan[data-compact] { background: none; }
 
 @keyframes arGrid { to { background-position: 0 26px, 26px 0; } }
@@ -1184,7 +1196,7 @@ model-viewer[data-ar-scan] .mv-label { visibility: hidden; }
 @keyframes arPhone { 0%, 100% { transform: translateX(-62px) rotateY(-28deg) rotateZ(-6deg); } 50% { transform: translateX(62px) rotateY(28deg) rotateZ(6deg); } }
 @keyframes arShake { 0%, 100% { transform: translateX(-8px); } 50% { transform: translateX(8px); } }
 @keyframes arPop { 0% { transform: scale(.85); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
-@media (prefers-reduced-motion: reduce) { .ar-plane, .ar-sweep, .ar-ring, .ar-phone { animation-duration: 6s; } .ar-scan[data-state="found"] .ar-stage { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .ar-scan[data-near] .ar-prog-fill, .ar-prog[data-wait] .ar-prog-fill { animation: none; } .ar-plane, .ar-sweep, .ar-ring, .ar-phone { animation-duration: 6s; } .ar-scan[data-state="found"] .ar-stage { animation: none; } }
 
 /* ---- Quick menu picks on the main menu ----
    After the quiz the main menu is filtered to the customer's picks (view.picks in menu.js).
