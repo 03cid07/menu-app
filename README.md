@@ -79,7 +79,7 @@ On the static site the menu is read from `menu.json`, ratings are read-only, and
   - Admin: `admin.js`, `admin-quick.js` (Quick menu tab), `glb-fixer.js` (3D model fixer)
   - Libraries: `qrcode.min.js` (draws QR codes), `jsqr.min.js` (QR scanner for browsers without a built-in one; licence in `jsqr.LICENSE.txt`)
 - `public/images/`: uploaded photos; `public/images/Tables/` holds the table preview pictures
-- `public/models/`: uploaded 3D models and the three 3D tables (`table-brown.glb`, `table-round.glb`, `table-white.glb`)
+- `public/models/`: uploaded 3D models and the four 3D tables (`table-brown-round.glb`, `table-brown-square.glb`, `table-white-round.glb`, `table-white-square.glb`)
 - `.github/workflows/pages.yml`: publishes the customer menu to GitHub Pages
 - `start-all.bat`, `start-menu.bat`, `start-tunnel.ps1`: Windows launch helpers
 
@@ -104,7 +104,7 @@ Dishes with a 3D model get a "View in 3D / AR" button. The 3D view is a screen i
 
 - **3D view:** spin and zoom the dish on a floor grid. Up to 4 dishes fit in one scene. "Add another 3D model" opens a picker of dishes that have a model, or a camera scanner for a dish's QR code (the `?item=ID` link from the admin QR tab). With more than one dish, drag a dish to move it on the floor. Phones without a built-in QR reader download `jsqr.min.js` the first time someone scans.
 - **AR table guide:** phones usually find the floor before the table, so during an AR session the dish stays hidden while the phone searches for a table-height surface, with a live status. "Place it here anyway" is offered after a while so nobody gets stuck. Add `?ardebug=1` to the page address to see the numbers the phone measures.
-- **3D tables:** if no real table is found, customers can pick a 3D table (brown, round or white) and the dish stands on it on the floor in front of them. The table only lives for that AR session. Tables too small for the dishes in the scene are greyed out. "Try again" and "Change table" stay in the top-left corner afterwards.
+- **3D tables:** if no real table is found, customers can pick a 3D table (brown or white, round or square) and the dish stands on it on the floor in front of them. The table only lives for that AR session. Tables too small for the dishes in the scene are greyed out. "Try again" and "Change table" stay in the top-left corner afterwards.
 
 **To add a table:** put its `.glb` (one buffer, bottom at y = 0, real size in meters, slimmed for phones to about 1 to 2 MB) in `public/models/`, put a preview picture in `public/images/Tables/`, then add a line to `LIST` in `public/js/virtual-table.js`.
 

@@ -11,17 +11,18 @@
  *   VirtualTable.load(id)        Promise of { u8, size, ctr, top }: the .glb bytes, its size and centre (meters), and how high its top is.
  *                                Downloaded once, then kept.
  *
- * The .glb files in models/ are the owner's tables, slimmed down for phones (about 1 to 2 MB each instead of 37 to 82 MB):
- * fewer triangles and 1024 px textures. Real sizes are kept (the round ones are 90 cm wide and 80 cm high, the white one 60 cm and 75 cm).
- * To add a table: put its .glb (one buffer, bottom at y = 0, in meters) in models/ and a preview picture in images/tables/, then add a line to LIST below.
+ * The .glb files in models/ are the owner's tables, slimmed down for phones (about 1 to 2.5 MB each instead of 35 to 82 MB):
+ * fewer triangles and 1024 px textures. Real sizes are kept (the brown ones are 90 cm wide and 80 cm high, the white ones 60 cm and 75 cm).
+ * To add a table: put its .glb (one buffer, bottom at y = 0, in meters) in models/ and a preview picture in images/Tables/, then add a line to LIST below.
  */
 (function (root) {
   "use strict";
 
   const LIST = [
-    { id: "brown", name: "Brown table", note: "Round, 90 cm wide",  shape: "round",  color: "#b5683a", w: 0.9, d: 0.9, url: "models/table-brown.glb", img: "images/tables/brown.png" },
-    { id: "round", name: "Round table", note: "Round, 90 cm wide",  shape: "round",  color: "#a9602f", w: 0.9, d: 0.9, url: "models/table-round.glb", img: "images/tables/round.png" },
-    { id: "white", name: "White table", note: "Square, 60 cm wide", shape: "square", color: "#ecebe7", w: 0.6, d: 0.6, url: "models/table-white.glb", img: "images/tables/white.png" },
+    { id: "brown-round",  name: "Brown round table",  note: "Round, 90 cm wide",  shape: "round",  color: "#b5683a", w: 0.9, d: 0.9, url: "models/table-brown-round.glb",  img: "images/Tables/brown-round.png" },
+    { id: "brown-square", name: "Brown square table", note: "Square, 90 cm wide", shape: "square", color: "#a9602f", w: 0.9, d: 0.9, url: "models/table-brown-square.glb", img: "images/Tables/brown-square.png" },
+    { id: "white-round",  name: "White round table",  note: "Round, 60 cm wide",  shape: "round",  color: "#ecebe7", w: 0.6, d: 0.6, url: "models/table-white-round.glb",  img: "images/Tables/white-round.png" },
+    { id: "white-square", name: "White square table", note: "Square, 60 cm wide", shape: "square", color: "#ecebe7", w: 0.6, d: 0.6, url: "models/table-white-square.glb", img: "images/Tables/white-square.png" },
   ];
 
   const cache = new Map();
