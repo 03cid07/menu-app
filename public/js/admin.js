@@ -114,14 +114,20 @@ async function refresh() {
     ? data.categories.map((c, n) => `<div class="admin-item"><div><strong>${esc(c)}</strong> <small>${count(c)} dish${count(c) === 1 ? "" : "es"}</small></div>
         <div class="cat-actions"><span class="cat-move"><button class="btn ghost" data-ctop="${n}" title="Move to the first page" aria-label="Move ${esc(c)} to the first page"${n === 0 ? " disabled" : ""}>⤒ Top</button><button class="btn ghost" data-cup="${n}" title="Move up" aria-label="Move ${esc(c)} up"${n === 0 ? " disabled" : ""}>▲</button><button class="btn ghost" data-cdown="${n}" title="Move down" aria-label="Move ${esc(c)} down"${n === data.categories.length - 1 ? " disabled" : ""}>▼</button></span><button class="btn ghost" data-crename="${n}">Rename / merge</button><button class="btn ghost danger" data-cdel="${n}">Delete</button></div></div>`).join("")
     : "<p>No categories yet.</p>";
-  $("#list").innerHTML = data.items.length
-    ? data.items.map((i) => `<div class="admin-item">
-        <div class="admin-row">${i.image ? `<img class="admin-thumb" src="/${esc(i.image)}" alt="">` : ""}<div><div class="admin-title"><strong>${mqHtml(i.name)}</strong><span class="price">${data.currency}${i.price}</span></div>
-        <small>${esc(i.category)}${i.model ? " · 3D model" : ""}${i.available ? "" : " (sold out)"}</small></div></div>
+  // The list is grouped by category (in the customer menu's page order). Every dish has a ⋮⋮ handle: drag it to
+  // change its spot, or drop it into another category. The order saved here is the order customers see.
+  const itemRow = (i) => `<div class="admin-item" data-id="${i.id}">
+        <div class="admin-row"><button type="button" class="drag-handle" aria-label="Move ${esc(i.name)}. Drag, or press the up and down arrow keys." title="Drag to move">⋮⋮</button>${i.image ? `<img class="admin-thumb" src="/${esc(i.image)}" alt="">` : ""}<div><div class="admin-title"><strong>${mqHtml(i.name)}</strong><span class="price">${data.currency}${i.price}</span></div>
+        <small>${i.model ? "3D model" : ""}${i.available ? "" : `${i.model ? " · " : ""}sold out`}</small></div></div>
         <div><button class="btn ghost" data-edit="${i.id}">Edit</button>
         ${qrOn() ? `<button class="btn ghost" data-qr="${i.id}">QR</button>` : ""}
         <button class="btn ghost" data-toggle="${i.id}">${i.available ? "Mark sold out" : "Mark available"}</button>
-        <button class="btn ghost danger" data-del="${i.id}">Delete</button></div></div>`).join("")
+        <button class="btn ghost danger" data-del="${i.id}">Delete</button></div></div>`;
+  $("#list").innerHTML = data.items.length
+    ? data.categories.map((c) => {
+        const its = data.items.filter((i) => i.category === c);
+        return `<section class="ag" data-cat="${esc(c)}"><h3 class="ag-head"><span>${esc(c)}</span><small>${its.length} dish${its.length === 1 ? "" : "es"}</small></h3><div class="ag-body">${its.map(itemRow).join("")}</div></section>`;
+      }).join("")
     : "<p>No items yet. Add your first item above.</p>";
   if (window.qrSync) qrSync(qrOn());
 }
@@ -236,6 +242,108 @@ $("#cat-manage").addEventListener("click", async (e) => {
     refresh();
   } catch (err) { sayCat(err.message, true); }
 });
+
+// ---- Item list: drag a dish by its ⋮⋮ handle to change its spot, or into another category ----
+// Works with mouse, finger and pen (pointer events). With the handle focused, the up and down arrow keys move the dish too.
+(() => {
+  const list = $("#list");
+  let drag = null;
+
+  const layoutNow = () => {
+    const layout = {};
+    list.querySelectorAll(".ag").forEach((g) => { layout[g.dataset.cat] = [...g.querySelectorAll(".ag-body > .admin-item")].map((r) => r.dataset.id); });
+    return layout;
+  };
+  const changed = (layout) => data.categories.some((c) => JSON.stringify(layout[c] || []) !== JSON.stringify(data.items.filter((i) => i.category === c).map((i) => i.id)));
+
+  async function commit(row, focusAfter) {
+    const id = row.dataset.id, item = data.items.find((x) => x.id === id), cat = row.closest(".ag").dataset.cat;
+    const layout = layoutNow();
+    if (!changed(layout)) { if (focusAfter) row.querySelector(".drag-handle").focus(); return; }
+    try {
+      await api("PUT", "/api/items/order", { layout });
+      say(item.category !== cat ? `"${item.name}" moved to ${cat}` : `"${item.name}" moved`);
+    } catch (err) { say(err.message, true); }
+    await refresh();
+    if (focusAfter) { const h = list.querySelector(`[data-id="${id}"] .drag-handle`); if (h) h.focus(); }
+  }
+
+  // Put the gap (the placeholder) where the pointer is: before or after the row under it, or at the end of the category under it.
+  function place(y) {
+    const rect = list.getBoundingClientRect();
+    const el = document.elementFromPoint(rect.left + rect.width / 2, y);
+    if (!el) return;
+    const over = el.closest(".admin-item");
+    const group = el.closest(".ag");
+    if (over && over !== drag.row) {
+      const r = over.getBoundingClientRect();
+      over[y < r.top + r.height / 2 ? "before" : "after"](drag.ph);
+    } else if (!over && group) {
+      const body = group.querySelector(".ag-body");
+      if (el.closest(".ag-head")) body.prepend(drag.ph); else if (!body.contains(drag.ph) || !body.querySelector(".admin-item:not(.dragging)")) body.append(drag.ph);
+    }
+  }
+
+  function frame() {
+    if (!drag) return;
+    const edge = 70;
+    if (drag.y < edge) scrollBy(0, -Math.ceil((edge - drag.y) / 5));
+    else if (drag.y > innerHeight - edge) scrollBy(0, Math.ceil((drag.y - (innerHeight - edge)) / 5));
+    place(drag.y);
+    drag.raf = requestAnimationFrame(frame);
+  }
+
+  list.addEventListener("pointerdown", (e) => {
+    const h = e.target.closest(".drag-handle");
+    if (!h || (e.pointerType === "mouse" && e.button !== 0)) return;
+    e.preventDefault();
+    const row = h.closest(".admin-item"), r = row.getBoundingClientRect();
+    const ph = document.createElement("div");
+    ph.className = "drag-ph"; ph.style.height = r.height + "px";
+    row.after(ph);
+    row.classList.add("dragging");
+    Object.assign(row.style, { width: r.width + "px", left: r.left + "px", top: r.top + "px" });
+    document.body.classList.add("is-dragging");
+    h.setPointerCapture(e.pointerId);
+    drag = { row, ph, h, dy: e.clientY - r.top, y: e.clientY, raf: requestAnimationFrame(frame) };
+  });
+  list.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    drag.y = e.clientY;
+    drag.row.style.top = e.clientY - drag.dy + "px";
+  });
+  const finish = (e) => {
+    if (!drag) return;
+    const { row, ph, raf, h } = drag;
+    cancelAnimationFrame(raf);
+    ph.replaceWith(row);
+    row.classList.remove("dragging"); row.removeAttribute("style");
+    document.body.classList.remove("is-dragging");
+    try { h.releasePointerCapture(e.pointerId); } catch {}
+    drag = null;
+    if (e.type === "pointercancel") { refresh(); return; }
+    commit(row, false);
+  };
+  list.addEventListener("pointerup", finish);
+  list.addEventListener("pointercancel", finish);
+
+  list.addEventListener("keydown", (e) => {
+    const h = e.target.closest(".drag-handle");
+    if (!h || (e.key !== "ArrowUp" && e.key !== "ArrowDown")) return;
+    e.preventDefault();
+    const row = h.closest(".admin-item"), up = e.key === "ArrowUp";
+    const sib = up ? row.previousElementSibling : row.nextElementSibling;
+    if (sib) sib[up ? "before" : "after"](row);
+    else {
+      let g = row.closest(".ag");
+      do { g = up ? g.previousElementSibling : g.nextElementSibling; } while (g && !g.classList.contains("ag"));
+      if (!g) return;
+      const body = g.querySelector(".ag-body");
+      if (up) body.append(row); else body.prepend(row);
+    }
+    commit(row, true);
+  });
+})();
 
 showTab(location.hash.slice(1) || "items");
 refresh();

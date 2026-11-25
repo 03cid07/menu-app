@@ -9,48 +9,6 @@
   ],
   "items": [
     {
-      "id": "a1",
-      "name": "Crispy Lumpia",
-      "price": 120,
-      "category": "Mains",
-      "description": "Pork and vegetable rolls with sweet chili dip.",
-      "available": true
-    },
-    {
-      "id": "a2",
-      "name": "Chicken Adobo",
-      "price": 220,
-      "category": "Mains",
-      "description": "Slow-braised in soy and vinegar, served with garlic rice.",
-      "available": true
-    },
-    {
-      "id": "a3",
-      "name": "Bicol Express",
-      "price": 240,
-      "category": "Mains",
-      "description": "Pork simmered in coconut milk with long green chilies.",
-      "available": true
-    },
-    {
-      "id": "mvmj9j5w",
-      "name": "leftover cake",
-      "price": 20,
-      "category": "Mains",
-      "description": "leftover cake ",
-      "ingredients": "caramel ",
-      "image": "images/mvmlnt2w-akh1p.jpg",
-      "model": "models/leftover_cake_36cm_fx.glb",
-      "modelScale": 1,
-      "temp": "",
-      "available": true,
-      "images": [
-        "images/mvmlnt2w-akh1p.jpg",
-        "images/mvmlnt5e-tfwry.jpg"
-      ],
-      "label": ""
-    },
-    {
       "id": "mvtlbl8m",
       "name": "DEBUG",
       "price": 115,
@@ -83,22 +41,6 @@
       "available": true
     },
     {
-      "id": "mvtll5oy",
-      "name": "NIGHT SHIFT ",
-      "price": 155,
-      "category": "ESPRESSO DRINKS",
-      "description": "MOCHA LATTE",
-      "ingredients": "espresso, chocolate sauce drizzle, milk",
-      "image": "images/mvtll5om-1ygju.jpg",
-      "images": [
-        "images/mvtll5om-1ygju.jpg"
-      ],
-      "model": "models/static-co-cupIcedMocha_10cm.glb",
-      "temp": "",
-      "label": "new",
-      "available": true
-    },
-    {
       "id": "mvtlm9cr",
       "name": "SALT CIRCUIT",
       "price": 155,
@@ -110,6 +52,22 @@
         "images/mvtlm9cg-fi0o7.jpg"
       ],
       "model": "models/static-co-cupIcedLatte_10cm.glb",
+      "temp": "",
+      "label": "new",
+      "available": true
+    },
+    {
+      "id": "mvtll5oy",
+      "name": "NIGHT SHIFT ",
+      "price": 155,
+      "category": "ESPRESSO DRINKS",
+      "description": "MOCHA LATTE",
+      "ingredients": "espresso, chocolate sauce drizzle, milk",
+      "image": "images/mvtll5om-1ygju.jpg",
+      "images": [
+        "images/mvtll5om-1ygju.jpg"
+      ],
+      "model": "models/static-co-cupIcedMocha_10cm.glb",
       "temp": "",
       "label": "new",
       "available": true
@@ -131,19 +89,16 @@
       "available": true
     },
     {
-      "id": "mvtlp9nr",
-      "name": "CLEAN SIGNAL",
-      "price": 165,
-      "category": "NON-ESPRESSO DRINKS",
-      "description": "ICED MATCHA",
-      "ingredients": "matcha powder, sweetener, milk",
-      "image": "images/mvtlp9ng-978su.jpg",
-      "images": [
-        "images/mvtlp9ng-978su.jpg"
-      ],
-      "model": "models/static-co-cupMatchaLatte_10cm.glb",
-      "temp": "",
-      "label": "new",
+      "id": "mvz4kj8p",
+      "name": "DEBUG Test",
+      "price": 124,
+      "category": "ESPRESSO DRINKS",
+      "description": "",
+      "ingredients": "",
+      "image": "",
+      "images": [],
+      "model": "",
+      "label": "",
       "available": true
     },
     {
@@ -158,6 +113,37 @@
         "images/mvtlq2u5-qbcih.jpg"
       ],
       "model": "models/static-co-cupStrawberryMilk_10cm.glb",
+      "temp": "",
+      "label": "new",
+      "available": true
+    },
+    {
+      "id": "mww6hhj3",
+      "name": "SOFT RESET",
+      "price": 200,
+      "category": "NON-ESPRESSO DRINKS",
+      "description": "STRAWBERRY MILK - 12oz",
+      "ingredients": "strawberry sauce, strawberry puree, milk",
+      "image": "images/mww6hhi6-3q1tm.jpg",
+      "images": [
+        "images/mww6hhi6-3q1tm.jpg"
+      ],
+      "model": "models/strawberry_19cm.glb",
+      "label": "popular",
+      "available": true
+    },
+    {
+      "id": "mvtlp9nr",
+      "name": "CLEAN SIGNAL",
+      "price": 165,
+      "category": "NON-ESPRESSO DRINKS",
+      "description": "ICED MATCHA",
+      "ingredients": "matcha powder, sweetener, milk",
+      "image": "images/mvtlp9ng-978su.jpg",
+      "images": [
+        "images/mvtlp9ng-978su.jpg"
+      ],
+      "model": "models/static-co-cupMatchaLatte_10cm.glb",
       "temp": "",
       "label": "new",
       "available": true
@@ -179,6 +165,39 @@
       "available": true
     },
     {
+      "id": "mwrdqxlt",
+      "name": "CHEESE BURGER",
+      "price": 20,
+      "category": "Mains",
+      "description": "Burger with Cheese ",
+      "ingredients": "Cheese, Patty, Bans",
+      "image": "images/mwrdt9l1-f7hyu.jpg",
+      "images": [
+        "images/mwrdt9l1-f7hyu.jpg"
+      ],
+      "model": "models/model_15cm.glb",
+      "label": "popular",
+      "available": true
+    },
+    {
+      "id": "mvmj9j5w",
+      "name": "leftover cake",
+      "price": 20,
+      "category": "Mains",
+      "description": "leftover cake ",
+      "ingredients": "caramel ",
+      "image": "images/mvmlnt2w-akh1p.jpg",
+      "model": "models/leftover_cake_36cm_fx.glb",
+      "modelScale": 1,
+      "temp": "",
+      "available": true,
+      "images": [
+        "images/mvmlnt2w-akh1p.jpg",
+        "images/mvmlnt5e-tfwry.jpg"
+      ],
+      "label": ""
+    },
+    {
       "id": "mvtm1loz",
       "name": "Crispy Lumpia Crispy Lumpia Crispy Lumpia Crispy Lumpia Crispy Lumpia Crispy Lumpia ",
       "price": 199,
@@ -195,16 +214,27 @@
       "available": true
     },
     {
-      "id": "mvz4kj8p",
-      "name": "DEBUG Test",
-      "price": 124,
-      "category": "ESPRESSO DRINKS",
-      "description": "",
-      "ingredients": "",
-      "image": "",
-      "images": [],
-      "model": "",
-      "label": "",
+      "id": "a1",
+      "name": "Crispy Lumpia",
+      "price": 120,
+      "category": "Mains",
+      "description": "Pork and vegetable rolls with sweet chili dip.",
+      "available": true
+    },
+    {
+      "id": "a2",
+      "name": "Chicken Adobo",
+      "price": 220,
+      "category": "Mains",
+      "description": "Slow-braised in soy and vinegar, served with garlic rice.",
+      "available": true
+    },
+    {
+      "id": "a3",
+      "name": "Bicol Express",
+      "price": 240,
+      "category": "Mains",
+      "description": "Pork simmered in coconut milk with long green chilies.",
       "available": true
     },
     {
@@ -218,21 +248,6 @@
       "images": [],
       "model": "",
       "label": "",
-      "available": true
-    },
-    {
-      "id": "mwrdqxlt",
-      "name": "CHEESE BURGER",
-      "price": 20,
-      "category": "Mains",
-      "description": "Burger with Cheese ",
-      "ingredients": "Cheese, Patty, Bans",
-      "image": "images/mwrdt9l1-f7hyu.jpg",
-      "images": [
-        "images/mwrdt9l1-f7hyu.jpg"
-      ],
-      "model": "models/model_15cm.glb",
-      "label": "popular",
       "available": true
     }
   ],

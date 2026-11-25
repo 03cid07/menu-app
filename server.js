@@ -104,6 +104,22 @@ app.post("/api/items", requirePin, (req, res) => {
   res.status(201).json(item);
 });
 
+// Admin: set the order of the dishes, and which category each one sits in (drag and drop in the admin list).
+// "layout" maps every category name to the list of dish ids in it, top to bottom. It must cover every dish exactly once.
+// The customer menu shows dishes in this order inside each category. (Defined before /api/items/:id so "order" is not read as an id.)
+app.put("/api/items/order", requirePin, (req, res) => {
+  const data = load(), layout = req.body.layout;
+  if (!layout || typeof layout !== "object" || Array.isArray(layout)) return res.status(400).json({ error: "Missing layout" });
+  if (!Object.keys(layout).every((c) => data.categories.includes(c))) return res.status(400).json({ error: "Unknown category in the new order" });
+  const ids = data.categories.flatMap((c) => (Array.isArray(layout[c]) ? layout[c] : []));
+  const same = ids.length === data.items.length && new Set(ids).size === ids.length && data.items.every((i) => ids.includes(i.id));
+  if (!same) return res.status(400).json({ error: "The new order must list every dish exactly once. Reload the page and try again." });
+  const byId = new Map(data.items.map((i) => [i.id, i]));
+  data.items = data.categories.flatMap((c) => (Array.isArray(layout[c]) ? layout[c] : []).map((id) => { const i = byId.get(id); i.category = c; return i; }));
+  save(data);
+  res.json({ ok: true });
+});
+
 app.put("/api/items/:id", requirePin, (req, res) => {
   delete req.body.rating; // ratings come from customers only
   const data = load();

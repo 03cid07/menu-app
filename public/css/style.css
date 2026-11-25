@@ -1347,3 +1347,20 @@ body.no-scroll .restart-fab { visibility: hidden; } /* a dish card or the 3D vie
 .fs-clear:active { transform: scale(.9); }
 .fs-clear[hidden] { display: none; }
 .fs-clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+
+/* ---- Admin item list: grouped by category, drag to reorder ---- */
+#list .ag { margin-top: 1.4rem; }
+#list .ag:first-child { margin-top: .4rem; }
+#list .ag-head { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; margin: 0; padding: .35rem 0 .45rem; font-size: .8rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); border-bottom: 1px solid var(--outline); }
+#list .ag-head small { color: var(--muted); font-weight: 500; letter-spacing: 0; text-transform: none; }
+#list .ag-body { min-height: 3.2rem; }
+#list .ag-body:empty { display: flex; align-items: center; justify-content: center; margin-top: .5rem; border: 1px dashed var(--line); border-radius: 10px; color: var(--muted); font-size: .9rem; }
+#list .ag-body:empty::before { content: "No dishes here yet. Drag one in."; }
+.drag-handle { flex: none; width: 34px; height: 44px; margin: 0 -.2rem 0 -.4rem; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 1.15rem; letter-spacing: -.15em; line-height: 1; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.drag-handle:hover { color: var(--ink); background: var(--ctl); }
+.drag-handle:active { cursor: grabbing; }
+#list .admin-item.dragging { position: fixed; z-index: 50; margin: 0; padding: .7rem .8rem; box-sizing: border-box; background: var(--surface); border: 1px solid var(--accent); border-radius: 10px; box-shadow: 0 10px 28px rgb(0 0 0 / .45); pointer-events: none; opacity: .97; }
+.drag-ph { box-sizing: border-box; margin: .15rem 0; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
+body.is-dragging { cursor: grabbing; user-select: none; -webkit-user-select: none; }
+body.is-dragging * { cursor: grabbing !important; }
