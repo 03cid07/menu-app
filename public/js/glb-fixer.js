@@ -11,6 +11,7 @@
   const MV_URL = "https://ajax.googleapis.com/ajax/libs/model-viewer/4.0.0/model-viewer.min.js";
   const MAX_UPLOAD = 50 * 1048576;                      // the server refuses bigger .glb files
   const REFS = [["Coin", 2.5], ["Credit card", 8.6], ["Phone", 15], ["Coffee mug", 10], ["Dinner plate", 26], ["Laptop", 33]];
+  const START_TH = 0.44, START_PH = 1.26;                // opening view (about 25 and 72 degrees): a little from above, so the floor grid shows
   const FOV = 30;                                       // vertical field of view in degrees (fixed, the rulers rely on it)
   const NICE = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
   const STEPS = [[0.1, 0.02], [0.2, 0.05], [0.5, 0.1], [1, 0.1], [2, 0.5], [5, 1], [10, 1], [20, 5], [50, 10], [100, 10], [200, 50], [500, 100]];
@@ -18,6 +19,7 @@
   let parsed = null, glbName = "model.glb", embedded = null, origCm = null, origCenter = null;
   let scaleF = 1, token = 0, spanCm = 0, userZoom = false, missingTex = 0, files = new Map();   // files: lowercase texture name -> File
   let resolver = null, lastFocus = null, viewerReady = null;
+  const floor = window.FloorGrid ? FloorGrid.attach($("#gf-mv"), $("#gf-view")) : null;   // the same floor grid customers see in the 3D view
 
   const fmt = (n) => (n >= 100 ? n.toFixed(0) : n >= 10 ? n.toFixed(1) : n.toFixed(2));
   const mb = (n) => (n / 1048576).toFixed(2) + " MB";
@@ -60,7 +62,7 @@
     const mv = $("#gf-mv");
     const r = ((spanCm / 100) / (2 * Math.tan((FOV * Math.PI) / 360))).toFixed(5) + "m";
     const o = mv.getCameraOrbit ? mv.getCameraOrbit() : null;      // keep the current rotation while zooming
-    let th = o && isFinite(o.theta) ? o.theta : 0, ph = o && isFinite(o.phi) ? o.phi : Math.PI / 2;
+    let th = o && isFinite(o.theta) ? o.theta : START_TH, ph = o && isFinite(o.phi) ? o.phi : START_PH;
     if (front) { th = 0; ph = Math.PI / 2; }
     mv.setAttribute("min-camera-orbit", `auto auto ${r}`);
     mv.setAttribute("max-camera-orbit", `auto auto ${r}`);
@@ -114,7 +116,7 @@
     const [major, minor] = STEPS.find((s) => s[0] * ppc >= 50) || STEPS[STEPS.length - 1];
     const showMinor = minor * ppc >= 5;
     const isMajor = (v) => Math.abs(v / major - Math.round(v / major)) < 1e-6;
-    const line = cssVar("--line"), muted = cssVar("--muted"), accent = cssVar("--accent");
+    const muted = cssVar("--muted"), accent = cssVar("--accent");
     const nX = Math.floor(g.w / 2 / ppc / minor), nY = Math.floor(g.h / 2 / ppc / minor);
     const label = (v) => String(+v.toFixed(2));
 
@@ -134,8 +136,6 @@
       const v = i * minor, maj = isMajor(v);
       if (!maj && !showMinor) continue;
       const px = Math.round(cx + v * ppc) + 0.5;
-      g.x.globalAlpha = maj ? 0.9 : 0.35; g.x.strokeStyle = line;
-      g.x.beginPath(); g.x.moveTo(px, 0); g.x.lineTo(px, g.h); g.x.stroke();
       rx.x.beginPath(); rx.x.moveTo(px, rx.h); rx.x.lineTo(px, rx.h - (maj ? 9 : 4)); rx.x.stroke();
       if (maj && px > 14 && px < rx.w - 14) rx.x.fillText(label(v), px, 11);
     }
@@ -143,20 +143,16 @@
       const v = i * minor, maj = isMajor(v);
       if (!maj && !showMinor) continue;
       const py = Math.round(cy - v * ppc) + 0.5;
-      g.x.globalAlpha = maj ? 0.9 : 0.35; g.x.strokeStyle = line;
-      g.x.beginPath(); g.x.moveTo(0, py); g.x.lineTo(g.w, py); g.x.stroke();
       ry.x.beginPath(); ry.x.moveTo(ry.w, py); ry.x.lineTo(ry.w - (maj ? 9 : 4), py); ry.x.stroke();
       if (maj && py > 8 && py < ry.h - 8) ry.x.fillText(label(v), ry.w - 12, py);
     }
-    g.x.globalAlpha = 0.5; g.x.strokeStyle = accent; g.x.setLineDash([3, 4]);   // centre cross-hair (the 0 / 0 point)
-    g.x.beginPath(); g.x.moveTo(Math.round(cx) + 0.5, 0); g.x.lineTo(Math.round(cx) + 0.5, g.h);
-    g.x.moveTo(0, Math.round(cy) + 0.5); g.x.lineTo(g.w, Math.round(cy) + 0.5); g.x.stroke();
-    g.x.setLineDash([]); g.x.globalAlpha = 1;
+    if (floor) floor.setStep(major / 100);              // one floor cell = one major ruler step, so the grid and the rulers agree
   }
 
   function applyScale() {
     $("#gf-mv").setAttribute("scale", `${scaleF} ${scaleF} ${scaleF}`);
     syncTarget(); updateSpan(); drawStage();
+    if (floor) requestAnimationFrame(() => floor.refresh());   // the viewer reports the new size a moment after the scale changes
   }
 
   function render(skipCm) {
@@ -279,7 +275,7 @@
     if (mv.dataset.url) { URL.revokeObjectURL(mv.dataset.url); delete mv.dataset.url; }
     mv.removeAttribute("src");
     for (const a of ["camera-target", "min-camera-orbit", "max-camera-orbit"]) mv.removeAttribute(a);
-    mv.setAttribute("camera-orbit", "0deg 90deg auto"); mv.setAttribute("scale", "1 1 1");
+    mv.setAttribute("camera-orbit", `${START_TH}rad ${START_PH}rad auto`); mv.setAttribute("scale", "1 1 1");
     $("#gf-tmax").value = "1024"; $("#gf-cm").value = ""; $("#gf-pct").value = 100; $("#gf-pctlabel").textContent = "100";
     for (const id of ["dw", "dh", "dd"]) $("#gf-" + id).textContent = "-";
     for (const id of ["texlist", "refs"]) $("#gf-" + id).innerHTML = "";
