@@ -31,7 +31,7 @@
     {
       "id": "mwwrm19n",
       "name": "DEBUG",
-      "price": 119,
+      "price": 199,
       "category": "ESPRESSO DRINKS",
       "description": "SPANISH LATTE - 12oz",
       "ingredients": "espresso, milk condensed, milk",
@@ -66,7 +66,7 @@
     {
       "id": "mwwro4th",
       "name": "OVERCLOCK",
-      "price": 149,
+      "price": 249,
       "category": "ESPRESSO DRINKS",
       "description": "CARAMEL MACCHIATO - 12oz",
       "ingredients": "espresso, caramel sauce drizzle, vanilla syrup, milk",
@@ -101,7 +101,7 @@
     {
       "id": "mwwa7tkw",
       "name": "SALT CIRCUIT",
-      "price": 119,
+      "price": 219,
       "category": "ESPRESSO DRINKS",
       "description": "SALTED CARAMEL - 12oz",
       "ingredients": "espresso salted, caramel sauce, milk",
@@ -136,7 +136,7 @@
     {
       "id": "mwwrrnyq",
       "name": "NIGHT SHIFT",
-      "price": 148,
+      "price": 249,
       "category": "ESPRESSO DRINKS",
       "description": "MOCHA LATTE - 12oz",
       "ingredients": "espresso, chocolate sauce drizzle, milk",
@@ -171,7 +171,7 @@
     {
       "id": "mwwrtru7",
       "name": "DARK MODE",
-      "price": 119,
+      "price": 199,
       "category": "ESPRESSO DRINKS",
       "description": "AMERICANO - 12oz",
       "ingredients": "espresso, cold water",
@@ -219,7 +219,7 @@
     {
       "id": "mww6hhj3",
       "name": "SOFT RESET",
-      "price": 119,
+      "price": 199,
       "category": "NON-ESPRESSO DRINKS",
       "description": "STRAWBERRY MILK - 12oz",
       "ingredients": "strawberry sauce, strawberry puree, milk",
@@ -269,7 +269,7 @@
     {
       "id": "mvtlqrxx",
       "name": "MILD RESET",
-      "price": 105,
+      "price": 199,
       "category": "NON-ESPRESSO DRINKS",
       "description": "BLUEBERRY MILK - 12oz",
       "ingredients": "blueberry sauce, blueberry puree, milk",
