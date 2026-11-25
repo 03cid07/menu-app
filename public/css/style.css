@@ -1243,8 +1243,8 @@ body.no-scroll .restart-fab { visibility: hidden; } /* a dish card or the 3D vie
     flex: 0 0 var(--cw); min-width: 0; scroll-snap-align: center; scroll-snap-stop: always;
     background: var(--surface); color: var(--ink);
     border-radius: 18px 18px 0 0; border: 1px solid var(--edge); border-bottom: var(--ext) solid var(--surface); margin-bottom: calc(-1 * var(--ext));
-    /* every card is the same height, whatever is in it (longer ones scroll inside) */
-    height: calc(88vh + var(--ext)); height: calc(88dvh + var(--ext));
+    /* the card grows to fit what is in it, up to 88% of the screen (longer ones scroll inside), so there is no empty space at the bottom */
+    height: auto; max-height: calc(88vh + var(--ext)); max-height: calc(88dvh + var(--ext));
     /* only the up/down scroll is kept inside the card: "contain" on both axes stopped a sideways swipe from reaching the row of cards */
     overflow-y: auto; overscroll-behavior-y: contain; overscroll-behavior-x: auto; scrollbar-width: none;
     opacity: .6; transition: opacity .2s ease;

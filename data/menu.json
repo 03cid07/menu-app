@@ -69,6 +69,21 @@
       "available": true
     },
     {
+      "id": "mwwa7tkw",
+      "name": "SALT CIRCUIT",
+      "price": 200,
+      "category": "ESPRESSO DRINKS",
+      "description": "SALTED CARAMEL - 12oz",
+      "ingredients": "espresso salted, caramel sauce, milk",
+      "image": "images/mwwa8k30-787zn.jpg",
+      "images": [
+        "images/mwwa8k30-787zn.jpg"
+      ],
+      "model": "",
+      "label": "popular",
+      "available": true
+    },
+    {
       "id": "mvtll5oy",
       "name": "NIGHT SHIFT ",
       "price": 155,

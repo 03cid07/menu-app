@@ -380,6 +380,16 @@ const slideStep = () => { const a = sheetBox.children[0], b = sheetBox.children[
 // The card slides in and out with springs and follows a finger (see spring.js)
 const sheetCard = Springs.bottomCard({
   root: sheet, box: sheetBox, finish: finishSheet,
+  // the card grows out of the dish that was tapped and shrinks back into it (the dish's row, if it is on screen; otherwise it slides)
+  target: () => (sheetMq.matches ? activeSlide() : sheetBox),
+  origin: () => {
+    if (!sheetItem) return null;
+    for (const el of document.querySelectorAll(`.item[data-id="${CSS.escape(sheetItem.id)}"]`)) {
+      const r = el.getBoundingClientRect();
+      if (r.width && r.height && r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth) return r;
+    }
+    return null;
+  },
   scroller: (t) => (sheetMq.matches ? (t && t.closest && t.closest(".sheet-slide")) || activeSlide() : sheetBox),
 });
 if (sheetMq.matches) sheetBox.dataset.rbEdges = "both"; // the row of cards stretches at both ends; each card stretches at its bottom only
@@ -435,7 +445,7 @@ function openSheet(id, opener) {
 }
 function closeSheet() {
   if (sheet.hidden || sheetCard.isClosing()) return;
-  sheetCard.dismiss();
+  sheetCard.dismiss(0, true);
 }
 function finishSheet() {
   sheet.hidden = true;
