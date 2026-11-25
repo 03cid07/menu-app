@@ -827,7 +827,7 @@ html.theme-anim body, html.theme-anim body * { transition: background-color .35s
 .qm-switch input:checked + .qm-slider { background: var(--accent); }
 .qm-switch input:checked + .qm-slider::after { transform: translateX(20px); background: var(--accent-ink); }
 .qm-switch input:focus-visible + .qm-slider { outline: 3px solid var(--accent); outline-offset: 2px; }
-.qm-swt { width: 1.7rem; }
+.qm-swt { min-width: 1.7rem; white-space: nowrap; }
 .qm-mv { display: flex; gap: .25rem; flex: none; }
 .qm-mv .pb { flex: none; width: 40px; min-height: 40px; }
 .qm-pills { display: flex; flex-wrap: wrap; gap: .35rem; padding: 0 .8rem .8rem; }
