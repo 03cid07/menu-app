@@ -67,7 +67,6 @@
     mv.setAttribute("min-camera-orbit", `auto auto ${r}`);
     mv.setAttribute("max-camera-orbit", `auto auto ${r}`);
     mv.setAttribute("camera-orbit", `${th.toFixed(4)}rad ${ph.toFixed(4)}rad ${r}`);
-    $("#gf-viewlabel").textContent = `View: ${fmt(spanCm)} cm tall`;
     if (mv.jumpCameraToGoal) mv.jumpCameraToGoal();
   }
 
@@ -108,45 +107,42 @@
     o.x.fillText(`${fmt(w)} x ${fmt(h)} cm`, o.w / 2, y0 > 16 ? y0 - 6 : y0 + h * ppc + 16);
   }
 
-  function drawStage() {
+  function drawStage() {                               // simple rulers: 0 is the model's left / bottom edge and the numbers count up from there
     const g = sizeCanvas($("#gf-grid")), rx = sizeCanvas($("#gf-rulerX")), ry = sizeCanvas($("#gf-rulerY"));
     drawOverlay();
     if (!spanCm || !g.w || !g.h) return;
     const ppc = g.h / spanCm, cx = g.w / 2, cy = g.h / 2;
-    const [major, minor] = STEPS.find((s) => s[0] * ppc >= 50) || STEPS[STEPS.length - 1];
-    const showMinor = minor * ppc >= 5;
-    const isMajor = (v) => Math.abs(v / major - Math.round(v / major)) < 1e-6;
-    const muted = cssVar("--muted"), accent = cssVar("--accent");
-    const nX = Math.floor(g.w / 2 / ppc / minor), nY = Math.floor(g.h / 2 / ppc / minor);
+    const major = (STEPS.find((s) => s[0] * ppc >= 60) || STEPS[STEPS.length - 1])[0];   // only a few big numbers, no small ticks
+    const muted = cssVar("--muted"), accent = cssVar("--accent"), ink = cssVar("--ink") || muted;
     const label = (v) => String(+v.toFixed(2));
+    const w = origCm ? origCm[0] * scaleF : 0, h = origCm ? origCm[1] * scaleF : 0;
+    const x0 = cx - (w * ppc) / 2, y0 = cy + (h * ppc) / 2;   // where 0 is on each ruler
 
-    if (origCm) {                                       // model extent bands on the rulers
-      const w = origCm[0] * scaleF * ppc, h = origCm[1] * scaleF * ppc;
+    if (origCm) {                                       // coloured band = how much room the model takes up
       rx.x.globalAlpha = ry.x.globalAlpha = 0.22; rx.x.fillStyle = ry.x.fillStyle = accent;
-      rx.x.fillRect(cx - w / 2, 0, w, rx.h); ry.x.fillRect(0, cy - h / 2, ry.w, h);
+      rx.x.fillRect(x0, 0, w * ppc, rx.h); ry.x.fillRect(0, y0 - h * ppc, ry.w, h * ppc);
       rx.x.globalAlpha = ry.x.globalAlpha = 1;
     }
 
-    g.x.lineWidth = 1; rx.x.lineWidth = ry.x.lineWidth = 1;
-    rx.x.fillStyle = ry.x.fillStyle = muted; rx.x.strokeStyle = ry.x.strokeStyle = muted;
-    rx.x.font = ry.x.font = "10px system-ui, sans-serif";
+    rx.x.lineWidth = ry.x.lineWidth = 1;
+    rx.x.fillStyle = ry.x.fillStyle = ink; rx.x.strokeStyle = ry.x.strokeStyle = muted;
+    rx.x.font = ry.x.font = "600 11px system-ui, sans-serif";
     rx.x.textAlign = "center"; ry.x.textAlign = "right"; ry.x.textBaseline = "middle";
 
-    for (let i = -nX; i <= nX; i++) {                   // vertical grid lines + horizontal ruler
-      const v = i * minor, maj = isMajor(v);
-      if (!maj && !showMinor) continue;
-      const px = Math.round(cx + v * ppc) + 0.5;
-      rx.x.beginPath(); rx.x.moveTo(px, rx.h); rx.x.lineTo(px, rx.h - (maj ? 9 : 4)); rx.x.stroke();
-      if (maj && px > 14 && px < rx.w - 14) rx.x.fillText(label(v), px, 11);
+    for (let v = 0; x0 + v * ppc < rx.w; v += major) {  // across: 0, then up
+      const px = Math.round(x0 + v * ppc) + 0.5;
+      if (px < 0) continue;
+      rx.x.beginPath(); rx.x.moveTo(px, rx.h); rx.x.lineTo(px, rx.h - 6); rx.x.stroke();
+      if (px > 12 && px < rx.w - 12) rx.x.fillText(label(v), px, 11);
     }
-    for (let i = -nY; i <= nY; i++) {                   // horizontal grid lines + vertical ruler (up = positive)
-      const v = i * minor, maj = isMajor(v);
-      if (!maj && !showMinor) continue;
-      const py = Math.round(cy - v * ppc) + 0.5;
-      ry.x.beginPath(); ry.x.moveTo(ry.w, py); ry.x.lineTo(ry.w - (maj ? 9 : 4), py); ry.x.stroke();
-      if (maj && py > 8 && py < ry.h - 8) ry.x.fillText(label(v), ry.w - 12, py);
+    for (let v = 0; y0 - v * ppc > 0; v += major) {     // up the side: 0 at the bottom of the model
+      const py = Math.round(y0 - v * ppc) + 0.5;
+      if (py > ry.h) continue;
+      ry.x.beginPath(); ry.x.moveTo(ry.w, py); ry.x.lineTo(ry.w - 6, py); ry.x.stroke();
+      if (py > 8 && py < ry.h - 8) ry.x.fillText(label(v), ry.w - 10, py);
     }
-    if (floor) floor.setStep(major / 100);              // one floor cell = one major ruler step, so the grid and the rulers agree
+    if (floor) floor.setStep(major / 100);              // one floor square = one step on the ruler
+    $("#gf-viewlabel").textContent = `1 square = ${label(major)} cm`;
   }
 
   function applyScale() {
