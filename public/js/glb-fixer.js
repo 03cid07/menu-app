@@ -95,16 +95,40 @@
     return Math.abs(t) < 0.05 && Math.abs(o.phi - Math.PI / 2) < 0.05;
   }
 
-  function drawOverlay() {
+  function drawOverlay() {                             // dashed size box: the model's bounding box, turned to match the camera so it stays visible from every angle
     const o = sizeCanvas($("#gf-overlay"));
-    if (!spanCm || !origCm || !o.w || !o.h || !isFront()) return;
-    const ppc = o.h / spanCm, w = origCm[0] * scaleF, h = origCm[1] * scaleF;
-    const x0 = o.w / 2 - (w * ppc) / 2, y0 = o.h / 2 - (h * ppc) / 2;
-    o.x.strokeStyle = cssVar("--accent"); o.x.fillStyle = cssVar("--accent");
-    o.x.lineWidth = 1.5; o.x.setLineDash([6, 4]);
-    o.x.strokeRect(x0, y0, w * ppc, h * ppc);
-    o.x.setLineDash([]); o.x.font = "600 12px system-ui, sans-serif"; o.x.textAlign = "center";
-    o.x.fillText(`${fmt(w)} x ${fmt(h)} cm`, o.w / 2, y0 > 16 ? y0 - 6 : y0 + h * ppc + 16);
+    if (!spanCm || !origCm || !o.w || !o.h) return;
+    const mv = $("#gf-mv"), orb = mv.getCameraOrbit ? mv.getCameraOrbit() : null;
+    const th = orb && isFinite(orb.theta) ? orb.theta : 0, ph = orb && isFinite(orb.phi) ? orb.phi : Math.PI / 2;
+    const ppc = o.h / spanCm, w = origCm[0] * scaleF, h = origCm[1] * scaleF, d = origCm[2] * scaleF;
+    const R = [Math.cos(th), 0, -Math.sin(th)];                                   // camera axes: right, forward, up
+    const F = [-Math.sin(ph) * Math.sin(th), -Math.cos(ph), -Math.sin(ph) * Math.cos(th)];
+    const U = [R[1] * F[2] - R[2] * F[1], R[2] * F[0] - R[0] * F[2], R[0] * F[1] - R[1] * F[0]];
+    const pts = [];
+    for (const a of [-1, 1]) for (const b of [-1, 1]) for (const c of [-1, 1]) {   // 8 corners, index = x*4 + y*2 + z
+      const p = [a * w / 2, b * h / 2, c * d / 2];
+      pts.push({
+        x: o.w / 2 + (p[0] * R[0] + p[1] * R[1] + p[2] * R[2]) * ppc,
+        y: o.h / 2 - (p[0] * U[0] + p[1] * U[1] + p[2] * U[2]) * ppc,
+        z: p[0] * F[0] + p[1] * F[1] + p[2] * F[2],                               // bigger = further from the camera
+      });
+    }
+    let far = 0; pts.forEach((q, i) => { if (q.z > pts[far].z) far = i; });
+    const edges = [];
+    for (let i = 0; i < 8; i++) for (const bit of [1, 2, 4]) if (!(i & bit)) edges.push([i, i | bit]);
+    const accent = cssVar("--accent");
+    o.x.strokeStyle = accent; o.x.fillStyle = accent; o.x.lineWidth = 1.5; o.x.setLineDash([6, 4]);
+    for (const faint of [true, false]) {                // edges that run to the far corner are drawn fainter, so the box reads as 3D
+      o.x.globalAlpha = faint ? 0.35 : 1;
+      for (const [i, j] of edges) {
+        if ((i === far || j === far) !== faint) continue;
+        o.x.beginPath(); o.x.moveTo(pts[i].x, pts[i].y); o.x.lineTo(pts[j].x, pts[j].y); o.x.stroke();
+      }
+    }
+    o.x.globalAlpha = 1; o.x.setLineDash([]); o.x.font = "600 12px system-ui, sans-serif"; o.x.textAlign = "center";
+    const top = Math.min(...pts.map((q) => q.y)), bottom = Math.max(...pts.map((q) => q.y));
+    const text = isFront() ? `${fmt(w)} x ${fmt(h)} cm` : `${fmt(w)} x ${fmt(h)} x ${fmt(d)} cm`;
+    o.x.fillText(text, o.w / 2, top > 16 ? top - 6 : bottom + 16);
   }
 
   function drawStage() {                               // simple rulers: 0 is the model's left / bottom edge and the numbers count up from there

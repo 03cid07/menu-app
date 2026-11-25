@@ -13,11 +13,15 @@
       "name": "DEBUG",
       "price": 115,
       "category": "ESPRESSO DRINKS",
-      "description": "SPANISH LATTE",
+      "description": "SPANISH LATTE - 8oz",
       "ingredients": "espresso, milk condensed, milk",
       "image": "images/mvtlbkve-xj2cf.jpg",
       "images": [
-        "images/mvtlbkve-xj2cf.jpg"
+        "images/mvtlbkve-xj2cf.jpg",
+        "images/mww8v2rn-pkl5w.jpg",
+        "images/mww8v2w7-5y7eu.jpg",
+        "images/mww8v30i-2bnmz.jpg",
+        "images/mww8v35d-ks492.jpg"
       ],
       "model": "models/static-co-cupIcedLatte2_10cm.glb",
       "temp": "",
@@ -29,11 +33,15 @@
       "name": "OVERCLOCK",
       "price": 155,
       "category": "ESPRESSO DRINKS",
-      "description": "CARAMEL MACCHIATO",
+      "description": "CARAMEL MACCHIATO - 8oz",
       "ingredients": "espresso, caramel sauce drizzle, vanilla syrup, milk",
       "image": "images/mvtljfob-v59l8.jpg",
       "images": [
-        "images/mvtljfob-v59l8.jpg"
+        "images/mvtljfob-v59l8.jpg",
+        "images/mww8vnca-i51yz.jpg",
+        "images/mww8vngy-98af6.jpg",
+        "images/mww8vnlb-ffzaf.jpg",
+        "images/mww8vnqp-nh0m3.jpg"
       ],
       "model": "models/static-co-cupIcedMacchiato_10cm.glb",
       "temp": "",
@@ -45,11 +53,15 @@
       "name": "SALT CIRCUIT",
       "price": 155,
       "category": "ESPRESSO DRINKS",
-      "description": "SALTED CARAMEL",
+      "description": "SALTED CARAMEL - 8oz",
       "ingredients": "espresso salted, caramel sauce, milk",
       "image": "images/mvtlm9cg-fi0o7.jpg",
       "images": [
-        "images/mvtlm9cg-fi0o7.jpg"
+        "images/mvtlm9cg-fi0o7.jpg",
+        "images/mww8upmu-tqkr9.jpg",
+        "images/mww8upr8-yivex.jpg",
+        "images/mww8upve-qivyi.jpg",
+        "images/mww8uq0j-7o9vx.jpg"
       ],
       "model": "models/static-co-cupIcedLatte_10cm.glb",
       "temp": "",
@@ -61,11 +73,15 @@
       "name": "NIGHT SHIFT ",
       "price": 155,
       "category": "ESPRESSO DRINKS",
-      "description": "MOCHA LATTE",
+      "description": "MOCHA LATTE - 8oz",
       "ingredients": "espresso, chocolate sauce drizzle, milk",
       "image": "images/mvtll5om-1ygju.jpg",
       "images": [
-        "images/mvtll5om-1ygju.jpg"
+        "images/mvtll5om-1ygju.jpg",
+        "images/mww8ueey-usxd4.jpg",
+        "images/mww8uek4-7qzx2.jpg",
+        "images/mww8ueoi-tzbt4.jpg",
+        "images/mww8uetp-tr1qf.jpg"
       ],
       "model": "models/static-co-cupIcedMocha_10cm.glb",
       "temp": "",
@@ -77,11 +93,15 @@
       "name": "DARK MODE",
       "price": 105,
       "category": "ESPRESSO DRINKS",
-      "description": "AMERICANO",
+      "description": "AMERICANO - 8oz",
       "ingredients": "espresso, cold water",
       "image": "images/mvtln5h2-dst2s.jpg",
       "images": [
-        "images/mvtln5h2-dst2s.jpg"
+        "images/mvtln5h2-dst2s.jpg",
+        "images/mww8tmev-6l1sh.jpg",
+        "images/mww8tmk3-vw1ba.jpg",
+        "images/mww8tmq0-r5o5w.jpg",
+        "images/mww8tmul-u0oy2.jpg"
       ],
       "model": "models/static-co-cupIcedAmericano_10cm.glb",
       "temp": "",
@@ -106,11 +126,15 @@
       "name": "SOFT RESET",
       "price": 105,
       "category": "NON-ESPRESSO DRINKS",
-      "description": "STRAWBERRY MILK",
+      "description": "STRAWBERRY MILK - 8oz",
       "ingredients": "strawberry sauce, strawberry puree, milk",
       "image": "images/mvtlq2u5-qbcih.jpg",
       "images": [
-        "images/mvtlq2u5-qbcih.jpg"
+        "images/mvtlq2u5-qbcih.jpg",
+        "images/mww8myjr-77kyi.jpg",
+        "images/mww8myor-tl3v7.jpg",
+        "images/mww8mytp-te69s.jpg",
+        "images/mww8myzn-4gbts.jpg"
       ],
       "model": "models/static-co-cupStrawberryMilk_10cm.glb",
       "temp": "",
@@ -137,11 +161,15 @@
       "name": "CLEAN SIGNAL",
       "price": 165,
       "category": "NON-ESPRESSO DRINKS",
-      "description": "ICED MATCHA",
+      "description": "ICED MATCHA - 8oz",
       "ingredients": "matcha powder, sweetener, milk",
       "image": "images/mvtlp9ng-978su.jpg",
       "images": [
-        "images/mvtlp9ng-978su.jpg"
+        "images/mvtlp9ng-978su.jpg",
+        "images/mww8xhp8-2nfzh.jpg",
+        "images/mww8xhve-ko6gm.jpg",
+        "images/mww8xi05-q2c18.jpg",
+        "images/mww8xi53-o8sz3.jpg"
       ],
       "model": "models/static-co-cupMatchaLatte_10cm.glb",
       "temp": "",
@@ -153,13 +181,13 @@
       "name": "MILD RESET",
       "price": 105,
       "category": "NON-ESPRESSO DRINKS",
-      "description": "BLUEBERRY MILK",
+      "description": "BLUEBERRY MILK - 12oz",
       "ingredients": "blueberry sauce, blueberry puree, milk",
       "image": "images/mvtlqrx8-533dt.jpg",
       "images": [
         "images/mvtlqrx8-533dt.jpg"
       ],
-      "model": "",
+      "model": "models/blueberry_105cm.glb",
       "temp": "",
       "label": "new",
       "available": true
