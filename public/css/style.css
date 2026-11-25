@@ -1364,3 +1364,26 @@ body.no-scroll .restart-fab { visibility: hidden; } /* a dish card or the 3D vie
 .drag-ph { box-sizing: border-box; margin: .15rem 0; border: 2px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
 body.is-dragging { cursor: grabbing; user-select: none; -webkit-user-select: none; }
 body.is-dragging * { cursor: grabbing !important; }
+
+/* ---- Photo viewer (js/photo-viewer.js): tap a dish photo to expand it; double-tap or pinch to zoom ---- */
+.gal-slide, img.sheet-hero { cursor: zoom-in; }
+.pv { position: fixed; inset: 0; z-index: 40; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.pv[hidden] { display: none; }
+.pv-bg { position: absolute; inset: 0; background: rgba(0,0,0,.94); transition: opacity .2s ease-out; }
+.pv-stage { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; touch-action: none; }
+.pv-img { flex: none; max-width: none; max-height: none; transform-origin: 50% 50%; will-change: transform; cursor: zoom-in; -webkit-user-drag: none; user-select: none; }
+.pv.zoomed .pv-img { cursor: grab; }
+.pv-img.anim { transition: transform .28s cubic-bezier(.22, 1, .36, 1); }
+.pv-ui { position: absolute; inset: 0; pointer-events: none; transition: opacity .2s ease; }
+.pv-btn { position: absolute; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgba(255,255,255,.16); color: #fff; font-size: 1.9rem; line-height: 1; cursor: pointer; pointer-events: auto; }
+.pv-btn[hidden] { display: none; }
+.pv-btn:hover { background: rgba(255,255,255,.26); }
+.pv-btn:disabled { opacity: .3; cursor: default; }
+.pv-close { top: max(12px, env(safe-area-inset-top)); right: 12px; font-size: 2rem; }
+.pv-nav { top: 50%; margin-top: -22px; }
+.pv-nav.prev { left: 10px; } .pv-nav.next { right: 10px; }
+.pv-count { position: absolute; top: max(20px, calc(env(safe-area-inset-top) + 8px)); left: 14px; color: #fff; font-size: .85rem; font-weight: 600; padding: .2rem .7rem; border-radius: 999px; background: rgba(255,255,255,.16); }
+.pv-count:empty { display: none; }
+.pv.zoomed .pv-nav, .pv.zoomed .pv-count { opacity: 0; pointer-events: none; }
+@media (max-width: 599px) { .pv-nav { display: none; } } /* on a phone you swipe */
+@media (prefers-reduced-motion: reduce) { .pv-img.anim, .pv-bg, .pv-ui { transition: none; } }

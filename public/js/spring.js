@@ -39,10 +39,19 @@
   // Make a fixed backdrop (`root`) with a bottom card (`box`) slide in and out with springs, and let
   // a finger drag it down to close. Pulling it up past its resting place stretches like a rubber band.
   // `reveal()` is called before it slides in; `finish()` is called when it has slid out (hide it there).
-  // Optional: `origin()` gives the rectangle of the thing that was tapped, and `target()` the element that is the card
-  // (default: the box). With them the card GROWS out of the tapped thing and shrinks back into it, instead of sliding up from the bottom.
+  //
+  // Optional `origin()` (the rectangle of the thing that was tapped) and `target()` (the element that is the card, default the box)
+  // turn the slide into a grow: a window the size of the tapped row opens up into the whole card, and closes back into the row,
+  // also after a drag down (the card shrinks a little while it follows the finger, then lands in the row). The card itself is
+  // never stretched. These run as Web Animations, so the browser runs them apart from the page's own scripts and they stay smooth
+  // while the page is busy. Without a visible row the card slides like before.
   function bottomCard({ root, box, finish, dim = 0.55, scroller = null, origin = null, target = null }) {
-    let y = 0, anim = null, closing = false, t0 = null, growing = false;
+    let y = 0, anim = null, closing = false, t0 = null;
+    const morph = !!origin;
+    let wanims = [], dragOrigin = "";
+    const EASE_OUT = "cubic-bezier(.22, 1, .36, 1)";   // quick start and a long soft landing: feels like a spring without the bounce
+    const EASE_IN_OUT = "cubic-bezier(.32, .72, 0, 1)";
+    const FULL = "inset(0px 0px 0px 0px round 0px)";
     box.dataset.rbEdges = "end"; // rubber.js: pulling down at the top closes the card, so only the bottom stretches
     const height = () => box.offsetHeight || 1;
     // distance that moves the card fully below the screen; measured once per gesture, not every frame
@@ -51,40 +60,51 @@
     const offscreen = () => off;
     function apply(v) {
       y = v;
-      box.style.transform = v ? `translate3d(0, ${v}px, 0)` : "";
+      if (morph && v > 0) {
+        // pulled down: the card shrinks a little as it follows the finger (about its own centre)
+        const prog = Math.min(1, v / (innerHeight * 0.7));
+        box.style.transformOrigin = dragOrigin;
+        box.style.transform = `translate3d(0, ${v}px, 0) scale(${(1 - 0.28 * prog).toFixed(4)})`;
+      } else {
+        box.style.transform = v ? `translate3d(0, ${v}px, 0)` : "";
+      }
       const p = Math.max(0, Math.min(1, 1 - v / (offscreen() || 1)));
       root.style.background = `rgba(0, 0, 0, ${(dim * p).toFixed(3)})`;
     }
-    function clear() { box.style.transform = ""; box.style.transformOrigin = ""; box.style.opacity = ""; root.style.background = ""; y = 0; }
+    function clear() { box.style.transform = ""; box.style.transformOrigin = ""; root.style.background = ""; y = 0; }
+    const stopW = () => { wanims.forEach((a) => a.cancel()); wanims = []; };
+    const stop = () => { if (anim) anim.stop(); anim = null; stopW(); };
 
-    // ---- grow out of the tapped thing (and back into it) ----
-    function growRects() {
-      const o = origin && origin();
+    // ---- the tapped row <-> the card ----
+    // Measured with no transform on the card. `dy` moves the card so its top edge sits on the row's top edge; `clip` is the window
+    // the size of the row (in the box's own coordinates, so it moves with the card). From the row's window to the whole card = the grow.
+    function restRects() {
+      if (!morph || reduced()) return null;
+      const o = origin();
       if (!o) return null;
+      const pt = box.style.transform, po = box.style.transformOrigin;
+      box.style.transform = ""; box.style.transformOrigin = "";
       const t = ((target && target()) || box).getBoundingClientRect(), b = box.getBoundingClientRect();
+      box.style.transform = pt; box.style.transformOrigin = po;
       if (!t.width || !t.height) return null;
+      const top = t.top - b.top, left = o.left - b.left;
       return {
-        s0: Math.max(0.08, Math.min(0.35, o.height / t.height)),         // how small the card starts: about the size of the tapped row
-        dx: o.left + o.width / 2 - (t.left + t.width / 2),                // how far its centre is from the tapped row's centre
-        dy: o.top + o.height / 2 - (t.top + t.height / 2),
-        ox: t.left + t.width / 2 - b.left, oy: t.top + t.height / 2 - b.top, // scale around the card's own centre
+        dy: o.top - t.top,
+        clip: `inset(${top}px ${Math.max(0, b.right - o.right)}px ${Math.max(0, b.height - top - o.height)}px ${Math.max(0, left)}px round 16px)`,
+        ox: t.left + t.width / 2 - b.left, oy: t.top + t.height / 2 - b.top, // the card's own centre (for the shrink while dragging)
       };
     }
-    function applyGrow(g, p) {
-      const k = 1 - p;
-      box.style.transformOrigin = `${g.ox}px ${g.oy}px`;
-      box.style.transform = `translate3d(${g.dx * k}px, ${g.dy * k}px, 0) scale(${g.s0 + (1 - g.s0) * p})`;
-      box.style.opacity = Math.min(1, p * 3).toFixed(3); // fades in quickly, so it looks like it comes out of the row
-      root.style.background = `rgba(0, 0, 0, ${(dim * Math.max(0, Math.min(1, p))).toFixed(3)})`;
-    }
-    const stop = () => { if (anim) anim.stop(); anim = null; };
 
     function open() {
-      stop(); closing = false; growing = false; clear();
-      const g = growRects();
+      stop(); closing = false; clear();
+      const g = restRects();
       if (g) {
-        growing = true; applyGrow(g, 0);
-        anim = spring({ from: 0, to: 1, response: 0.45, damping: 1, onUpdate: (p) => applyGrow(g, p), onDone: () => { growing = false; clear(); } });
+        const move = box.animate([{ transform: `translate3d(0, ${g.dy}px, 0)` }, { transform: "translate3d(0, 0, 0)" }], { duration: 460, easing: EASE_OUT });
+        const reveal = box.animate([{ clipPath: g.clip }, { clipPath: FULL }], { duration: 460, easing: EASE_OUT });
+        const fade = box.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 140, easing: "ease-out" });
+        const dimmer = root.animate([{ backgroundColor: "rgba(0, 0, 0, 0)" }, { backgroundColor: `rgba(0, 0, 0, ${dim})` }], { duration: 460, easing: EASE_OUT });
+        wanims = [move, reveal, fade, dimmer];
+        move.onfinish = () => { stopW(); clear(); };
         return;
       }
       measure();
@@ -92,15 +112,20 @@
       apply(from);
       anim = spring({ from, to: 0, response: 0.5, damping: 1, onUpdate: apply, onDone: clear });
     }
-    // toOrigin: shrink back into the tapped thing (close button, backdrop, Back); a drag down still slides the card away
-    function dismiss(velocity = 0, toOrigin = false) {
+    function dismiss(velocity = 0) {
       if (closing) return;
       closing = true; stop();
-      if (growing) { growing = false; clear(); }
-      const g = toOrigin && !y ? growRects() : null;
+      const g = restRects();
       if (g) {
-        growing = true;
-        anim = spring({ from: 1, to: 0, response: 0.4, damping: 1, onUpdate: (p) => applyGrow(g, p), onDone: () => { growing = false; clear(); closing = false; finish(); } });
+        // close the window back to the row's size, from wherever the card is now (a drag leaves it low and a little smaller)
+        box.style.transformOrigin = dragOrigin || `${g.ox}px ${g.oy}px`;
+        const d = 360;
+        const move = box.animate({ transform: `translate3d(0, ${g.dy}px, 0) scale(1)` }, { duration: d, easing: EASE_IN_OUT, fill: "forwards" });
+        const reveal = box.animate([{ clipPath: FULL }, { clipPath: g.clip }], { duration: d, easing: EASE_IN_OUT, fill: "forwards" });
+        const fade = box.animate([{ opacity: 1 }, { opacity: 1, offset: 0.6 }, { opacity: 0 }], { duration: d, easing: "linear", fill: "forwards" });
+        const dimmer = root.animate({ backgroundColor: "rgba(0, 0, 0, 0)" }, { duration: d, easing: EASE_IN_OUT, fill: "forwards" });
+        wanims = [move, reveal, fade, dimmer];
+        move.onfinish = () => { finish(); stopW(); clear(); closing = false; }; // hide first, then drop the effects: no flash of the full card
         return;
       }
       measure();
@@ -117,8 +142,9 @@
     box.addEventListener("touchstart", (e) => {
       if (closing || e.touches.length !== 1) { t0 = null; return; }
       const t = e.touches[0];
-      if (growing) { stop(); anim = null; growing = false; clear(); } // touched while it is growing: it just lands, then the touch works as usual
+      if (wanims.length) { stopW(); clear(); } // touched while it was growing: it just lands, then the touch works as usual
       measure();
+      if (morph) { const g = restRects(); dragOrigin = g ? `${g.ox}px ${g.oy}px` : ""; }
       t0 = { x: t.clientX, y: t.clientY, base: y, mode: null, pts: [[performance.now(), t.clientY]] };
       if (anim && anim.running()) { t0.v0 = anim.velocity(); stop(); t0.base = y; t0.mode = "drag"; t0.grabbed = true; } // caught mid-motion: take over
     }, { passive: true });
@@ -160,7 +186,7 @@
     box.addEventListener("touchend", end);
     box.addEventListener("touchcancel", end);
 
-    return { open, dismiss, cancel: () => { stop(); closing = false; growing = false; clear(); }, isClosing: () => closing };
+    return { open, dismiss, cancel: () => { stop(); closing = false; clear(); }, isClosing: () => closing };
   }
 
   window.Springs = { spring, rubber, bottomCard };
