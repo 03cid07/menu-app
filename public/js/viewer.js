@@ -320,10 +320,12 @@
     page.innerHTML = "";
     backdrop().forEach((el) => { el.inert = false; });
     document.body.classList.remove("vw-open");
-    if (typeof sheet === "undefined" || sheet.hidden) document.body.classList.remove("no-scroll");
+    if (!(typeof sheetShowing === "function" && sheetShowing())) document.body.classList.remove("no-scroll"); // a parked card puts it back itself when it returns
     document.title = prevTitle || document.title;
     if (!opts.fromPop && /^#viewer/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
     if (!opts.quiet) document.dispatchEvent(new CustomEvent("viewer:close"));
+    // A dish card that was open when the 3D view was opened comes back exactly as it was left (keepCard: the Full menu picker takes over instead)
+    if (!opts.keepCard && typeof unparkSheet === "function") unparkSheet();
   }
 
   // "Choose a 3D model" / "Add another 3D model": the Full menu, listing only dishes that have a model
@@ -331,7 +333,7 @@
     if (!picking) picking = { keep: [], prevAr: view.ar };
     picking.keep = keep.slice();
     view.ar = true;
-    close({ quiet: true });
+    close({ quiet: true, keepCard: true });
     render();
     document.dispatchEvent(new CustomEvent("viewer:pick"));
   }
@@ -346,7 +348,7 @@
     endPick();
     open([...keep, id]);
   }
-  function goFull() { close({ quiet: true }); document.dispatchEvent(new CustomEvent("viewer:pick")); }
+  function goFull() { close({ quiet: true, keepCard: true }); document.dispatchEvent(new CustomEvent("viewer:pick")); }
 
   root.addEventListener("click", (e) => {
     // The picker and the scanner open on top of the 3D view (js/viewer-add.js). Without that file, fall back to the Full menu.
@@ -362,7 +364,7 @@
     else if (isOpen) close({ fromPop: true });
   });
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && isOpen && (typeof sheet === "undefined" || sheet.hidden)) close();
+    if (e.key === "Escape" && isOpen && !(typeof sheetShowing === "function" && sheetShowing())) close();
   });
 
   // Adding from inside the 3D view (used by js/viewer-add.js)

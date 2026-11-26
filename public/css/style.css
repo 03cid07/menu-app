@@ -1387,3 +1387,10 @@ body.is-dragging * { cursor: grabbing !important; }
 .pv.zoomed .pv-nav, .pv.zoomed .pv-count { opacity: 0; pointer-events: none; }
 @media (max-width: 599px) { .pv-nav { display: none; } } /* on a phone you swipe */
 @media (prefers-reduced-motion: reduce) { .pv-img.anim, .pv-bg, .pv-ui { transition: none; } }
+
+/* ---- Dish card parked while My list or the 3D view is on top of it (menu.js: parkSheet / unparkSheet) ----
+   Only hidden, never closed: the card keeps how far it was scrolled, which photo it showed and which dish of the swipe row it was on. */
+.sheet.parked { visibility: hidden; pointer-events: none; }
+.sheet.back { animation: sheet-back .22s ease-out; }
+@keyframes sheet-back { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sheet.back { animation: none; } }

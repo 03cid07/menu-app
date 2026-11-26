@@ -370,7 +370,7 @@ sheet.hidden = true;
 sheet.innerHTML = '<div class="sheet-box" role="dialog" aria-modal="true" aria-labelledby="sheet-title"></div>';
 document.body.appendChild(sheet);
 const sheetBox = sheet.querySelector(".sheet-box");
-let sheetItem = null, sheetOpener = null;
+let sheetItem = null, sheetOpener = null, sheetParked = false; // sheetParked: the card is hidden (not closed) because My list or the 3D view is on top of it
 // Phones: the card is one of a row of cards you swipe through (the neighbours peek in at the sides).
 // Bigger screens keep the single card.
 const sheetMq = matchMedia("(max-width: 599px)");
@@ -431,6 +431,7 @@ function sheetIdsFor(id, opener) {
 function openSheet(id, opener) {
   const it = data.items.find((x) => x.id === id);
   if (!it) return;
+  clearPark(); // a card that was parked is replaced by this one
   sheetItem = it;
   sheetOpener = opener || null;
   const ids = sheetIdsFor(id, opener);
@@ -444,8 +445,33 @@ function openSheet(id, opener) {
   activeSlide().querySelector(".sheet-close").focus({ preventScroll: true });
 }
 function closeSheet() {
-  if (sheet.hidden || sheetCard.isClosing()) return;
+  if (sheet.hidden || sheetParked || sheetCard.isClosing()) return; // a parked card is not on screen: Escape and the like must not close it
   sheetCard.dismiss();
+}
+
+// ---- Parking the card ----
+// Going from the card to My list or to the 3D view does not throw the card away. It is only hidden (the same elements: how far it was
+// scrolled, which photo it showed, which dish of the swipe row it was on, the + / - stepper) and shown again exactly as it was left
+// when My list or the 3D view goes away, whichever tab or button was used to leave it.
+const sheetShowing = () => !sheet.hidden && !sheetParked;
+const coverUp = () => !!((window.MyList && MyList.isOpen()) || (window.Viewer && Viewer.isOpen())); // something that sits on top of the card is open
+function clearPark() { sheetParked = false; sheet.classList.remove("parked"); sheet.inert = false; }
+function parkSheet() {
+  if (sheet.hidden || sheetParked || sheetCard.isClosing()) return false;
+  sheetParked = true;
+  sheet.inert = true;
+  sheet.classList.add("parked");
+  document.body.classList.remove("no-scroll"); // the screen that covers the card sets its own (the 3D view); My list scrolls by itself
+  return true;
+}
+// Shows the parked card again, unless My list or the 3D view is still open (it waits for those to go)
+function unparkSheet() {
+  if (!sheetParked || sheet.hidden || coverUp()) return;
+  clearPark();
+  document.body.classList.add("no-scroll");
+  sheet.classList.remove("back"); void sheet.offsetWidth; sheet.classList.add("back"); // a short fade, see .sheet.back in the CSS
+  sheet.addEventListener("animationend", () => sheet.classList.remove("back"), { once: true });
+  (activeSlide() || sheetBox).querySelector(".sheet-close")?.focus({ preventScroll: true });
 }
 function finishSheet() {
   sheet.hidden = true;
@@ -615,8 +641,9 @@ function fxKind(it) { return typeof QuickGen !== "undefined" ? QuickGen.tempOf(i
 document.addEventListener("click", (e) => {
   const b = e.target.closest(".ar-open");
   if (!b || !window.Viewer) return;
-  closeSheet();
+  parkSheet(); // the card waits behind the 3D view and comes back when that closes
   Viewer.openDish(b.dataset.id);
+  if (!Viewer.isOpen()) unparkSheet(); // the 3D view did not open: nothing to wait for
 });
 
 // The search bar + My list row is sticky (CSS). This only adds a class while it is pinned so it can look a little

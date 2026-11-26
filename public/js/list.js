@@ -151,15 +151,10 @@ function listShow(on, done) {
 // Only what is not already inert is touched, so the 3D view's own inert state is left alone.
 const listBackdrop = () => [document.querySelector("header.top"), document.getElementById("fs"), document.getElementById("menu"), ...document.querySelectorAll(".home, .vw-screen")].filter(Boolean);
 
-let cardBack = null; // { id, opener } of the dish card that was open when My list was opened from it
 function openList(opts = {}) {
   if (listOpen || typeof data === "undefined" || !data) return;
-  // From the dish card's "View list": close the card first, and remember it so Back brings the same card (and its row of swipeable dishes) back
-  cardBack = null;
-  if (typeof sheet !== "undefined" && !sheet.hidden && typeof closeSheet === "function") {
-    if (sheetItem) cardBack = { id: sheetItem.id, opener: sheetOpener };
-    closeSheet();
-  }
+  // From the dish card's "View list": the card is parked (hidden, not closed, see parkSheet in menu.js) and comes back exactly as it was when this page goes away
+  if (typeof parkSheet === "function") parkSheet();
   drawerView = "list";
   listOpen = true;
   listPage.hidden = false;
@@ -173,23 +168,22 @@ function openList(opts = {}) {
 }
 // quiet: another screen is taking over (the bottom bar sets itself), so hide at once and say nothing.
 // fromPop: the browser's Back button already moved the address.
+// keepCard: the next screen is the 3D view, so a parked dish card keeps waiting (it comes back when the 3D view goes away).
 function closeList(opts = {}) {
   if (!listOpen) return;
   listOpen = false;
   listInert.forEach((el) => { el.inert = false; });
   listInert = [];
   if (!opts.fromPop && location.hash === LIST_HASH) history.replaceState(null, "", location.pathname + location.search);
-  if (opts.quiet) { cardBack = null; if (listFade) listFade.stop(); listV = 0; listPage.style.setProperty("--h", "0"); listPage.hidden = true; }
-  else {
+  if (opts.quiet) {
+    if (listFade) listFade.stop(); listV = 0; listPage.style.setProperty("--h", "0"); listPage.hidden = true;
+    if (!opts.keepCard && typeof unparkSheet === "function") unparkSheet();
+  } else {
     listShow(false, () => {
       if (listOpen) return;
       listPage.hidden = true;
-      // Back to where we were: the dish card opens again on the same dish
-      const back = cardBack; cardBack = null;
-      if (back && typeof openSheet === "function" && sheet.hidden) {
-        const op = back.opener && back.opener.isConnected ? back.opener : document.querySelector(`.item[data-id="${CSS.escape(back.id)}"] .item-open`);
-        openSheet(back.id, op);
-      }
+      // Back to where we were: the dish card is shown again exactly as it was left
+      if (typeof unparkSheet === "function") unparkSheet();
     });
     document.dispatchEvent(new CustomEvent("list:close"));
   }
@@ -214,7 +208,7 @@ window.addEventListener("popstate", () => {
   if (location.hash === LIST_HASH) openList({ noPush: true });
   else if (listOpen) closeList({ fromPop: true });
 });
-document.addEventListener("keydown", (e) => { if (e.key === "Escape" && listOpen && (typeof sheet === "undefined" || sheet.hidden)) listBack(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && listOpen && !(typeof sheetShowing === "function" && sheetShowing())) listBack(); });
 window.MyList = { open: openList, close: closeList, back: listBack, isOpen: () => listOpen };
 
 // - in the detail card stepper

@@ -188,7 +188,7 @@
     // The tab that was under My list (the one you came from): same as the page's Back button, so the screen is left exactly where it was (no scroll to top)
     if (window.MyList && MyList.isOpen() && n.dataset.nav === navBeforeList) return MyList.back();
     // Any other tab while My list is open: the list page goes away at once and the bar goes back to the tab under it, then the tab is handled as usual
-    if (window.MyList && MyList.isOpen()) { MyList.close({ quiet: true }); setNav(navBeforeList); }
+    if (window.MyList && MyList.isOpen()) { MyList.close({ quiet: true, keepCard: n.dataset.nav === "viewer" }); setNav(navBeforeList); } // going on to the 3D view: a parked dish card keeps waiting behind it
     const wasViewer = !!(window.Viewer && Viewer.isOpen());
     if (window.Viewer) Viewer.endPick(); // any tab ends "choose a 3D model"
     // Going from the 3D view to Home / Quick: bring that screen up first and close the 3D view after, so the Full menu that sits
@@ -198,6 +198,9 @@
     else if (n.dataset.nav === "full") { closeViewer(); enterFull({ instant: wasViewer }); }
     else if (n.dataset.nav === "viewer") { if (window.Viewer && !Viewer.isOpen()) Viewer.open([]); }
     else { hist = []; show([]); if (wasViewer) { snap(home, "--h", 1); closeViewer(); } else closeViewer(); }
+    // A dish card that was parked (hidden, not closed) when My list or the 3D view opened is shown again, whichever tab was used to leave them
+    // (this also covers a tab chosen while the Full menu picker for the 3D view was up). It keeps waiting while My list / the 3D view is still open.
+    if (typeof unparkSheet === "function") unparkSheet();
   });
 
   // Arriving straight at the Full menu from another page (the 3D view's bottom bar links to index.html#full): the page loads from scratch,
