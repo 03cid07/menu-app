@@ -6,7 +6,7 @@
   <title>Manage menu</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=62">
+  <link rel="stylesheet" href="css/style.css?v=63">
 </head>
 <body class="admin-page">
   <nav class="adminnav" aria-label="Admin sections">
@@ -113,7 +113,7 @@
       </div>
           </div>
 </div>
-    <div class="panel" data-panel="items"><h2>Current items</h2><p class="hint">Dishes are grouped by category. Drag the ⋮⋮ handle to change a dish's spot, or drop it into another category. Customers see the same order on the menu.</p><div id="list"></div></div>
+    <div class="panel" data-panel="items"><h2>Current items</h2><p class="hint">Dishes are grouped by category. Drag the ⋮⋮ handle to change a dish's spot, or drop it into another category. Customers see the same order on the menu.</p><div class="item-search"><input id="item-search" type="search" placeholder="Search dishes by name, category or ingredient" aria-label="Search dishes" autocomplete="off"></div><p class="hint" id="search-empty" role="status" hidden>No dishes match your search.</p><div id="list"></div></div>
   </main>
   <div class="gf" id="gf" role="dialog" aria-modal="true" aria-labelledby="gf-title" hidden>
     <div class="gf-box" tabindex="-1">
@@ -206,7 +206,7 @@
   <script src="js/rubber.js?v=2"></script>
   <script src="js/marquee.js"></script>
   <script src="js/quick-gen.js?v=6"></script>
-  <script src="js/admin.js?v=5"></script>
+  <script src="js/admin.js?v=6"></script>
   <script src="js/admin-quick.js?v=7"></script>
 </body>
 </html>

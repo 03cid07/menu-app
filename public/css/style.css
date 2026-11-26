@@ -1413,3 +1413,7 @@ body.is-dragging * { cursor: grabbing !important; }
 .sheet.back { animation: sheet-back .22s ease-out; }
 @keyframes sheet-back { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .sheet.back { animation: none; } }
+
+/* Admin item search */
+.item-search { margin: .2rem 0 .9rem; }
+#list .admin-item[hidden], #list .ag[hidden] { display: none; }

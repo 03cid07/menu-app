@@ -116,7 +116,7 @@ async function refresh() {
     : "<p>No categories yet.</p>";
   // The list is grouped by category (in the customer menu's page order). Every dish has a ⋮⋮ handle: drag it to
   // change its spot, or drop it into another category. The order saved here is the order customers see.
-  const itemRow = (i) => `<div class="admin-item" data-id="${i.id}">
+  const itemRow = (i) => `<div class="admin-item" data-id="${i.id}" data-q="${esc([i.name, i.category, i.description, i.ingredients, i.label].filter(Boolean).join(" ").toLowerCase())}">
         <div class="admin-row"><button type="button" class="drag-handle" aria-label="Move ${esc(i.name)}. Drag, or press the up and down arrow keys." title="Drag to move">⋮⋮</button>${i.image ? `<img class="admin-thumb" src="/${esc(i.image)}" alt="">` : ""}<div><div class="admin-title"><strong>${mqHtml(i.name)}</strong><span class="price">${data.currency}${i.price}</span></div>
         <small>${i.model ? "3D model" : ""}${i.available ? "" : `${i.model ? " · " : ""}sold out`}</small></div></div>
         <div><button class="btn ghost" data-edit="${i.id}">Edit</button>
@@ -130,7 +130,27 @@ async function refresh() {
       }).join("")
     : "<p>No items yet. Add your first item above.</p>";
   if (window.qrSync) qrSync(qrOn());
+  filterItems();
 }
+
+// Search box above the list: hides the dishes that do not match (every word typed must appear in the name, category,
+// description, ingredients or tag). The rows stay in the page, so saving a drag order never loses a hidden dish.
+function filterItems() {
+  const words = ($("#item-search").value || "").toLowerCase().split(/\s+/).filter(Boolean);
+  const list = $("#list");
+  let shown = 0;
+  list.querySelectorAll(".ag").forEach((g) => {
+    const rows = [...g.querySelectorAll(".ag-body > .admin-item")];
+    let n = 0;
+    rows.forEach((r) => { const ok = words.every((w) => r.dataset.q.includes(w)); r.hidden = !ok; if (ok) n++; });
+    g.hidden = words.length > 0 && n === 0;
+    shown += n;
+    const small = g.querySelector(".ag-head small");
+    if (small) small.textContent = words.length ? `${n} of ${rows.length} dish${rows.length === 1 ? "" : "es"}` : `${rows.length} dish${rows.length === 1 ? "" : "es"}`;
+  });
+  $("#search-empty").hidden = !(words.length && !shown);
+}
+$("#item-search").addEventListener("input", filterItems);
 
 function resetForm() {
   $("#form").reset(); $("#id").value = ""; $("#available").checked = true; showModel(""); photos = []; renderPhotos(); $("#imageFile").value = "";
