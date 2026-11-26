@@ -55,26 +55,44 @@ function rateHtml(i) {
     <p class="rate-msg" role="status">${mine ? "Tap a star to change it." : "Tap a star to rate."}</p>`;
 }
 const galleryOf = (i) => (i.images && i.images.length ? i.images : i.image ? [i.image] : []);
+// Shopee-style strip under the big photo: one small thumbnail per photo (tap one and the big photo changes),
+// plus a "3D" thumbnail at the front when the dish has a model (tap it and the 3D view opens).
+function thumbsHtml(i, g) {
+  if (g.length < 2 && !i.model) return "";
+  const photos = g.map((src, n) => `<button type="button" class="gal-thumb" data-g="${n}" aria-label="Show photo ${n + 1} of ${g.length}"${n ? "" : ' aria-current="true"'}><img src="${esc(src)}" alt="" draggable="false"></button>`).join("");
+  const d3 = i.model ? `<button type="button" class="gal-thumb gal-3d" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-name="${esc(i.name)}" aria-label="Open the 3D view of ${esc(i.name)}"><img src="${esc(g[0])}" alt="" draggable="false"><span class="gal-3d-tag">${CUBE_ICON}<b>3D</b></span></button>` : "";
+  return `<div class="gal-thumbs" role="group" aria-label="Photo thumbnails">${d3}${photos}</div>`;
+}
 function heroHtml(i) {
   const g = galleryOf(i);
   if (!g.length) return `<div class="sheet-hero sheet-ph" aria-hidden="true">${esc(i.name.trim().charAt(0).toUpperCase())}</div>`;
-  if (g.length === 1) return `<img class="sheet-hero" src="${esc(g[0])}" alt="${esc(i.name)}">`;
-  return `<div class="gallery" role="group" aria-roledescription="carousel" aria-label="Photos of ${esc(i.name)}">
-      <div class="gal-track" tabindex="0">${g.map((src, n) => `<img class="gal-slide" src="${esc(src)}" alt="${esc(i.name)}, photo ${n + 1} of ${g.length}"${n ? ' loading="lazy"' : ""}>`).join("")}</div>
-      <button type="button" class="gal-nav prev" aria-label="Previous photo" disabled>\u2039</button>
-      <button type="button" class="gal-nav next" aria-label="Next photo">\u203a</button>
-      <span class="gal-count" aria-live="polite">1 / ${g.length}</span>
-      <div class="gal-dots">${g.map((_, n) => `<button type="button" class="gal-dot" data-g="${n}" aria-label="Show photo ${n + 1}"${n ? "" : ' aria-current="true"'}></button>`).join("")}</div>
+  if (g.length === 1 && !i.model) return `<img class="sheet-hero" src="${esc(g[0])}" alt="${esc(i.name)}">`;
+  const many = g.length > 1;
+  return `<div class="gallery${many ? "" : " solo"}" role="group" aria-roledescription="carousel" aria-label="Photos of ${esc(i.name)}">
+      <div class="gal-stage">
+        <div class="gal-track" tabindex="0">${g.map((src, n) => `<img class="gal-slide" src="${esc(src)}" alt="${esc(i.name)}, photo ${n + 1} of ${g.length}"${n ? ' loading="lazy"' : ""}>`).join("")}</div>
+        ${many ? `<button type="button" class="gal-nav prev" aria-label="Previous photo" disabled>\u2039</button>
+        <button type="button" class="gal-nav next" aria-label="Next photo">\u203a</button>
+        <span class="gal-count" aria-live="polite">1 / ${g.length}</span>` : ""}
+      </div>
+      ${thumbsHtml(i, g)}
     </div>`;
 }
-// Keep the arrows, dots and counter in step with the photo being shown
+// Keep the arrows, thumbnails and counter in step with the photo being shown
 function galSync(track) {
-  const g = track.parentElement, count = track.children.length;
+  const g = track.closest(".gallery"), count = track.children.length;
   const n = Math.max(0, Math.min(count - 1, Math.round(track.scrollLeft / (track.clientWidth || 1))));
-  g.querySelectorAll(".gal-dot").forEach((d, k) => (k === n ? d.setAttribute("aria-current", "true") : d.removeAttribute("aria-current")));
-  g.querySelector(".gal-count").textContent = `${n + 1} / ${count}`;
-  g.querySelector(".prev").disabled = n === 0;
-  g.querySelector(".next").disabled = n === count - 1;
+  g.querySelectorAll(".gal-thumb[data-g]").forEach((d, k) => (k === n ? d.setAttribute("aria-current", "true") : d.removeAttribute("aria-current")));
+  const cnt = g.querySelector(".gal-count"), prev = g.querySelector(".prev"), next = g.querySelector(".next");
+  if (cnt) cnt.textContent = `${n + 1} / ${count}`;
+  if (prev) prev.disabled = n === 0;
+  if (next) next.disabled = n === count - 1;
+  // slide the thumbnail strip so the current thumbnail stays in view (only when the photo really changed)
+  const strip = g.querySelector(".gal-thumbs"), t = strip && strip.querySelectorAll(".gal-thumb[data-g]")[n];
+  if (t && g.dataset.n !== String(n)) {
+    g.dataset.n = String(n);
+    if (strip.scrollWidth > strip.clientWidth) strip.scrollTo({ left: t.offsetLeft - (strip.clientWidth - t.offsetWidth) / 2, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }
   return n;
 }
 function galGo(track, n) {
@@ -402,6 +420,27 @@ function fillSlide(k) {
   s.innerHTML = sheetHtml(it).replace(' id="sheet-title"', "");
   s.dataset.filled = "1";
 }
+// The 3D thumbnail shows the dish's real model, slowly turning. Only the card that is on screen gets one (the models are several MB
+// and each is its own WebGL scene); the other cards keep the still tile. If the model can't load, the still tile stays.
+function mountMini(b) {
+  const mv = document.createElement("model-viewer");
+  const set = { src: b.dataset.model, alt: "", "aria-hidden": "true", tabindex: "-1", "auto-rotate": "", "rotation-per-second": "45deg",
+    "camera-orbit": "35deg 75deg 125%", "interaction-prompt": "none", "disable-zoom": "", "disable-pan": "", "disable-tap": "",
+    "shadow-intensity": "0", "environment-image": "neutral", reveal: "auto" };
+  for (const k in set) mv.setAttribute(k, set[k]);
+  mv.addEventListener("load", () => b.classList.add("mv-ready"), { once: true });
+  mv.addEventListener("error", () => { mv.remove(); b.classList.remove("mv-ready"); }, { once: true });
+  b.appendChild(mv);
+}
+function miniSync() {
+  sheetBox.querySelectorAll(".sheet-slide").forEach((sl) => {
+    const b = sl.querySelector(".gal-3d");
+    if (!b) return;
+    const mv = b.querySelector("model-viewer"), on = sl.classList.contains("on");
+    if (on && !mv) mountMini(b);
+    else if (!on && mv) { mv.remove(); b.classList.remove("mv-ready"); }
+  });
+}
 function setActive(k) {
   const s = sheetBox.children[k];
   if (!s) return;
@@ -412,6 +451,7 @@ function setActive(k) {
   const h = s.querySelector(".sheet-head h2");
   if (h) h.id = "sheet-title";
   sheetItem = data.items.find((x) => x.id === s.dataset.id) || sheetItem;
+  miniSync();
 }
 function goToSlide(k, smooth) {
   const step = slideStep();
@@ -497,7 +537,7 @@ sheetBox.addEventListener("click", (e) => {
 }, true);
 sheet.addEventListener("click", (e) => {
   if (e.target === sheet || e.target.closest(".sheet-close") || (sheetMq.matches && e.target === sheetBox)) return closeSheet();
-  const gb = e.target.closest(".gal-nav, .gal-dot");
+  const gb = e.target.closest(".gal-nav, .gal-thumb[data-g]");
   if (gb) {
     const track = gb.closest(".gallery").querySelector(".gal-track");
     return galGo(track, gb.dataset.g !== undefined ? Number(gb.dataset.g) : galSync(track) + (gb.classList.contains("next") ? 1 : -1));
@@ -639,7 +679,7 @@ function fxKind(it) { return typeof QuickGen !== "undefined" ? QuickGen.tempOf(i
 // ---- "View in 3D / AR" on a dish card: opens the 3D view screen (js/viewer.js) with this dish ----
 // (The old popup viewer that lived here was no longer reachable since the 3D view got its own screen, so it was removed.)
 document.addEventListener("click", (e) => {
-  const b = e.target.closest(".ar-open");
+  const b = e.target.closest(".ar-open, .gal-3d");
   if (!b || !window.Viewer) return;
   parkSheet(); // the card waits behind the 3D view and comes back when that closes
   Viewer.openDish(b.dataset.id);

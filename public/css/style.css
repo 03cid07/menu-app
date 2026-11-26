@@ -211,10 +211,26 @@ body.no-scroll { overflow: hidden; }
 .gal-nav.prev { left: 8px; } .gal-nav.next { right: 8px; }
 .gal-nav:disabled { opacity: .25; cursor: default; }
 .gal-count { position: absolute; left: 10px; top: 10px; background: rgba(0,0,0,.6); color: #fff; font-size: .8rem; font-weight: 600; padding: .15rem .6rem; border-radius: 999px; }
-.gal-dots { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: center; gap: 2px; }
-.gal-dot { position: relative; width: 22px; height: 22px; padding: 0; border: 0; background: none; cursor: pointer; }
-.gal-dot::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 0 2px rgba(0,0,0,.6); }
-.gal-dot[aria-current="true"]::after { inset: 5px; background: #fff; }
+.gal-stage { position: relative; }
+/* Thumbnail strip under the big photo (Shopee style): tap a thumbnail to change the big photo; the last one (3D) opens the 3D view */
+.gal-thumbs { position: relative; display: flex; gap: 8px; padding: 10px 1rem 2px; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.gal-thumbs::-webkit-scrollbar { display: none; }
+.gal-thumb { position: relative; flex: 0 0 auto; width: 60px; height: 60px; padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: var(--ctl); cursor: pointer; opacity: .7; transition: opacity .15s ease, border-color .15s ease, transform .15s ease; }
+.gal-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.gal-thumb:hover { opacity: 1; }
+.gal-thumb:active { transform: scale(.94); }
+.gal-thumb[aria-current="true"] { border-color: var(--accent); opacity: 1; }
+.gal-3d { border-color: var(--line); opacity: 1; background: radial-gradient(circle at 50% 38%, #f3ecdf, #b9ae99); }
+.gal-3d img { filter: brightness(.4) saturate(.7); }
+.gal-3d-tag { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: #fff; font-size: .66rem; letter-spacing: .08em; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+.gal-3d-tag svg { width: 20px; height: 22px; }
+/* the live model, once it has loaded: it replaces the still photo and the cube, and "3D" becomes a small corner label */
+.gal-3d model-viewer { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; background: transparent; pointer-events: none; opacity: 0; transition: opacity .3s ease; --poster-color: transparent; --progress-bar-color: transparent; --progress-bar-height: 0; --progress-mask: transparent; }
+.gal-3d.mv-ready model-viewer { opacity: 1; }
+.gal-3d.mv-ready img, .gal-3d.mv-ready .gal-3d-tag svg { display: none; }
+.gal-3d.mv-ready .gal-3d-tag { z-index: 1; inset: auto 3px 3px auto; display: block; padding: 1px 5px; border-radius: 999px; background: rgba(0,0,0,.6); text-shadow: none; line-height: 1.3; }
+.gal-3d:hover { border-color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .gal-thumb { transition: none; } .gal-thumb:active { transform: none; } }
 
 /* ---- Admin: photo manager ---- */
 .photo-grid { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .5rem; }
