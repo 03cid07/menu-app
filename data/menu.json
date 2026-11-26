@@ -39,7 +39,7 @@
       "images": [
         "images/mwwrm15d-xtlwn.jpg"
       ],
-      "model": "models/spanish_latte_105cm.glb",
+      "model": "models/spanish_latte_17cm.glb",
       "label": "popular",
       "available": true
     },
@@ -74,7 +74,7 @@
       "images": [
         "images/mwwro4sa-fccaj.jpg"
       ],
-      "model": "models/caramel_macchiato_105cm.glb",
+      "model": "models/caramel_macchiato_17cm.glb",
       "label": "popular",
       "available": true
     },
@@ -109,7 +109,7 @@
       "images": [
         "images/mwwa8k30-787zn.jpg"
       ],
-      "model": "",
+      "model": "models/salted_caramel_17cm.glb",
       "label": "popular",
       "available": true
     },
@@ -144,7 +144,7 @@
       "images": [
         "images/mwwrrnxl-f1x44.jpg"
       ],
-      "model": "models/mocha_latte_105cm.glb",
+      "model": "models/mocha_latte_17cm.glb",
       "label": "popular",
       "available": true
     },
@@ -179,7 +179,7 @@
       "images": [
         "images/mwwrtrt2-9a1dx.jpg"
       ],
-      "model": "models/amaricano_105cm.glb",
+      "model": "models/amaricano_17cm.glb",
       "label": "popular",
       "available": true
     },
@@ -194,7 +194,7 @@
       "images": [],
       "model": "",
       "label": "",
-      "available": true
+      "available": false
     },
     {
       "id": "mvtlq2ui",
@@ -227,7 +227,7 @@
       "images": [
         "images/mww6hhi6-3q1tm.jpg"
       ],
-      "model": "models/strawberry_19cm.glb",
+      "model": "models/strawberry_17cm.glb",
       "label": "popular",
       "available": true
     },
@@ -262,7 +262,7 @@
       "images": [
         "images/mwwrycg6-y0ehw.jpg"
       ],
-      "model": "models/macha_105cm.glb",
+      "model": "models/macha_17cm.glb",
       "label": "popular",
       "available": true
     },
@@ -277,7 +277,7 @@
       "images": [
         "images/mvtlqrx8-533dt.jpg"
       ],
-      "model": "models/blueberry_105cm.glb",
+      "model": "models/blueberry_17cm.glb",
       "temp": "",
       "label": "new",
       "available": true
@@ -305,7 +305,7 @@
       "description": "leftover cake ",
       "ingredients": "caramel ",
       "image": "images/mvmlnt2w-akh1p.jpg",
-      "model": "models/leftover_cake_36cm_fx.glb",
+      "model": "models/leftover_cake_30cm.glb",
       "modelScale": 1,
       "temp": "",
       "available": true,
@@ -337,7 +337,7 @@
       "price": 120,
       "category": "Mains",
       "description": "Pork and vegetable rolls with sweet chili dip.",
-      "available": true
+      "available": false
     },
     {
       "id": "a2",
@@ -345,7 +345,7 @@
       "price": 220,
       "category": "Mains",
       "description": "Slow-braised in soy and vinegar, served with garlic rice.",
-      "available": true
+      "available": false
     },
     {
       "id": "a3",
@@ -353,7 +353,7 @@
       "price": 240,
       "category": "Mains",
       "description": "Pork simmered in coconut milk with long green chilies.",
-      "available": true
+      "available": false
     },
     {
       "id": "mw37xpk2",
@@ -366,7 +366,7 @@
       "images": [],
       "model": "",
       "label": "",
-      "available": true
+      "available": false
     }
   ]
 }
