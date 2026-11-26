@@ -45,7 +45,7 @@
   // also after a drag down (the card shrinks a little while it follows the finger, then lands in the row). The card itself is
   // never stretched. These run as Web Animations, so the browser runs them apart from the page's own scripts and they stay smooth
   // while the page is busy. Without a visible row the card slides like before.
-  function bottomCard({ root, box, finish, dim = 0.55, scroller = null, origin = null, target = null }) {
+  function bottomCard({ root, box, finish, dim = 0.55, scroller = null, origin = null, target = null, onClose = null }) {
     let y = 0, anim = null, closing = false, t0 = null;
     const morph = !!origin;
     let wanims = [], dragOrigin = "";
@@ -115,6 +115,7 @@
     function dismiss(velocity = 0) {
       if (closing) return;
       closing = true; stop();
+      if (onClose) onClose(); // e.g. stop heavy work inside the card before it shrinks
       const g = restRects();
       if (g) {
         // close the window back to the row's size, from wherever the card is now (a drag leaves it low and a little smaller)

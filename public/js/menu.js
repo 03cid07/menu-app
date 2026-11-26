@@ -59,8 +59,8 @@ const galleryOf = (i) => (i.images && i.images.length ? i.images : i.image ? [i.
 // plus a "3D" thumbnail at the front when the dish has a model (tap it and the 3D view opens).
 function thumbsHtml(i, g) {
   if (g.length < 2 && !i.model) return "";
-  const photos = g.map((src, n) => `<button type="button" class="gal-thumb" data-g="${n}" aria-label="Show photo ${n + 1} of ${g.length}"${n ? "" : ' aria-current="true"'}><img src="${esc(src)}" alt="" draggable="false"></button>`).join("");
-  const d3 = i.model ? `<button type="button" class="gal-thumb gal-3d" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-name="${esc(i.name)}" aria-label="Open the 3D view of ${esc(i.name)}"><img src="${esc(g[0])}" alt="" draggable="false"><span class="gal-3d-tag">${CUBE_ICON}<b>3D</b></span></button>` : "";
+  const photos = g.map((src, n) => `<button type="button" class="gal-thumb" data-g="${n}" aria-label="Show photo ${n + 1} of ${g.length}"${n ? "" : ' aria-current="true"'}><img src="${esc(src)}" alt="" draggable="false" loading="lazy" decoding="async"></button>`).join("");
+  const d3 = i.model ? `<button type="button" class="gal-thumb gal-3d" data-id="${esc(i.id)}" data-model="${esc(i.model)}" data-name="${esc(i.name)}" aria-label="Open the 3D view of ${esc(i.name)}"><img src="${esc(g[0])}" alt="" draggable="false" loading="lazy" decoding="async"><span class="gal-3d-tag">${CUBE_ICON}<b>3D</b></span></button>` : "";
   return `<div class="gal-thumbs" role="group" aria-label="Photo thumbnails">${d3}${photos}</div>`;
 }
 function heroHtml(i) {
@@ -397,7 +397,7 @@ const activeSlide = () => sheetBox.querySelector(".sheet-slide.on");
 const slideStep = () => { const a = sheetBox.children[0], b = sheetBox.children[1]; return a && b ? b.offsetLeft - a.offsetLeft : 0; };
 // The card slides in and out with springs and follows a finger (see spring.js)
 const sheetCard = Springs.bottomCard({
-  root: sheet, box: sheetBox, finish: finishSheet,
+  root: sheet, box: sheetBox, finish: finishSheet, onClose: () => { miniStop(); clearTimeout(nearTimer); },
   // the card grows out of the dish that was tapped and shrinks back into it (its row, if that is on screen; otherwise the card slides)
   target: () => (sheetMq.matches ? activeSlide() : sheetBox),
   origin: () => {
@@ -420,31 +420,58 @@ function fillSlide(k) {
   s.innerHTML = sheetHtml(it).replace(' id="sheet-title"', "");
   s.dataset.filled = "1";
 }
-// The 3D thumbnail shows the dish's real model, slowly turning. Only the card that is on screen gets one (the models are several MB
-// and each is its own WebGL scene); the other cards keep the still tile. If the model can't load, the still tile stays.
+// The 3D thumbnail is a still render of the dish's real model (like the still frame on a video thumbnail). The model is loaded once,
+// only after the card has stopped moving; a picture is taken and the WebGL scene is thrown away straight away, so nothing keeps
+// rendering inside the card while it grows, shrinks or is dragged. The picture is kept, so opening the same dish again is instant.
+// If the model can't load, the still photo + cube tile stays.
+const miniSnap = new Map();   // model url -> picture (data URL)
+function showSnap(b, png) {
+  let im = b.querySelector(".gal-3d-snap");
+  if (!im) { im = document.createElement("img"); im.className = "gal-3d-snap"; im.alt = ""; im.draggable = false; b.insertBefore(im, b.firstChild); }
+  im.src = png;
+  b.classList.add("mv-ready");
+}
 function mountMini(b) {
+  const url = b.dataset.model;
+  if (miniSnap.has(url)) return showSnap(b, miniSnap.get(url));
+  if (b.querySelector("model-viewer")) return;
   const mv = document.createElement("model-viewer");
-  const set = { src: b.dataset.model, alt: "", "aria-hidden": "true", tabindex: "-1", "auto-rotate": "", "rotation-per-second": "45deg",
-    "camera-orbit": "35deg 75deg 125%", "interaction-prompt": "none", "disable-zoom": "", "disable-pan": "", "disable-tap": "",
-    "shadow-intensity": "0", "environment-image": "neutral", reveal: "auto" };
+  const set = { src: url, alt: "", "aria-hidden": "true", tabindex: "-1", "camera-orbit": "35deg 75deg 125%", "interaction-prompt": "none",
+    "disable-zoom": "", "disable-pan": "", "disable-tap": "", "shadow-intensity": "0", "environment-image": "neutral", reveal: "auto" };
   for (const k in set) mv.setAttribute(k, set[k]);
-  mv.addEventListener("load", () => b.classList.add("mv-ready"), { once: true });
-  mv.addEventListener("error", () => { mv.remove(); b.classList.remove("mv-ready"); }, { once: true });
+  mv.addEventListener("load", () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    let png = "";
+    try { png = mv.toDataURL("image/png"); } catch (_) { /* the still tile stays */ }
+    mv.remove();                                   // frees the WebGL scene
+    if (png && png.length > 500) { miniSnap.set(url, png); if (b.isConnected) showSnap(b, png); }
+  })), { once: true });
+  mv.addEventListener("error", () => mv.remove(), { once: true });
   b.appendChild(mv);
 }
-function miniSync() {
-  sheetBox.querySelectorAll(".sheet-slide").forEach((sl) => {
-    const b = sl.querySelector(".gal-3d");
-    if (!b) return;
-    const mv = b.querySelector("model-viewer"), on = sl.classList.contains("on");
-    if (on && !mv) mountMini(b);
-    else if (!on && mv) { mv.remove(); b.classList.remove("mv-ready"); }
-  });
+let miniTimer = 0;
+function miniStop() {
+  clearTimeout(miniTimer);
+  sheetBox.querySelectorAll(".gal-3d model-viewer").forEach((mv) => mv.remove());
 }
-function setActive(k) {
+function miniSync() {
+  clearTimeout(miniTimer);
+  sheetBox.querySelectorAll(".sheet-slide:not(.on) .gal-3d model-viewer").forEach((mv) => mv.remove());
+  const b = sheetBox.querySelector(".sheet-slide.on .gal-3d");
+  if (!b) return;
+  if (miniSnap.has(b.dataset.model)) return showSnap(b, miniSnap.get(b.dataset.model));  // already taken: free to show at once
+  miniTimer = setTimeout(() => {
+    const go = () => { const t = sheetBox.querySelector(".sheet-slide.on .gal-3d"); if (t && !sheet.hidden) mountMini(t); };
+    if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 500 }); else go();
+  }, 650);
+}
+let nearTimer = 0;
+function setActive(k, first) {
   const s = sheetBox.children[k];
   if (!s) return;
-  for (let j = Math.max(0, k - 2); j <= k + 2; j++) fillSlide(j);
+  clearTimeout(nearTimer);
+  const near = () => { for (let j = Math.max(0, k - 2); j <= k + 2; j++) fillSlide(j); };
+  // opening: only the tapped card is built before the grow starts; the neighbours (for swiping) are built after it
+  if (first) { fillSlide(k); nearTimer = setTimeout(near, 500); } else near();
   sheetBox.querySelectorAll(".sheet-slide.on").forEach((n) => n.classList.remove("on"));
   s.classList.add("on");
   sheetBox.querySelectorAll("#sheet-title").forEach((n) => n.removeAttribute("id"));
@@ -478,7 +505,7 @@ function openSheet(id, opener) {
   sheetBox.innerHTML = ids.map((x) => `<div class="sheet-slide" data-id="${esc(x)}" data-rb-edges="end"></div>`).join("");
   sheet.hidden = false;
   const k = ids.indexOf(id);
-  setActive(k);
+  setActive(k, true);
   if (sheetMq.matches) { sheetBox.style.scrollSnapType = "none"; sheetBox.scrollLeft = k * slideStep(); sheetBox.style.scrollSnapType = ""; }
   sheetCard.open();
   document.body.classList.add("no-scroll");
